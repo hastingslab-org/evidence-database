@@ -28,11 +28,15 @@
     }
 </style>
 
-<h1>Searchable literature database for genitourinary cancer</h1>
+<h2 style="margin-bottom: 40px;">Searchable literature database for genitourinary cancer</h2>
+
 <div class="search-container">
-    <form action="/search" method="get">
+    <form action="/search" method="post">
         <input type="text" name="query" placeholder="Enter your search query here..." required>
-        <button type="submit">Confirm</button>
+        <button type="submit">Submit</button>
     </form>
 </div>
+
+
+
 {% endblock %}
