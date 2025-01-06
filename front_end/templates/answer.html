@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+
+<body>
+    <h4 style="margin-top: 20px;">Your Question:</h4>
+    <p id="userQuestion"></p>  <!-- Display the question here -->
+
+    <h4 style="margin-top: 20px;">Answer:</h4>
+    <div id="liveResponse"></div>
+</body>
+
+<script>
+function streamLLMResponse(query) {
+    const responseContainer = document.getElementById("liveResponse");
+    responseContainer.innerHTML = "";  // Clear previous content
+
+    // Send the query via POST to /stream_response
+    fetch('/stream_response', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `query=${encodeURIComponent(query)}`
+    }).then(response => {
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+
+        // Function to read and append streamed data
+        function readStream() {
+            reader.read().then(({ done, value }) => {
+                if (done) {
+                    console.log("Stream finished.");
+                    return;
+                }
+                responseContainer.innerHTML += decoder.decode(value);
+                readStream();  // Continue reading
+            });
+        }
+        readStream();
+    }).catch(error => {
+        console.error("Error:", error);
+    });
+}
+
+// Automatically trigger the stream function on page load
+window.onload = function () {
+        const query = new URLSearchParams(window.location.search).get("query");
+        if (query) {
+            // Display the user's question
+            document.getElementById("userQuestion").textContent = query;
+
+            // Call the function to stream the LLM response
+            streamLLMResponse(query);
+        }
+    };
+</script>
+
+{% endblock %}
