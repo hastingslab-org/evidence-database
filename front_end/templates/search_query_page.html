@@ -70,33 +70,49 @@
     </div>
 
     <script>
-        // Function to handle form submission
+       // Function to handle form submission
         async function handleFormSubmit() {
-            const query = document.getElementById("queryInput").value;
+    // Get the query from the query form
+    const query = document.getElementById("queryInput").value;
 
-        // Get patient's characteristics from the form
-        const formData = new FormData(document.getElementById("patientForm"));
-        const patientData = {};
+    // Get patient's characteristics from the patient form
+    const patientForm = document.getElementById("patientForm");
+    const formData = new FormData(patientForm);
 
-        formData.forEach((value, key) => {
-            if (!patientData[key]) {
-                patientData[key] = value;
-            } else {
-                // Handle multiple checkbox values
-                if (!Array.isArray(patientData[key])) {
-                    patientData[key] = [patientData[key]];
-                }
-                patientData[key].push(value);
+    // Convert form data to an object
+    const patientData = {};
+    formData.forEach((value, key) => {
+        if (!patientData[key]) {
+            patientData[key] = value;
+        } else {
+            // Handle multiple checkbox values
+            if (!Array.isArray(patientData[key])) {
+                patientData[key] = [patientData[key]];
             }
-        });
-
-        // Store the query in sessionStorage
-        sessionStorage.setItem("query", query);
-        sessionStorage.setItem("patientData", JSON.stringify(patientData));
-
-        // Redirect to the /answer page
-            window.location.href = "/answer";
+            patientData[key].push(value);
         }
+    });
+
+    // Prepare data to send to the backend
+    const data = {
+        query: query,
+        patient_data: patientData
+    };
+
+    // Send the data to the backend using fetch
+    const response = await fetch('/submit-query', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    });
+
+    // Redirect to the /answer page
+    if (response.ok) {
+        window.location.href = "/answer";
+    }
+}
     </script>
     
 
