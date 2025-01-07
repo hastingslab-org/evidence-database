@@ -5,7 +5,7 @@ parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 # Add the parent directory to sys.path
 if parent_dir not in sys.path:
     sys.path.insert(0, parent_dir)
-from flask import Flask, render_template, request, url_for, flash, redirect, Response, session
+from flask import Flask, render_template, request, url_for, flash, redirect, Response, session, jsonify
 from werkzeug.exceptions import abort
 from llm import call_llm_stream, get_relevant_papers
 import sqlite3 
@@ -30,7 +30,25 @@ def get_query(query_id):
     return query
 
 app = Flask(__name__)
-#app.config['SECRET_KEY'] = 'your secret key'
+app.config['SECRET_KEY'] = 'your secret key' #TODO investigate
+
+
+
+# Route to handle the query form
+@app.route('/submit-query', methods=['POST'])
+def handle_query():
+    data = request.get_json()  # Get the JSON payload
+
+    # Extract query and patient data from the request
+    query = data.get('query')
+    patient_data = data.get('patient_data')
+
+    # Store the query and patient data in the session
+    session['query'] = query
+    session['patient_data'] = patient_data
+
+    return jsonify({'message': 'Data received successfully'}), 200
+
 
 @app.route('/')
 def search_query_page():
@@ -38,19 +56,27 @@ def search_query_page():
 
 @app.route("/answer")
 def answer_page():
-    query = session.get('query', 'No question provided')
-    return render_template('answer.html', query=query)
+    query = session.get('query', '')
+    patient_data = session.get('patient_data', {})
+
+    return render_template('answer.html', query=query, patient_data=patient_data) #TODO use query and patient_data directly in html
 
 # Route for streaming the LLM response
 @app.route('/stream_response', methods=['POST'])
 def stream_response():
-    content = request.form['query']
-    patientCharacteristics = "jack"
+    query = session.get('query', '')
+    patient_data = session.get('patient_data', {})
+
+    # Store the query and patient characteristics in the session
+    #session['query'] = request.form.get('query')
+    #session['patient_data'] = patient_data   
+    #TODO store here in session and not in html ?
+    
     #print("TADA: " + request.form)
     chroma_client = chromadb.PersistentClient(path=DB_PATH)
     collection = chroma_client.get_collection(name="searchable_db_collection")
     
-    query_results = get_relevant_papers(content, collection)
+    query_results = get_relevant_papers(query, collection)
     titles = [paper["titles"] for paper in query_results["metadatas"][0]]
 
     def generate_response():
@@ -62,7 +88,7 @@ def stream_response():
         
         # Stream the LLM response
         title_and_abst = ",".join(query_results["documents"][0])
-        for chunk in call_llm_stream(content, title_and_abst, patientCharacteristics):
+        for chunk in call_llm_stream(query, title_and_abst, patient_data):
             yield chunk
 
 

@@ -21,7 +21,11 @@ def get_relevant_papers(user_query, collection):
     return query_results
 
 
-def call_llm_stream(user_query, title_and_abst, patientCharacteristics):
+def call_llm_stream(user_query, title_and_abst, patient_data):
+    
+    #Patient Data to string
+    patient_string = '\n'.join(f"{key.replace('_', ' ').title()}: {', '.join(value) if isinstance(value, list) else value}" for key, value in patient_data.items())
+    
     #LLM
     openai_client = OpenAI(
             api_key = "W2oF2Q2NLaTmqj7LGOiJwp9Pdi47Rhhn",
@@ -29,7 +33,7 @@ def call_llm_stream(user_query, title_and_abst, patientCharacteristics):
         )
     messages=[
     {"role": "system", "content": SYSTEM_MSG},
-    {"role": "user", "content": "Our patient has the following characteristics: " + patientCharacteristics
+    {"role": "user", "content": "Our patient has the following characteristics: " + patient_string
       + "Using the following papers and abstract: " + title_and_abst 
       + "Please answer this question: " + user_query} #PROMPT + user_query + title_and_abst
     ]
