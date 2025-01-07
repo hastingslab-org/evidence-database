@@ -10,6 +10,9 @@
     <h4 style="margin-top: 20px;">Your Question:</h4>
     <p id="userQuestion"></p>  <!-- Display the question here -->
 
+    <h4>Patient's Characteristics</h4>
+    <ul id="patientCharacteristics"></ul>
+
     <h4 style="margin-top: 20px;">Answer:</h4>
     <div id="liveResponse"></div>
 </body>
@@ -22,6 +25,16 @@ const query = sessionStorage.getItem("query");
 // Display the user's question
 if (query) {
     document.getElementById("userQuestion").textContent = query;
+
+    // Retrieve and display the patient's characteristics
+    const patientData = JSON.parse(sessionStorage.getItem("patientData"));
+    const characteristicsList = document.getElementById("patientCharacteristics");
+
+    for (const [key, value] of Object.entries(patientData)) {
+        const listItem = document.createElement("li");
+        listItem.textContent = `${key}: ${Array.isArray(value) ? value.join(", ") : value}`;
+        characteristicsList.appendChild(listItem);
+    }
 
     // Call the function to stream the LLM response
     streamLLMResponse(query);

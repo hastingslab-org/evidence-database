@@ -45,6 +45,8 @@ def answer_page():
 @app.route('/stream_response', methods=['POST'])
 def stream_response():
     content = request.form['query']
+    patientCharacteristics = "jack"
+    #print("TADA: " + request.form)
     chroma_client = chromadb.PersistentClient(path=DB_PATH)
     collection = chroma_client.get_collection(name="searchable_db_collection")
     
@@ -60,7 +62,7 @@ def stream_response():
         
         # Stream the LLM response
         title_and_abst = ",".join(query_results["documents"][0])
-        for chunk in call_llm_stream(content, title_and_abst):
+        for chunk in call_llm_stream(content, title_and_abst, patientCharacteristics):
             yield chunk
 
 
