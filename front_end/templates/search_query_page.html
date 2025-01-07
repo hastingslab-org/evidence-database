@@ -72,13 +72,30 @@
     <script>
         // Function to handle form submission
         async function handleFormSubmit() {
-        const query = document.getElementById("queryInput").value;
+            const query = document.getElementById("queryInput").value;
+
+        // Get patient's characteristics from the form
+        const formData = new FormData(document.getElementById("patientForm"));
+        const patientData = {};
+
+        formData.forEach((value, key) => {
+            if (!patientData[key]) {
+                patientData[key] = value;
+            } else {
+                // Handle multiple checkbox values
+                if (!Array.isArray(patientData[key])) {
+                    patientData[key] = [patientData[key]];
+                }
+                patientData[key].push(value);
+            }
+        });
 
         // Store the query in sessionStorage
         sessionStorage.setItem("query", query);
+        sessionStorage.setItem("patientData", JSON.stringify(patientData));
 
         // Redirect to the /answer page
-        window.location.href = "/answer";
+            window.location.href = "/answer";
         }
     </script>
     

@@ -6,7 +6,7 @@ CHROMA_DATA_PATH = "./chroma_data2/"
 COLLECTION_NAME = "searchable_db_collection"
 
 SYSTEM_MSG  = "You are a medical expert assisting doctors and clinicians in decision making" #"You are a helpful systematic reviewing assistant" #TODO try diff sytsem prompt
-PROMPT = "Please answer the following question using the following paper titles and abstracts."
+#PROMPT = "Please answer the following question using the following paper titles and abstracts."
 MODEL = "meta-llama/Meta-Llama-3.1-70B-Instruct"
 NB_PAPERS_LLM = 5
 
@@ -21,8 +21,7 @@ def get_relevant_papers(user_query, collection):
     return query_results
 
 
-def call_llm_stream(user_query, title_and_abst):
-    print("LLM STREAMING")
+def call_llm_stream(user_query, title_and_abst, patientCharacteristics):
     #LLM
     openai_client = OpenAI(
             api_key = "W2oF2Q2NLaTmqj7LGOiJwp9Pdi47Rhhn",
@@ -30,7 +29,9 @@ def call_llm_stream(user_query, title_and_abst):
         )
     messages=[
     {"role": "system", "content": SYSTEM_MSG},
-    {"role": "user", "content": PROMPT + user_query + title_and_abst}
+    {"role": "user", "content": "Our patient has the following characteristics: " + patientCharacteristics
+      + "Using the following papers and abstract: " + title_and_abst 
+      + "Please answer this question: " + user_query} #PROMPT + user_query + title_and_abst
     ]
 
     #generate response
