@@ -5,7 +5,7 @@ parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 # Add the parent directory to sys.path
 if parent_dir not in sys.path:
     sys.path.insert(0, parent_dir)
-from flask import Flask, render_template, request, url_for, flash, redirect, Response
+from flask import Flask, render_template, request, url_for, flash, redirect, Response, session
 from werkzeug.exceptions import abort
 from llm import call_llm_stream, get_relevant_papers
 import sqlite3 
@@ -38,8 +38,7 @@ def search_query_page():
 
 @app.route("/answer")
 def answer_page():
-    query = request.args.get('query')
-    print("QUERY : " + query)
+    query = session.get('query', 'No question provided')
     return render_template('answer.html', query=query)
 
 # Route for streaming the LLM response

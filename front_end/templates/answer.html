@@ -15,6 +15,20 @@
 </body>
 
 <script>
+
+// Retrieve the query from sessionStorage
+const query = sessionStorage.getItem("query");
+
+// Display the user's question
+if (query) {
+    document.getElementById("userQuestion").textContent = query;
+
+    // Call the function to stream the LLM response
+    streamLLMResponse(query);
+} else {
+    document.getElementById("userQuestion").textContent = "No question provided.";
+}
+
 function streamLLMResponse(query) {
     const responseContainer = document.getElementById("liveResponse");
     responseContainer.innerHTML = "";  // Clear previous content
@@ -45,17 +59,6 @@ function streamLLMResponse(query) {
     });
 }
 
-// Automatically trigger the stream function on page load
-window.onload = function () {
-        const query = new URLSearchParams(window.location.search).get("query");
-        if (query) {
-            // Display the user's question
-            document.getElementById("userQuestion").textContent = query;
-
-            // Call the function to stream the LLM response
-            streamLLMResponse(query);
-        }
-    };
 </script>
 
 {% endblock %}

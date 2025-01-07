@@ -72,12 +72,16 @@
     <script>
         // Function to handle form submission
         async function handleFormSubmit() {
-            const query = document.getElementById("queryInput").value;
-    
-            // Redirect to the /answer page with the query as a URL parameter
-            window.location.href = `/answer?query=${encodeURIComponent(query)}`;
+        const query = document.getElementById("queryInput").value;
+
+        // Store the query in sessionStorage
+        sessionStorage.setItem("query", query);
+
+        // Redirect to the /answer page
+        window.location.href = "/answer";
         }
     </script>
+    
 
 
     {% endblock %}

@@ -5,7 +5,7 @@ from openai import OpenAI
 CHROMA_DATA_PATH = "./chroma_data2/"
 COLLECTION_NAME = "searchable_db_collection"
 
-SYSTEM_MSG  = "You are a professional medical assitant helping doctors in decision making" #"You are a helpful systematic reviewing assistant" #TODO try diff sytsem prompt
+SYSTEM_MSG  = "You are a medical expert assisting doctors and clinicians in decision making" #"You are a helpful systematic reviewing assistant" #TODO try diff sytsem prompt
 PROMPT = "Please answer the following question using the following paper titles and abstracts."
 MODEL = "meta-llama/Meta-Llama-3.1-70B-Instruct"
 NB_PAPERS_LLM = 5
