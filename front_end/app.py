@@ -6,10 +6,12 @@ parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if parent_dir not in sys.path:
     sys.path.insert(0, parent_dir)
 from flask import Flask, render_template, request, url_for, flash, redirect, Response, session, jsonify
-from werkzeug.exceptions import abort
+from werkzeug.exceptions import abort, RequestEntityTooLarge
 from llm import call_llm_stream, get_relevant_papers
 import sqlite3 
 import chromadb
+import urllib.parse
+import json
 
 
 # Get the db directory path
@@ -33,6 +35,9 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your secret key' #TODO investigate
 
 
+@app.errorhandler(RequestEntityTooLarge)
+def handle_large_request(error):
+    return "The request is too large!", 413
 
 # Route to handle the query form
 @app.route('/submit-query', methods=['POST'])
@@ -56,43 +61,47 @@ def search_query_page():
 
 @app.route("/answer")
 def answer_page():
-    query = session.get('query', '')
-    patient_data = session.get('patient_data', {})
+    #query = session.get('query', '')
+    #safe_query = json.dumps(query) #deal with linebreaks
 
-    return render_template('answer.html', query=query, patient_data=patient_data) #TODO use query and patient_data directly in html
+    #patient_data = session.get('patient_data', {})
+    return render_template('answer.html') #TODO use query and patient_data directly in html
 
 # Route for streaming the LLM response
 @app.route('/stream_response', methods=['POST'])
-def stream_response():
-    query = session.get('query', '')
-    patient_data = session.get('patient_data', {})
-
-    # Store the query and patient characteristics in the session
-    #session['query'] = request.form.get('query')
-    #session['patient_data'] = patient_data   
-    #TODO store here in session and not in html ?
-    
-    #print("TADA: " + request.form)
-    chroma_client = chromadb.PersistentClient(path=DB_PATH)
-    collection = chroma_client.get_collection(name="searchable_db_collection")
-    
-    query_results = get_relevant_papers(query, collection)
-    titles = [paper["titles"] for paper in query_results["metadatas"][0]]
-
-    def generate_response():
-        # Yield paper titles first
-        yield "Selected Papers:\n"
-        for idx, title in enumerate(titles, 1):
-            yield f"{idx}. {title}\n"
-        yield "\n---\nResponse:\n\n"
+def stream_response():  
+    try: 
+        query = session.get('query', '')
+        patient_data = session.get('patient_data', {})
+        print("QUERY: " + query)
+        print(patient_data)
+        # Store the query and patient characteristics in the session
+        #session['query'] = request.form.get('query')
+        #session['patient_data'] = patient_data   
+        #TODO store here in session and not in html ?
         
-        # Stream the LLM response
-        title_and_abst = ",".join(query_results["documents"][0])
-        for chunk in call_llm_stream(query, title_and_abst, patient_data):
-            yield chunk
+        chroma_client = chromadb.PersistentClient(path=DB_PATH)
+        collection = chroma_client.get_collection(name="searchable_db_collection")
+        query_results = get_relevant_papers(query, collection)
+        titles = [paper["titles"] for paper in query_results["metadatas"][0]]
 
+        def generate_response():
+            # Yield paper titles first
+            yield "Selected Papers:\n"
+            for idx, title in enumerate(titles, 1):
+                yield f"{idx}. {title}\n"
+            yield "\n---\nResponse:\n\n"
+            
+            # Stream the LLM response
+            title_and_abst = ",".join(query_results["documents"][0])
+            for chunk in call_llm_stream(query, title_and_abst, patient_data):
+                yield chunk
 
-    return Response(generate_response(), content_type='text/event-stream')
+        return Response(generate_response(), content_type='text/event-stream')
+    
+    except Exception as e:
+        print(f"Error: {e}")
+        return Response("An error occurred while streaming the response.", status=500)
 
 
 """@app.route('/search', methods=['GET'])
