@@ -8,14 +8,11 @@
 
 <body>
     <h2>Your Question</h2>
-    <p>{{ query }}</p>
+    <p id="userQuery"></p>
 
     <h2>Patient's Characteristics</h2>
-    <ul>
-        {% for key, value in patient_data.items() %}
-            <li>{{ key | replace('_', ' ') | title }}: {{ value if value is iterable and not string else [value] | join(', ') }}</li>
-        {% endfor %}
-    </ul>
+    <p id="patientCharacteristics"></p>
+
 
     <h4 style="margin-top: 20px;">Answer:</h4>
     <div id="liveResponse"></div>
@@ -25,41 +22,59 @@
 
 
 <script>
-    const query = "{{ query }}";
+    const query = sessionStorage.getItem("query");
+    document.getElementById("userQuery").textContent = query;
+
+    // Retrieve and display the patient's characteristics
+    const patientData = JSON.parse(sessionStorage.getItem("patientData"));
+    const characteristicsList = document.getElementById("patientCharacteristics");
+    for (const [key, value] of Object.entries(patientData)) {
+        const listItem = document.createElement("li");
+        listItem.textContent = `${key}: ${Array.isArray(value) ? value.join(", ") : value}`;
+        characteristicsList.appendChild(listItem);
+    }
+
     // Call the function to stream the LLM response
     streamLLMResponse(query);
 
-function streamLLMResponse(query) {
-    const responseContainer = document.getElementById("liveResponse");
-    responseContainer.innerHTML = "";  // Clear previous content
+    function streamLLMResponse(query) {
+        // Use JSON to send the query to the server
+        const responseContainer = document.getElementById("liveResponse");
+        responseContainer.innerHTML = "";  // Clear previous content
 
-    // Send the query via POST to /stream_response
-    fetch('/stream_response', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: query })
-    }).then(response => {
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
+        // Send the query via POST to /stream_response
+        fetch('/stream_response', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query: query })  // Send the query as a JSON object
+        }).then(response => {
+            if (!response.body) {
+                console.error("Response body is null.");
+                responseContainer.innerHTML = "<p style='color: red;'>An error occurred while fetching the response.</p>";
+                return;
+            }
+        
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
 
-        // Function to read and append streamed data
-        function readStream() {
-            reader.read().then(({ done, value }) => {
-                if (done) {
-                    console.log("Stream finished.");
-                    return;
-                }
-                responseContainer.innerHTML += decoder.decode(value);
-                readStream();  // Continue reading
-            });
-        }
-        readStream();
-    }).catch(error => {
-        console.error("Error:", error);
-        responseContainer.innerHTML = "<p style='color: red;'>An error occurred while fetching the response.</p>";
-    });
-}
+            // Function to read and append streamed data
+            function readStream() {
+                reader.read().then(({ done, value }) => {
+                    if (done) {
+                        console.log("Stream finished.");
+                        return;
+                    }
+                    responseContainer.innerHTML += decoder.decode(value);
+                    readStream();  // Continue reading
+                });
+            }
+            readStream();
+        }).catch(error => {
+            console.error("Error:", error);
+            responseContainer.innerHTML = "<p style='color: red;'>An error occurred while fetching the response.</p>";
+        });
+    }
 
-</script>
+    </script>
 
 {% endblock %}

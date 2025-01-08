@@ -73,25 +73,29 @@
        // Function to handle form submission
         async function handleFormSubmit() {
     // Get the query from the query form
-    const query = document.getElementById("queryInput").value;
+            const query = document.getElementById("queryInput").value;
 
     // Get patient's characteristics from the patient form
-    const patientForm = document.getElementById("patientForm");
-    const formData = new FormData(patientForm);
+            const patientForm = document.getElementById("patientForm");
+            const formData = new FormData(patientForm);
 
     // Convert form data to an object
-    const patientData = {};
-    formData.forEach((value, key) => {
-        if (!patientData[key]) {
-            patientData[key] = value;
-        } else {
-            // Handle multiple checkbox values
-            if (!Array.isArray(patientData[key])) {
-                patientData[key] = [patientData[key]];
-            }
-            patientData[key].push(value);
-        }
-    });
+            const patientData = {};
+            formData.forEach((value, key) => {
+                if (!patientData[key]) {
+                    patientData[key] = value;
+                } else {
+                    // Handle multiple checkbox values
+                    if (!Array.isArray(patientData[key])) {
+                        patientData[key] = [patientData[key]];
+                    }
+                    patientData[key].push(value);
+                }
+        });
+
+    // Store the query and patient's characteristics in sessionStorage
+        sessionStorage.setItem("query", query);
+        sessionStorage.setItem("patientData", JSON.stringify(patientData));
 
     // Prepare data to send to the backend
     const data = {
@@ -101,12 +105,14 @@
 
     // Send the data to the backend using fetch
     const response = await fetch('/submit-query', {
-        method: 'POST',
+       method: 'POST',
         headers: {
             'Content-Type': 'application/json'
         },
         body: JSON.stringify(data)
     });
+
+
 
     // Redirect to the /answer page
     if (response.ok) {
