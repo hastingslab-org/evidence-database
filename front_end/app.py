@@ -83,14 +83,10 @@ def stream_response():
         data = request.get_json()
         query = data.get('query', '')
         papers = data.get('papers', {})
-        patient_data = session.get('patient_data', {})
+        patient_data = data.get('patient_data', {})
        
-        titles = [paper["titles"] for paper in papers["metadatas"][0]]
+        #titles = [paper["titles"] for paper in papers["metadatas"][0]]
         def generate_response():
-            yield "Selected Papers:\n"
-            for idx, title in enumerate(titles, 1):
-                yield f"{idx}. {title}\n"
-            yield "\n---\nResponse:\n\n"
 
             # Stream the LLM response
             title_and_abst = ",".join(papers["documents"][0])
