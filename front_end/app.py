@@ -98,7 +98,17 @@ def stream_response():
     except Exception as e:
         print(f"Error: {e}")
         return Response("An error occurred while streaming the response.", status=500)
+    
+# Dynamic route to display each paper's details
+@app.route('/paper_<int:paper_id>')
+def paper(paper_id):
+    # Retrieve the title from your query results based on the paper_id
+    #query_results = session.get('query_results', {})
+    #papers = query_results.get('metadatas', [[]])[0]
+    #title = papers[paper_id - 1]["titles"]
 
+    # Render the paper details page
+    return render_template('paper.html', title="my title")
 
 """@app.route('/search', methods=['GET'])
 def user_search_page():

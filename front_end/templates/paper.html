@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+</head>
+<body>
+    <h1>{{ title }}</h1>
+</body>
+
+<!-- Back to My Answer Button -->
+<button onclick="history.back()" style="padding: 10px 20px; background-color: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer;">
+    Back to My Answer
+</button>
+
+<!-- Ask a New Question Button -->
+<a href="/" style="padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px; margin-left: 10px;">
+    Ask a New Question
+</a>
+
+{% endblock %}

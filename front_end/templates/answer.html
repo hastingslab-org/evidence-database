@@ -46,10 +46,25 @@
 
     // Populate the ordered list with titles
     titles.forEach((title, index) => {
-        const li = document.createElement("li");
-        li.textContent = title;
-        ol.appendChild(li);
-    });
+    const li = document.createElement("li");
+
+    // Create a span for the title text
+    const titleSpan = document.createElement("span");
+    titleSpan.textContent = title;
+
+    // Create a button or link to the paper's page
+    const link = document.createElement("a");
+    link.href = `/paper_${index + 1}`;  // Create a dynamic link like /paper_1, /paper_2, etc.
+    link.textContent = "View Paper";
+    link.style.marginLeft = "10px";  // Add some spacing between the title and the button
+
+    // Append the title and the link to the list item
+    li.appendChild(titleSpan);
+    li.appendChild(link);
+
+    // Append the list item to the ordered list
+    ol.appendChild(li);
+});
 
     // Append the ordered list to the HTML element with ID 'selectedPapers'
     document.getElementById("selectedPapers").appendChild(ol);
