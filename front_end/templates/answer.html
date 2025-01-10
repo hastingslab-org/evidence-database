@@ -7,22 +7,23 @@
 </head>
 
 <body>
-    <h2>Your Question</h2>
+    <h4>Your Question</h4>
     <p id="userQuery"></p>
 
-    <h2>Patient's Characteristics</h2>
+    <h4>Patient's Characteristics</h4>
     <p id="patientCharacteristics"></p>
 
+    <h4>Selected papers</h4>
+    <p id="selectedPapers"></p>
 
-    <h4 style="margin-top: 20px;">Answer:</h4>
+    <h2 style="margin-top: 20px;">Answer:</h>
     <div id="liveResponse"></div>
 
 </body>
 
 
-
 <script>
-    const query = sessionStorage.getItem("query");
+    const query = {{ query | tojson }};
     document.getElementById("userQuery").textContent = query;
 
     // Retrieve and display the patient's characteristics
@@ -33,6 +34,25 @@
         listItem.textContent = `${key}: ${Array.isArray(value) ? value.join(", ") : value}`;
         characteristicsList.appendChild(listItem);
     }
+
+    //papers
+    // Extract titles from the papers object
+    const papers = {{ query_results | tojson }};
+    const titles = (papers.metadatas[0]).map(paper => paper.titles);
+    
+    // Create an ordered list element
+    const ol = document.createElement("ol");
+
+    // Populate the ordered list with titles
+    titles.forEach((title, index) => {
+        const li = document.createElement("li");
+        li.textContent = title;
+        ol.appendChild(li);
+    });
+
+    // Append the ordered list to the HTML element with ID 'selectedPapers'
+    document.getElementById("selectedPapers").appendChild(ol);
+
 
     // Call the function to stream the LLM response
     streamLLMResponse(query);
@@ -46,8 +66,11 @@
         fetch('/stream_response', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ query: query })  // Send the query as a JSON object
-        }).then(response => {
+    body: JSON.stringify({
+        query: query,
+        papers: papers
+    })  // Send both query and papers as a JSON object
+}).then(response => {
             if (!response.body) {
                 console.error("Response body is null.");
                 responseContainer.innerHTML = "<p style='color: red;'>An error occurred while fetching the response.</p>";

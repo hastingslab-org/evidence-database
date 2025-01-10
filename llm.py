@@ -22,6 +22,7 @@ def get_relevant_papers(user_query, collection):
 
 
 def call_llm_stream(user_query, title_and_abst, patient_data):
+    
     #Patient Data to string
     patient_string = '\n'.join(f"{key.replace('_', ' ').title()}: {', '.join(value) if isinstance(value, list) else value}" for key, value in patient_data.items())
     
