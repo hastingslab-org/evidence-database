@@ -27,8 +27,9 @@
     document.getElementById("userQuery").textContent = query;
 
     // Retrieve and display the patient's characteristics
-    const patientData = JSON.parse(sessionStorage.getItem("patientData"));
+    const patientData = {{ patient_data | tojson }};
     const characteristicsList = document.getElementById("patientCharacteristics");
+
     for (const [key, value] of Object.entries(patientData)) {
         const listItem = document.createElement("li");
         listItem.textContent = `${key}: ${Array.isArray(value) ? value.join(", ") : value}`;
