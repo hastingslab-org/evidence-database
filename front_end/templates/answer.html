@@ -16,7 +16,7 @@
     <h4>Selected papers</h4>
     <p id="selectedPapers"></p>
 
-    <h2 style="margin-top: 20px;">Answer:</h>
+    <h2 style="margin-top: 20px;">Answer:</h2>
     <div id="liveResponse"></div>
 
 </body>
@@ -69,7 +69,8 @@
             headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
         query: query,
-        papers: papers
+        papers: papers,
+        patient_data: patientData,        
     })  // Send both query and papers as a JSON object
 }).then(response => {
             if (!response.body) {
