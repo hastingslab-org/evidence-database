@@ -59,41 +59,36 @@ def handle_query():
 def search_query_page():
     return render_template('search_query_page.html')
 
-@app.route("/answer")
+@app.route("/answer",  methods=['POST'])
 def answer_page():
-    #query = session.get('query', '')
-    #safe_query = json.dumps(query) #deal with linebreaks
+    query = request.form.get('query', '')
+    patient_data = request.form.get('patient_data', '')
+   
+    chroma_client = chromadb.PersistentClient(path=DB_PATH)
+    collection = chroma_client.get_collection(name="searchable_db_collection")
+    query_results = get_relevant_papers(query, collection)
+    return render_template('answer.html', query=query, query_results = query_results, patient_data=patient_data) #TODO check query_results optimization?
 
-    #patient_data = session.get('patient_data', {})
-    return render_template('answer.html') #TODO use query and patient_data directly in html
 
 # Route for streaming the LLM response
 @app.route('/stream_response', methods=['POST'])
 def stream_response():  
     try: 
-        query = session.get('query', '')
+        #get data
+        data = request.get_json()
+        query = data.get('query', '')
+        papers = data.get('papers', {})
         patient_data = session.get('patient_data', {})
-        print("QUERY: " + query)
-        print(patient_data)
-        # Store the query and patient characteristics in the session
-        #session['query'] = request.form.get('query')
-        #session['patient_data'] = patient_data   
-        #TODO store here in session and not in html ?
-        
-        chroma_client = chromadb.PersistentClient(path=DB_PATH)
-        collection = chroma_client.get_collection(name="searchable_db_collection")
-        query_results = get_relevant_papers(query, collection)
-        titles = [paper["titles"] for paper in query_results["metadatas"][0]]
-
+       
+        titles = [paper["titles"] for paper in papers["metadatas"][0]]
         def generate_response():
-            # Yield paper titles first
             yield "Selected Papers:\n"
             for idx, title in enumerate(titles, 1):
                 yield f"{idx}. {title}\n"
             yield "\n---\nResponse:\n\n"
-            
+
             # Stream the LLM response
-            title_and_abst = ",".join(query_results["documents"][0])
+            title_and_abst = ",".join(papers["documents"][0])
             for chunk in call_llm_stream(query, title_and_abst, patient_data):
                 yield chunk
 
