@@ -61,9 +61,14 @@ def search_query_page():
 
 @app.route("/answer",  methods=['POST'])
 def answer_page():
-    query = request.form.get('query', '')
-    patient_data = request.form.get('patient_data', '')
-   
+    # Retrieve all form data
+    form_data = request.form.to_dict(flat=False)  # Converts form data to a dictionary
+
+    # Separate the query from the patient data
+    query = form_data.pop('query', [None])[0]  # Get the query field and remove it from the form data
+    patient_data = {key: value[0] if len(value) == 1 else value for key, value in form_data.items()}
+
+    # Render the answer.html template with the data
     chroma_client = chromadb.PersistentClient(path=DB_PATH)
     collection = chroma_client.get_collection(name="searchable_db_collection")
     query_results = get_relevant_papers(query, collection)
