@@ -2,9 +2,9 @@ import os
 import sys
 
 # Add the parent directory to sys.path
-parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-if parent_dir not in sys.path:
-    sys.path.insert(0, parent_dir)
+#parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+#if parent_dir not in sys.path:
+#    sys.path.insert(0, parent_dir)
 
 from flask import Flask, render_template, request, Response, session, jsonify
 from werkzeug.exceptions import abort, RequestEntityTooLarge
@@ -13,7 +13,7 @@ import sqlite3
 import chromadb
 
 # Get the db directory path
-DB_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'chroma_data2'))
+DB_PATH = 'chroma_data2'
 
 """def get_db_connection():
     conn = sqlite3.connect('database.db')
@@ -97,4 +97,4 @@ def view_paper(paper_id):
     return render_template('paper.html', paper=selected_paper)
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host='0.0.0.0')
