@@ -1,14 +1,12 @@
-import time
-from chromadb.utils import embedding_functions
+#from chromadb.utils import embedding_functions
 from openai import OpenAI
 
 CHROMA_DATA_PATH = "./chroma_data2/"
 COLLECTION_NAME = "searchable_db_collection"
-
 SYSTEM_MSG  = "You are a medical expert assisting doctors and clinicians in decision making" #"You are a helpful systematic reviewing assistant" #TODO try diff sytsem prompt
-#PROMPT = "Please answer the following question using the following paper titles and abstracts."
 MODEL = "meta-llama/Meta-Llama-3.1-70B-Instruct"
 NB_PAPERS_LLM = 5
+API_KEY = "your api key"
 
 
 def get_relevant_papers(user_query, collection):
@@ -28,7 +26,7 @@ def call_llm_stream(user_query, title_and_abst, patient_data):
     
     #LLM
     openai_client = OpenAI(
-            api_key = "W2oF2Q2NLaTmqj7LGOiJwp9Pdi47Rhhn",
+            api_key = API_KEY,
             base_url="https://api.deepinfra.com/v1/openai",
         )
     messages=[
@@ -54,30 +52,4 @@ def call_llm_stream(user_query, title_and_abst, patient_data):
 
     except Exception as e:
         yield f"Error: {str(e)}"
-
-
-"""def call_llm(user_query, collection):
-
-
-    answer = generateFromPrompt(PROMPT + user_query + title_and_abst)
-
-    return answer"""
-
-"""print("Retrieved from ",query_results["ids"][0], \
-    "\n Titles: \n", {query_results['metadatas'][0][i]['titles'] for i in range(NB_PAPERS_LLM)}, \
-    "\n \n Answer:",answer,\
-    "\n\nTitle and abstract:",query_results['documents'][0])"""
-
-
-#query = "What are the expected outcomes for a middle-aged man with prostate cancer stage III? What are possible treatments?"
-
-
-"""def generate_llm_response(prompt, collection):
-    #Generator that streams the response word by word or character by character.
-    #Replace this with your actual LLM API call logic.
-    response_text = call_llm(prompt, collection)  # Call to LLM function
-    for word in response_text.split():  # Stream word by word
-        yield word + " "
-        time.sleep(0.1)  # Simulate a delay (for effect)"""
-
 
