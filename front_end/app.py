@@ -1,8 +1,21 @@
-from flask import Flask, render_template, request, url_for, flash, redirect
-from werkzeug.exceptions import abort
-import sqlite3 
+import os
+import sys
 
-def get_db_connection():
+# Add the parent directory to sys.path
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+if parent_dir not in sys.path:
+    sys.path.insert(0, parent_dir)
+
+from flask import Flask, render_template, request, Response, session, jsonify
+from werkzeug.exceptions import abort, RequestEntityTooLarge
+from llm import call_llm_stream, get_relevant_papers
+import sqlite3 
+import chromadb
+
+# Get the db directory path
+DB_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'chroma_data2'))
+
+"""def get_db_connection():
     conn = sqlite3.connect('database.db')
     conn.row_factory = sqlite3.Row
     return conn
@@ -14,35 +27,74 @@ def get_query(query_id):
     conn.close()
     if query is None:
         abort(404)
-    return query
-
+    return query"""
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your secret key'
 
 
+@app.errorhandler(RequestEntityTooLarge)
+def handle_large_request(error):
+    return "The request is too large!", 413
+
 @app.route('/')
 def search_query_page():
     return render_template('search_query_page.html')
 
+@app.route("/answer",  methods=['POST'])
+def answer_page():
+    form_data = request.form.to_dict(flat=False)  # Converts form data to a dictionary
 
-@app.route('/search', methods=('GET', 'POST'))
-def user_search_page():
-    if request.method == 'POST':
-        # Get the search query from the form
-        content = request.form['query']
-        
-        # Insert the query into the database
-        conn = get_db_connection()
-        conn.execute('INSERT INTO queries (content) VALUES (?)', (content,))
-        conn.commit()
-        
-        # Fetch only the query that was just inserted
-        query = conn.execute('SELECT * FROM queries WHERE content = ? ORDER BY created DESC LIMIT 1', (content,)).fetchone()
-        conn.close()
-        
-        # Pass only this query to the template
-        return render_template('search.html', queries=[query])
+    # Separate the query from the patient data
+    query = form_data.pop('query', [None])[0]  # Get the query field and remove it from the form data
+    patient_data = {key: value[0] if len(value) == 1 else value for key, value in form_data.items()}
+
+    # Render the answer.html template with the data
+    chroma_client = chromadb.PersistentClient(path=DB_PATH)
+    collection = chroma_client.get_collection(name="searchable_db_collection")
+    query_results = get_relevant_papers(query, collection)
+    return render_template('answer.html', query=query, query_results = query_results, patient_data=patient_data) #TODO check query_results optimization?
+
+
+# Route for streaming the LLM response
+@app.route('/stream_response', methods=['POST'])
+def stream_response():  
+    try: 
+        #get data
+        data = request.get_json()
+        query = data.get('query', '')
+        papers = data.get('papers', {})
+        patient_data = data.get('patient_data', {})
+       
+        #titles = [paper["titles"] for paper in papers["metadatas"][0]]
+        def generate_response():
+
+            # Stream the LLM response
+            title_and_abst = ",".join(papers["documents"][0])
+            for chunk in call_llm_stream(query, title_and_abst, patient_data):
+                yield chunk
+
+        return Response(generate_response(), content_type='text/event-stream')
     
-    # If the request is not POST, render an empty page or handle GET requests
-    return render_template('search.html', queries=[])
+    except Exception as e:
+        print(f"Error: {e}")
+        return Response("An error occurred while streaming the response.", status=500)
+    
+@app.route('/paper_<int:paper_id>', methods=['POST', 'GET'])
+def view_paper(paper_id):
+    if request.method == 'POST':
+        # Get the paper data from the request
+        paper_data = request.get_json()
+
+        # Store paper data in a global variable TODO: or use a better solution like session
+        global selected_paper
+        selected_paper = paper_data
+
+    if not selected_paper:
+        return "No paper data available", 404
+
+    # Render the paper details page
+    return render_template('paper.html', paper=selected_paper)
+
+if __name__ == "__main__":
+    app.run(debug=True)
