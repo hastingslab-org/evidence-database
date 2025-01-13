@@ -1,7 +1,8 @@
     {% extends 'base.html' %}
 
-    {% block content %}
-    <h2 style="margin-bottom: 40px;">Searchable literature database for genitourinary cancer</h2>
+{% block content %}
+
+<h2 style="margin-bottom: 40px; text-align: center;">Searchable literature database for genitourinary cancer</h2>
 
   <!-- Patient's Characteristics Form + User Query -->
 <form action="/answer" method="POST" id="patientForm">
@@ -70,64 +71,4 @@
     <button type="submit">Submit</button>
 </form>
 
-   
-    <!--<script>
-       // Function to handle form submission
-        async function handleFormSubmit() {
-    // Get the query from the query form
-            const query = document.getElementById("queryInput").value;
-
-    // Get patient's characteristics from the patient form
-            const patientForm = document.getElementById("patientForm");
-            const formData = new FormData(patientForm);
-
-    // Convert form data to an object
-            const patientData = {};
-            formData.forEach((value, key) => {
-                if (!patientData[key]) {
-                    patientData[key] = value;
-                } else {
-                    // Handle multiple checkbox values
-                    if (!Array.isArray(patientData[key])) {
-                        patientData[key] = [patientData[key]];
-                    }
-                    patientData[key].push(value);
-                }
-        });
-
-    // Store the query and patient's characteristics in sessionStorage
-    //sessionStorage.setItem("patientData", JSON.stringify(patientData));
-
-    // Prepare data to send to the backend
-    /*const data = {
-        query: query,
-        patient_data: patientData
-    };*/
-
-    // Send the data to the backend using fetch
-    /*fetch('/answer', {
-    method: 'POST',
-    headers: {
-        'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(data)
-})
-.then(response => {
-    if (response.ok) {
-        window.location.href = '/answer';  // Navigate to the rendered page
-    } else {
-        console.error('Error:', response.statusText);
-    }
-})
-.catch(error => {
-    console.error('Error:', error);
-});
-
-    // Redirect to the /answer page
-    if (response.ok) {
-        window.location.href = "/answer";
-    }
-}
-    //</script>*/-->
-    
-    {% endblock %}
+{% endblock %}

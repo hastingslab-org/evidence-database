@@ -18,11 +18,26 @@
 
     <h2 style="margin-top: 20px;">Answer:</h2>
     <div id="liveResponse"></div>
-
 </body>
 
 
+<!-- Follow up chat -->
+<!--<div class="form-group" style="margin-top: 20px;">
+    <textarea name="query" id="queryInput" placeholder="Enter your query here..." required></textarea>
+    <button type="send">send</button>
+</div> -->
+
+<!-- Ask a new question -->
+<div style="margin-top: 20px;">
+    <a href="/" class="btn" style="padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px;">
+        Ask a New Question
+    </a>
+</div>
+
+
+
 <script>
+    // Display Query
     const query = {{ query | tojson }};
     document.getElementById("userQuery").textContent = query;
 
@@ -37,26 +52,59 @@
     }
 
     //papers
-    // Extract titles from the papers object
+    // Extract the necessary data from the papers object
     const papers = {{ query_results | tojson }};
-    const titles = (papers.metadatas[0]).map(paper => paper.titles);
-    
-    // Create an ordered list element
+    const titles = papers.metadatas[0].map(paper => paper.titles);
+    const abstracts = papers.documents[0];
+    const authors = papers.metadatas[0].map(paper => paper.first_author);
+    const years = papers.metadatas[0].map(paper => paper.year);
+    const journals = papers.metadatas[0].map(paper => paper.journal);
+
+    // Create an ordered list to display the papers
     const ol = document.createElement("ol");
 
-    // Populate the ordered list with titles
+    // Populate the list and add a dynamic link for each paper
     titles.forEach((title, index) => {
-    const li = document.createElement("li");
+        const li = document.createElement("li");
 
-    // Create a span for the title text
-    const titleSpan = document.createElement("span");
-    titleSpan.textContent = title;
+        // Create a span for the title text
+        const titleSpan = document.createElement("span");
+        titleSpan.textContent = title;
+        // Create the dynamic "View Paper" link
+        const link = document.createElement("a");
+        link.href = `/paper_${index + 1}`;  // Dynamic link to /paper_1, /paper_2, etc.
+        link.textContent = "View Paper";
+        link.style.marginLeft = "10px";
 
-    // Create a button or link to the paper's page
-    const link = document.createElement("a");
-    link.href = `/paper_${index + 1}`;  // Create a dynamic link like /paper_1, /paper_2, etc.
-    link.textContent = "View Paper";
-    link.style.marginLeft = "10px";  // Add some spacing between the title and the button
+        // Add an event listener to send the paper details to the backend when clicked
+        link.addEventListener("click", (e) => {
+            e.preventDefault();  // Prevent default link behavior
+
+            const paperData = {
+                title: titles[index],
+                abstract: abstracts[index],
+                author: authors[index],
+                year: years[index],
+                journal: journals[index]
+            };
+
+            // Send the paper data to the backend using fetch
+            fetch(`/paper_${index + 1}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(paperData)
+            }).then(response => {
+                if (response.ok) {
+                    window.location.href = `/paper_${index + 1}`;  // Redirect to the dynamic paper page
+                } else {
+                    console.error("Failed to send paper data.");
+                }
+            }).catch(error => {
+                console.error("Error:", error);
+            });
+        });
 
     // Append the title and the link to the list item
     li.appendChild(titleSpan);
@@ -64,15 +112,14 @@
 
     // Append the list item to the ordered list
     ol.appendChild(li);
-});
+    });
 
     // Append the ordered list to the HTML element with ID 'selectedPapers'
     document.getElementById("selectedPapers").appendChild(ol);
 
 
-    // Call the function to stream the LLM response
+    // ----------------- Stream LLM response -------------------------
     streamLLMResponse(query);
-
     function streamLLMResponse(query) {
         // Use JSON to send the query to the server
         const responseContainer = document.getElementById("liveResponse");
@@ -82,46 +129,38 @@
         fetch('/stream_response', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-        query: query,
-        papers: papers,
-        patient_data: patientData,        
-    })  // Send both query and papers as a JSON object
-}).then(response => {
-            if (!response.body) {
-                console.error("Response body is null.");
-                responseContainer.innerHTML = "<p style='color: red;'>An error occurred while fetching the response.</p>";
-                return;
-            }
+            body: JSON.stringify({
+                query: query,
+                papers: papers,
+                patient_data: patientData,        
+            })  // Send both query and papers as a JSON object
+        }).then(response => {
+                if (!response.body) {
+                    console.error("Response body is null.");
+                    responseContainer.innerHTML = "<p style='color: red;'>An error occurred while fetching the response.</p>";
+                    return;
+                }
         
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
 
-            // Function to read and append streamed data
-            function readStream() {
-                reader.read().then(({ done, value }) => {
-                    if (done) {
-                        console.log("Stream finished.");
-                        return;
-                    }
-                    responseContainer.innerHTML += decoder.decode(value);
-                    readStream();  // Continue reading
-                });
-            }
+        // Function to read and append streamed data
+        function readStream() {
+            reader.read().then(({ done, value }) => {
+                if (done) {
+                    console.log("Stream finished.");
+                    return;
+                }
+                responseContainer.innerHTML += decoder.decode(value);
+                readStream();  // Continue reading
+            });
+        }
             readStream();
         }).catch(error => {
             console.error("Error:", error);
             responseContainer.innerHTML = "<p style='color: red;'>An error occurred while fetching the response.</p>";
         });
     }
+</script>
 
-    </script>
-
-
-    <!-- Ask a new question -->
-    <div style="margin-top: 20px;">
-        <a href="/" class="btn" style="padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px;">
-            Ask a New Question
-        </a>
-    </div>
 {% endblock %}

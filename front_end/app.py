@@ -1,23 +1,21 @@
 import os
 import sys
-# Get the parent directory
-parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+
 # Add the parent directory to sys.path
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if parent_dir not in sys.path:
     sys.path.insert(0, parent_dir)
-from flask import Flask, render_template, request, url_for, flash, redirect, Response, session, jsonify
+
+from flask import Flask, render_template, request, Response, session, jsonify
 from werkzeug.exceptions import abort, RequestEntityTooLarge
 from llm import call_llm_stream, get_relevant_papers
 import sqlite3 
 import chromadb
-import urllib.parse
-import json
-
 
 # Get the db directory path
 DB_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'chroma_data2'))
 
-def get_db_connection():
+"""def get_db_connection():
     conn = sqlite3.connect('database.db')
     conn.row_factory = sqlite3.Row
     return conn
@@ -29,31 +27,15 @@ def get_query(query_id):
     conn.close()
     if query is None:
         abort(404)
-    return query
+    return query"""
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'your secret key' #TODO investigate
+app.config['SECRET_KEY'] = 'your secret key'
 
 
 @app.errorhandler(RequestEntityTooLarge)
 def handle_large_request(error):
     return "The request is too large!", 413
-
-# Route to handle the query form
-@app.route('/submit-query', methods=['POST'])
-def handle_query():
-    data = request.get_json()  # Get the JSON payload
-
-    # Extract query and patient data from the request
-    query = data.get('query')
-    patient_data = data.get('patient_data')
-
-    # Store the query and patient data in the session
-    session['query'] = query
-    session['patient_data'] = patient_data
-
-    return jsonify({'message': 'Data received successfully'}), 200
-
 
 @app.route('/')
 def search_query_page():
@@ -61,7 +43,6 @@ def search_query_page():
 
 @app.route("/answer",  methods=['POST'])
 def answer_page():
-    # Retrieve all form data
     form_data = request.form.to_dict(flat=False)  # Converts form data to a dictionary
 
     # Separate the query from the patient data
@@ -99,40 +80,21 @@ def stream_response():
         print(f"Error: {e}")
         return Response("An error occurred while streaming the response.", status=500)
     
-# Dynamic route to display each paper's details
-@app.route('/paper_<int:paper_id>')
-def paper(paper_id):
-    # Retrieve the title from your query results based on the paper_id
-    #query_results = session.get('query_results', {})
-    #papers = query_results.get('metadatas', [[]])[0]
-    #title = papers[paper_id - 1]["titles"]
+@app.route('/paper_<int:paper_id>', methods=['POST', 'GET'])
+def view_paper(paper_id):
+    if request.method == 'POST':
+        # Get the paper data from the request
+        paper_data = request.get_json()
+
+        # Store paper data in a global variable TODO: or use a better solution like session
+        global selected_paper
+        selected_paper = paper_data
+
+    if not selected_paper:
+        return "No paper data available", 404
 
     # Render the paper details page
-    return render_template('paper.html', title="my title")
-
-"""@app.route('/search', methods=['GET'])
-def user_search_page():
-    if request.method == 'POST':
-        # Get the search query from the form
-        content = request.form['query']
-
-        chroma_client = chromadb.PersistentClient(path=DB_PATH)
-        collection = chroma_client.get_collection(name="searchable_db_collection")
-        llm_response = call_llm(content, collection=collection)
-        
-        # Insert the query into the database
-        conn = get_db_connection()
-        conn.execute('INSERT INTO queries (content) VALUES (?)', (content,))
-        conn.commit()
-        # Fetch only the query that was just inserted
-        query = conn.execute('SELECT * FROM queries WHERE content = ? ORDER BY created DESC LIMIT 1', (content,)).fetchone()
-        conn.close()
-        
-        # Pass only this query to the template
-        return render_template('search.html', queries=[query],  llm_response=llm_response)
-    
-    # If the request is not POST, render an empty page or handle GET requests
-    return render_template('search.html')"""
+    return render_template('paper.html', paper=selected_paper)
 
 if __name__ == "__main__":
     app.run(debug=True)
