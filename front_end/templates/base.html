@@ -1,5 +1,68 @@
 <!doctype html>
 <html lang="en">
+<style>
+  body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+  }
+  .search-container {
+      display: flex;
+      justify-content: center; /* Center the form horizontally */
+      margin: 20px auto;
+      max-width: 80%; /* Width of the whole container */
+  }
+  .form-container{
+  margin: 20px; /* Add some space from the edges */
+  padding: 20px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  max-width: 80%; /* Restrict the width */
+  text-align: left; 
+  background-color: #f9f9f9;
+  }
+  input[type="text"] {
+      padding: 10px;
+      width: 300px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+  }
+  textarea {
+      padding: 15px; /* Padding inside the box */
+      width: 100%; /* Full width */
+      max-width: 800px; /* Maximum width */
+      height: 150px; /* Height for multiple lines */
+      border: 1px solid #ccc;
+      border-radius: 4px 0 0 4px; /* Rounded corners on the left */
+      font-size: 1.2rem; /* Larger text for better readability */
+      resize: none; /* Optional: disable resizing */
+  }
+  button {
+      padding: 10px 20px; /* Padding for button */
+      background-color: #4CAF50;
+      color: white;
+      border: 1px solid #4CAF50;
+      border-left: none; /* Remove border between textarea and button */
+      border-radius: 0 4px 4px 0; /* Rounded corners on the right */
+      font-size: 1rem; /* Button text size */
+      cursor: pointer;
+      height: auto; /* Let the button size itself */
+      align-self: stretch; /* Prevent height inheritance */
+  }
+  button:hover {
+      background-color: #45a049;
+  }
+</style>
+
+<title>LLM Response</title>
+<style>
+  #liveResponse {
+      white-space: pre-wrap;
+      border: 1px solid #ccc;
+      padding: 10px;
+      font-family: monospace;
+      min-height: 50px;
+  }
+</style>
   <head>
     <!-- Required meta tags -->
     <meta charset="UTF-8">
@@ -7,7 +70,7 @@
     
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
-
+    
     <title>{% block title %} {% endblock %}</title>
   </head>
   <body>

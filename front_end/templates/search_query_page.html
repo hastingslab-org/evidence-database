@@ -1,42 +1,74 @@
-{% extends 'base.html' %}
+    {% extends 'base.html' %}
 
 {% block content %}
-<style>
-    body {
-        font-family: Arial, sans-serif;
-        text-align: center;
-    }
-    .search-container {
-        margin: 20px;
-    }
-    input[type="text"] {
-        padding: 10px;
-        width: 300px;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-    }
-    button {
-        padding: 10px 20px;
-        background-color: #4CAF50;
-        color: white;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-    }
-    button:hover {
-        background-color: #45a049;
-    }
-</style>
 
-<h2 style="margin-bottom: 40px;">Searchable literature database for genitourinary cancer</h2>
+<h2 style="margin-bottom: 40px; text-align: center;">Searchable literature database for genitourinary cancer</h2>
 
-<div class="search-container">
-    <form action="/search" method="post">
-        <input type="text" name="query" placeholder="Enter your search query here..." required>
-        <button type="submit">Submit</button>
-    </form>
-</div>
+  <!-- Patient's Characteristics Form + User Query -->
+<form action="/answer" method="POST" id="patientForm">
+    <h3>Patient's Characteristics</h3>
+    <div class="form-group">
+        <label>Genitourinary Cancer Type:</label>
+        <div class="form-inline-group">
+            <label><input type="checkbox" name="cancerType" value="Bladder Cancer"> Bladder Cancer</label>
+            <label><input type="checkbox" name="cancerType" value="Kidney Cancer"> Kidney Cancer</label>
+            <label><input type="checkbox" name="cancerType" value="Penile Cancer"> Penile Cancer</label>
+            <label><input type="checkbox" name="cancerType" value="Prostate Cancer"> Prostate Cancer</label>
+        </div>
+        <div class="form-inline-group">
+            <label><input type="checkbox" name="cancerType" value="Renal Cell Cancer"> Renal Cell Cancer</label>
+            <label><input type="checkbox" name="cancerType" value="Renal Pelvis Cancer"> Renal Pelvis Cancer</label>
+            <label><input type="checkbox" name="cancerType" value="Testicular Cancer"> Testicular Cancer</label>
+            <label><input type="checkbox" name="cancerType" value="Urethral Cancer"> Urethral Cancer</label>
+        </div>
+    </div>
 
+    <div class="form-group">
+        <label>Gender:</label>
+        <select name="gender">
+            <option value="" disabled selected>Select</option>
+            <option value="Female">Female</option>
+            <option value="Male">Male</option>
+            <option value="Unknown">Unknown</option>
+        </select>
+    </div>
 
+    <div class="form-group">
+        <label>Age (Years):</label>
+        <input type="number" name="age" min="0" max="120" placeholder="Enter age">
+    </div>
+
+    <div class="form-group">
+        <label>ECOG Performance Status (0-5):</label>
+        <select name="ecog">
+            <option value="" disabled selected>Select</option>
+            <option value="0">0 - Fully active</option>
+            <option value="1">1 - Restricted physically</option>
+            <option value="2">2 - Ambulatory, unable to work</option>
+            <option value="3">3 - Limited self-care</option>
+            <option value="4">4 - Completely disabled</option>
+            <option value="5">5 - Deceased</option>
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label>Ethnicity:</label>
+        <select name="race">
+            <option value="" disabled selected>Select</option>
+            <option value="Caucasian">Caucasian</option>
+            <option value="African American">African American</option>
+            <option value="Asian">Asian</option>
+            <option value="Hispanic">Hispanic</option>
+            <option value="Other">Other</option>
+        </select>
+    </div>
+
+    <h3>Question</h3>
+    <div class="form-group">
+        <textarea name="query" id="queryInput" placeholder="Enter your query here..." required></textarea>
+    </div>
+
+    <button type="submit">Submit</button>
+</form>
 
 {% endblock %}
