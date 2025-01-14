@@ -6,7 +6,7 @@ COLLECTION_NAME = "searchable_db_collection"
 SYSTEM_MSG  = "You are a medical expert assisting doctors and clinicians in decision making" #"You are a helpful systematic reviewing assistant" #TODO try diff sytsem prompt
 MODEL = "meta-llama/Meta-Llama-3.1-70B-Instruct"
 NB_PAPERS_LLM = 5
-API_KEY = "your api key"
+API_KEY = "W2oF2Q2NLaTmqj7LGOiJwp9Pdi47Rhhn"
 
 
 def get_relevant_papers(user_query, collection):
