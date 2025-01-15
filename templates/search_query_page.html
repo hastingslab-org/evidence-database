@@ -78,7 +78,10 @@
     }
 
     .form-group input[type="checkbox"] {
+        display: inline-block;
+        width: auto;
         margin-right: 10px;
+        vertical-align: middle;
     }
 
     input::placeholder, textarea::placeholder {
@@ -107,22 +110,22 @@
     <h3>Patient's Characteristics</h3>
     <div class="form-group">
         <label>Genitourinary Cancer Type:</label>
-        <select name="cancerType" id="cancerTypeSelect" onchange="toggleProstateFields()">
+        <select name="cancerType" id="cancerTypeSelect" onchange="handleCancerTypeChange(); toggleProstateFields();">
             <option value="" disabled selected>Select</option>
             <option value="Bladder Cancer"> Bladder Cancer</option>
             <option value="Kidney Cancer"> Kidney Cancer</option>
-            <option value="Penile Cancer"> Penile Cancer</option>
-            <option id="prostateCancerSelection" value="Prostate Cancer"> Prostate Cancer</option>
+            <option value="Penile Cancer" id="penileOption"> Penile Cancer</option>
+            <option id="prostateCancerSelection" value="Prostate Cancer" id="prostateOption"> Prostate Cancer</option>
             <option value="Renal Cell Cancer"> Renal Cell Cancer</option>
             <option value="Renal Pelvis Cancer"> Renal Pelvis Cancer</option>
-            <option value="Testicular Cancer"> Testicular Cancer</option>
+            <option value="Testicular Cancer" id="testicularOption"> Testicular Cancer</option>
             <option value="Urethral Cancer"> Urethral Cancer</option>
         </select>
     </div>
 
     <div class="form-group">
         <label>Gender:</label>
-        <select name="gender">
+        <select name="gender" id="genderSelect">
             <option value="" disabled selected>Select</option>
             <option value="Female">Female</option>
             <option value="Male">Male</option>
@@ -277,6 +280,31 @@
             prostateFields.style.display = 'none';
         }
     }
+
+    function handleCancerTypeChange() {
+        const cancerTypeSelect = document.getElementById('cancerTypeSelect');
+        const selectedCancerType = cancerTypeSelect.value;
+
+        const genderSelect = document.getElementById('genderSelect');
+        const femaleOption = genderSelect.querySelector('option[value="Female"]');
+        const unknownOption = genderSelect.querySelector('option[value="Unknown"]');
+
+        // Disable Female and Unknown if a male-specific cancer type is selected
+        if (
+            selectedCancerType === 'Prostate Cancer' ||
+            selectedCancerType === 'Penile Cancer' ||
+            selectedCancerType === 'Testicular Cancer'
+        ) {
+            genderSelect.value = 'Male'; // Automatically select Male
+            femaleOption.disabled = true;
+            unknownOption.disabled = true;
+        } else {
+            // Re-enable Female and Unknown for other cancer types
+            femaleOption.disabled = false;
+            unknownOption.disabled = false;
+        }
+    }
+
 </script>
 
 {% endblock %}
