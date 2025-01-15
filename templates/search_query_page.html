@@ -242,7 +242,7 @@
             <label>PSMA Level (PET Scan, ng/mL):</label>
             <input type="text" name="psmaLevel" placeholder="Enter PSMA level">
             <label>ALP Level (Blood, ng/mL):</label>
-            <input type="text" name="alpLevel" placeholder="Enter ALP level">
+            <input type="text" name="alpLevel" placeholder="Enter ALP level" disabled>
         </div>
 
         <div class="form-group">
@@ -255,8 +255,8 @@
 
         <div class="form-group">
             <label>Trial-Based Classifications:</label>
-            <input type="checkbox" name="trialBasedClassifications" value="High Volume"> High Volume<label>
-            <input type="checkbox" name="trialBasedClassifications" value="High Risk"> High Risk
+            <input type="checkbox" name="trialBasedClassifications" value="High Volume"> High Volume
+            <input type="checkbox" name="trialBasedClassifications" value="High Risk"> High Risk<br>
         </div>
     </div>
 
@@ -270,6 +270,26 @@
 </form>
 
 <script>
+    //ignore empty text and number fields
+    document.getElementById('patientForm').addEventListener('submit', function(e) {
+            // Get all text input fields in the form
+            const textInputs = document.querySelectorAll('#patientForm input[type="text"]');
+            const numberInputs = document.querySelectorAll('#patientForm input[type="number"]');
+
+            textInputs.forEach(input => {
+                // Disable the input if it is empty
+                if (!input.value.trim()) {
+                    input.disabled = true;
+                }
+            });
+
+            numberInputs.forEach(input => {
+            if (input.value === "") {
+                input.disabled = true;
+            }
+        });
+    });
+
     function toggleProstateFields() {
         const cancerTypeSelect = document.getElementById('cancerTypeSelect');
         const prostateFields = document.getElementById('prostateFields');
