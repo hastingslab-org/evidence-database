@@ -99,6 +99,11 @@
             font-size: 20px;
         }
     }
+
+    .required {
+    color: red;
+    }
+
 </style>
 
 
@@ -109,15 +114,15 @@
     <!-- Patient's Characteristics Form + User Query -->
     <h3>Patient's Characteristics</h3>
     <div class="form-group">
-        <label>Genitourinary Cancer Type:</label>
-        <select name="cancerType" id="cancerTypeSelect" onchange="handleCancerTypeChange(); toggleProstateFields();">
+        <label>Genitourinary Cancer Type: <span class="required">*</label>
+        <select name="cancerType" id="cancerTypeSelect" onchange="handleCancerTypeChange(); toggleProstateFields();" required>
             <option value="" disabled selected>Select</option>
             <option value="Bladder Cancer"> Bladder Cancer</option>
             <option value="Kidney Cancer"> Kidney Cancer</option>
             <option value="Penile Cancer" id="penileOption"> Penile Cancer</option>
             <option id="prostateCancerSelection" value="Prostate Cancer" id="prostateOption"> Prostate Cancer</option>
             <option value="Renal Cell Cancer"> Renal Cell Cancer</option>
-            <option value="Renal Pelvis Cancer"> Renal Pelvis Cancer</option>
+            <option value="Pelvis Cancer"> Pelvis Cancer</option>
             <option value="Testicular Cancer" id="testicularOption"> Testicular Cancer</option>
             <option value="Urethral Cancer"> Urethral Cancer</option>
         </select>

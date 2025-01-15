@@ -52,7 +52,7 @@ def answer_page():
     # Render the answer.html template with the data
     chroma_client = chromadb.PersistentClient(path=DB_PATH)
     collection = chroma_client.get_collection(name="searchable_db_collection")
-    query_results = get_relevant_papers(query, collection)
+    query_results = get_relevant_papers(query, collection, patient_data)
     return render_template('answer.html', query=query, query_results = query_results, patient_data=patient_data) #TODO check query_results optimization?
 
 

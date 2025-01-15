@@ -1,5 +1,6 @@
 #from chromadb.utils import embedding_functions
 from openai import OpenAI
+import json
 
 CHROMA_DATA_PATH = "./chroma_data2/"
 COLLECTION_NAME = "searchable_db_collection"
@@ -9,10 +10,14 @@ NB_PAPERS_LLM = 5
 API_KEY = "your api key"
 
 
-def get_relevant_papers(user_query, collection):
+def get_relevant_papers(user_query, collection, patient_data=None):
     #get relevant papers from collection
+
+    if patient_data is not None: 
+        query = user_query + json.dumps(patient_data)    
+
     query_results = collection.query(
-    query_texts=[user_query],
+    query_texts=[query],
     n_results=NB_PAPERS_LLM,
     )
 
@@ -31,7 +36,7 @@ def call_llm_stream(user_query, title_and_abst, patient_data):
         )
     messages=[
     {"role": "system", "content": SYSTEM_MSG},
-    {"role": "user", "content": "Our patient has the following characteristics: " + patient_string
+    {"role": "user", "content": "The patient has the following characteristics: " + patient_string
       + "Using the following papers and abstract: " + title_and_abst 
       + "Please answer this question: " + user_query} #PROMPT + user_query + title_and_abst
     ]
