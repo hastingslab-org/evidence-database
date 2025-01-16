@@ -17,7 +17,8 @@
     <p id="selectedPapers"></p>
 
     <h2 style="margin-top: 20px;">Answer:</h2>
-    <div id="liveResponse"></div>
+    <!-- Display LLM answer if available -->
+    <div id="liveResponse"> </div>
 </body>
 
 
@@ -35,10 +36,9 @@
 </div>
 
 
-
 <script>
     // Display Query
-    const query = {{ query | tojson }};
+    const query = {{ query | tojson }};  // Make sure to pass the query if needed
     document.getElementById("userQuery").textContent = query;
 
     // Retrieve and display the patient's characteristics
@@ -119,7 +119,17 @@
 
 
     // ----------------- Stream LLM response -------------------------
-    streamLLMResponse(query);
+    const responseContainer = document.getElementById("liveResponse");
+    const llmAnswer = {{ llm_answer | tojson}};
+
+    if (llmAnswer !== null && llmAnswer !== undefined) {
+        // If llm_answer exists, display i
+        responseContainer.innerHTML = llmAnswer;
+    } else {
+        // If llm_answer does not exist, call the streamLLMResponse function
+        streamLLMResponse(query);
+    }
+    
     function streamLLMResponse(query) {
         // Use JSON to send the query to the server
         const responseContainer = document.getElementById("liveResponse");
