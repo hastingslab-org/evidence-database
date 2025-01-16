@@ -1,5 +1,6 @@
 import os
 import sys
+import json
 
 # Add the parent directory to sys.path
 #parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -41,6 +42,16 @@ def handle_large_request(error):
 def search_query_page():
     return render_template('search_query_page.html')
 
+@app.route("/answer", methods=['GET'])
+def answer_page_get(): #TODO same functiomn as asnwer_page()
+    # Retrieve the data stored in session
+    query = session.get('query', '')
+    patient_data = session.get('patient_data', {})
+    query_results = session.get('query_results', {})
+    llm_answer = session.get('llm_answer', '')
+    return render_template('answer.html', query=query, query_results=query_results, patient_data=patient_data, llm_answer=llm_answer)
+
+
 @app.route("/answer",  methods=['POST'])
 def answer_page():
     form_data = request.form.to_dict(flat=False)  # Converts form data to a dictionary
@@ -53,7 +64,13 @@ def answer_page():
     chroma_client = chromadb.PersistentClient(path=DB_PATH)
     collection = chroma_client.get_collection(name="searchable_db_collection")
     query_results = get_relevant_papers(query, collection, patient_data)
-    return render_template('answer.html', query=query, query_results = query_results, patient_data=patient_data) #TODO check query_results optimization?
+
+    # Store the answer in session (LLM response could be stored as part of query_results or separately)
+    session['query'] = query
+    session['patient_data'] = patient_data
+    session['query_results'] = query_results
+
+    return render_template('answer.html', query=query, query_results = query_results, patient_data=patient_data, llm_answer=None) #TODO check query_results optimization?
 
 
 # Route for streaming the LLM response
@@ -71,8 +88,16 @@ def stream_response():
 
             # Stream the LLM response
             title_and_abst = ",".join(papers["documents"][0])
+            
+            chunks = []
             for chunk in call_llm_stream(query, title_and_abst, patient_data):
-                yield chunk
+                if chunk:
+
+                    chunks.append(chunk) #collecting chunks
+                    yield chunk.encode('utf-8')
+            
+            full_response = "".join(chunks)
+            session["llm_answer"] = full_response.encode('utf-8')
 
         return Response(generate_response(), content_type='text/event-stream')
     
