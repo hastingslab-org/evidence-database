@@ -1,6 +1,7 @@
 import os
 import sys
 import json
+import uuid
 
 # Add the parent directory to sys.path
 #parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -16,19 +17,19 @@ import chromadb
 # Get the db directory path
 DB_PATH = 'chroma_data2'
 
-"""def get_db_connection():
+def get_db_connexion():
     conn = sqlite3.connect('database.db')
     conn.row_factory = sqlite3.Row
     return conn
 
 def get_query(query_id):
-    conn = get_db_connection()
+    conn = get_db_connexion()
     query = conn.execute('SELECT * FROM queries WHERE id = ?',
                         (query_id,)).fetchone()
     conn.close()
     if query is None:
         abort(404)
-    return query"""
+    return query
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your secret key'
@@ -83,7 +84,9 @@ def stream_response():
         papers = data.get('papers', {})
         patient_data = data.get('patient_data', {})
        
+
         #titles = [paper["titles"] for paper in papers["metadatas"][0]]
+        response_id = str(uuid.uuid4())
         def generate_response():
 
             # Stream the LLM response
@@ -92,18 +95,38 @@ def stream_response():
             chunks = []
             for chunk in call_llm_stream(query, title_and_abst, patient_data):
                 if chunk:
-
                     chunks.append(chunk) #collecting chunks
                     yield chunk.encode('utf-8')
-            
             full_response = "".join(chunks)
-            session["llm_answer"] = full_response.encode('utf-8')
 
-        return Response(generate_response(), content_type='text/event-stream')
+            #store response in database
+
+            conn = get_db_connexion()
+            cursor = conn.cursor()
+            cursor.execute("INSERT INTO llm_responses (id, query, response) VALUES (?, ?, ?)",
+                           (response_id, query, full_response))
+            conn.commit()
+            conn.close()            
+
+        return Response(generate_response(), content_type='text/event-stream',  headers={"Response-ID": response_id})
     
     except Exception as e:
         print(f"Error: {e}")
         return Response("An error occurred while streaming the response.", status=500)
+    
+@app.route('/get_response/<response_id>', methods=['GET'])
+def get_response(response_id):
+    """Fetch the stored response by its ID."""
+    conn = get_db_connexion()
+    cursor = conn.cursor()
+    cursor.execute("SELECT response FROM llm_responses WHERE id = ?", (response_id,))
+    row = cursor.fetchone()
+    conn.close()
+
+    if row:
+        return jsonify({"response": row["response"]})
+    else:
+        return jsonify({"error": "Response not found"}), 404
     
 @app.route('/paper_<int:paper_id>', methods=['POST', 'GET'])
 def view_paper(paper_id):

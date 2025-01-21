@@ -1,13 +1,14 @@
 #from chromadb.utils import embedding_functions
 from openai import OpenAI
 import json
+import os 
 
 CHROMA_DATA_PATH = "./chroma_data2/"
 COLLECTION_NAME = "searchable_db_collection"
 SYSTEM_MSG  = "You are a medical expert assisting doctors and clinicians in decision making" #"You are a helpful systematic reviewing assistant" #TODO try diff sytsem prompt
 MODEL = "meta-llama/Meta-Llama-3.1-70B-Instruct"
 NB_PAPERS_LLM = 5
-API_KEY = ""
+#API_KEY = ""
 
 
 def get_relevant_papers(user_query, collection, patient_data=None):
@@ -31,7 +32,6 @@ def call_llm_stream(user_query, title_and_abst, patient_data):
     
     #LLM
     openai_client = OpenAI(
-            api_key = API_KEY,
             base_url="https://api.deepinfra.com/v1/openai",
         )
     messages=[
