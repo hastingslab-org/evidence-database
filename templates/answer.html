@@ -124,7 +124,12 @@
 
     if (llmAnswer !== null && llmAnswer !== undefined) {
         // If llm_answer exists, display i
-        responseContainer.innerHTML = llmAnswer;
+        fetch(`/get_response/${responseId}`)
+                        .then(res => res.json())
+                        .then(data => {
+                            responseContainer.innerHTML += `<br><strong>Final Response:</strong> ${data.response}`;
+                        });
+
     } else {
         // If llm_answer does not exist, call the streamLLMResponse function
         streamLLMResponse(query);
