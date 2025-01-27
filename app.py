@@ -123,7 +123,7 @@ def answer_page():
     print("FORM DATA")
     print(form_data)
     # Separate the query from the patient data
-    query = form_data.pop('query', [None])[0]  # Get the query field and remove it from the form data
+    query = (form_data.pop('query', [None])[0]) # Get the query field and remove it from the form data
     patient_data = {key: value[0] if len(value) == 1 else value for key, value in form_data.items()}
     json_patient_data = json.dumps(patient_data, ensure_ascii=False)
 
