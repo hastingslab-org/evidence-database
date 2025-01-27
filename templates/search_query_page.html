@@ -112,10 +112,11 @@
 
 <form action="/answer" method="POST" id="patientForm">
     <!-- Patient's Characteristics Form + User Query -->
+
     <h3>Patient's Characteristics</h3>
     <div class="form-group">
         <label>Genitourinary Cancer Type: <span class="required">*</label>
-        <select name="cancerType" id="cancerTypeSelect" onchange="handleCancerTypeChange(); toggleProstateFields();" required>
+        <select name="Cancer type" id="cancerTypeSelect" onchange="handleCancerTypeChange(); toggleProstateFields();" required>
             <option value="" disabled selected>Select</option>
             <option value="Bladder Cancer"> Bladder Cancer</option>
             <option value="Kidney Cancer"> Kidney Cancer</option>
@@ -130,7 +131,7 @@
 
     <div class="form-group">
         <label>Gender:</label>
-        <select name="gender" id="genderSelect">
+        <select name="Gender" id="genderSelect">
             <option value="" disabled selected>Select</option>
             <option value="Female">Female</option>
             <option value="Male">Male</option>
@@ -140,12 +141,12 @@
 
     <div class="form-group">
         <label>Age (Years):</label>
-        <input type="number" name="age" min="0" max="120" placeholder="Enter age">
+        <input type="number" name="Age" min="0" max="120" placeholder="Enter age">
     </div>
 
     <div class="form-group">
         <label>ECOG Performance Status (0-5):</label>
-        <select name="ecog">
+        <select name="ECOG">
             <option value="" disabled selected>Select</option>
             <option value="0">0 - Fully active</option>
             <option value="1">1 - Restricted physically</option>
@@ -158,7 +159,7 @@
 
     <div class="form-group">
         <label>Ethnicity:</label>
-        <select name="race">
+        <select name="Ethnicity">
             <option value="" disabled selected>Select</option>
             <option value="Caucasian">Caucasian</option>
             <option value="African American">African American</option>
@@ -174,7 +175,7 @@
 
         <div class="form-group">
             <label>Disease Sensitivity:</label>
-            <select name = "disease_sensitivity" id="disease_sensitivity">
+            <select name = "Disease sensitivity" id="disease_sensitivity">
                 <option value="" disabled selected>Select disease sensitivity</option>
                 <option value="Hormone-sensitive">Hormone-sensitive</option>
                 <option value="Castration-resistant">Castration-resistant</option>
@@ -189,13 +190,13 @@
                 <label for="T-stage">T (Primary Tumor):</label>
                 <select name="T-stage" id="T-stage">
                     <option value="" disabled selected>Select T</option>
-                    <option value="X">TX</option>
-                    <option value="0">T0</option>
-                    <option value="is">Tis</option>
-                    <option value="1">T1</option>
-                    <option value="2">T2</option>
-                    <option value="3">T3</option>
-                    <option value="4">T4</option>
+                    <option value="TX">TX</option>
+                    <option value="T0">T0</option>
+                    <option value="Tis">Tis</option>
+                    <option value="T1">T1</option>
+                    <option value="T2">T2</option>
+                    <option value="T3">T3</option>
+                    <option value="T4">T4</option>
                 </select>
             </div>
         
@@ -203,10 +204,10 @@
                 <label for="N-stage">N (Regional Lymph Nodes):</label>
                 <select name="N-stage" id="N-stage">
                     <option value="" disabled selected>Select N</option>
-                    <option value="X">NX</option>
-                    <option value="0">N0</option>
-                    <option value="1">N1</option>
-                    <option value="2">N2</option>
+                    <option value="NX">NX</option>
+                    <option value="N0">N0</option>
+                    <option value="N1">N1</option>
+                    <option value="N2">N2</option>
                 </select>
             </div>
         
@@ -214,16 +215,16 @@
                 <label for="M-stage">M (Distant Metastasis):</label>
                 <select name="M-stage" id="M-stage">
                     <option value="" disabled selected>Select M</option>
-                    <option value="X">MX</option>
-                    <option value="0">M0</option>
-                    <option value="1">M1</option>
+                    <option value="MX">MX</option>
+                    <option value="M0">M0</option>
+                    <option value="M1">M1</option>
                 </select>
             </div>
         </div>
 
         <div class="form-group">
             <label> Staging Group:</label>
-            <select name="T-stage" id="T-stage">
+            <select name="Staging group" id="T-stage">
                 <option value="" disabled selected>Select staging group</option>
                 <option value="0">0</option>
                 <option value="IA">IA</option>
@@ -236,61 +237,60 @@
 
         <div class="form-group">
             <label>Metastasis Location:</label>
-            <select name="metastasisLoc" id="metastasisLoc">
+            <select name="Metastasis location" id="metastasisLoc">
                 <option value="" disabled selected>Select metastasis location</option>
-                <option value="boneMetastasis">Bone only</option>
-                <option value="lymphMetastasis">Lymph only</option>
-                <option value="boneLymphMetastasis">Bone and lymph only</option>
-                <option value="otherMetastasis">Other than bone and lymph</option>
+                <option value="Bone metastasis">Bone only</option>
+                <option value="Lymph metastasis">Lymph only</option>
+                <option value="Bone and lymph metastasis">Bone and lymph only</option>
+                <option value="Other metastasis">Other than bone and lymph</option>
             </select> 
         </div>
 
         <div class="form-group">
             <label>Timepoint of Diagnosis (Date/Year):</label>
-            <input type="text" name="diagnosisTimepoint" placeholder="Enter timepoint">
+            <input type="text" name="Timepoint of diagnosis" placeholder="Enter timepoint">
         </div>
 
         <div class="form-group">
             <label>Treatment History:</label>
-            <input type="checkbox" name="treatmentHistory" value="ADT"> ADT (Androgen Deprivation Therapy)<br>
-            <input type="checkbox" name="treatmentHistory" value="ARPI"> ARPI (Androgen Receptor Pathway Inhibitor)<br>
-            <input type="checkbox" name="treatmentHistory" value="Triple Therapy"> Triple Therapy<br>
+            <input type="checkbox" name="Treatment history" value="ADT"> ADT (Androgen Deprivation Therapy)<br>
+            <input type="checkbox" name="Treatment history" value="ARPI"> ARPI (Androgen Receptor Pathway Inhibitor)<br>
+            <input type="checkbox" name="Treatment history" value="Triple Therapy"> Triple Therapy<br>
             <label>More information:</label>
-            <input type="text" name="extraTreatmentInfo" placeholder="Extra treatment history">
+            <input type="text" name="Extra treatment history" placeholder="Extra treatment history">
         </div>
 
         <div class="form-group">
             <label>Genomic Features:</label>
-            <input type="checkbox" name="genomicFeatures" value="DDR"> DNA Damage Repair (DDR) Deficiency<br>
+            <input type="checkbox" name="Genomic features" value="DDR"> DNA Damage Repair (DDR) Deficiency<br>
             <label>Genes Involved:</label>
-            <input type="text" name="genesInvolved" placeholder="e.g., BRCA1, BRCA2, RAD51">
+            <input type="text" name="Genes involved" placeholder="e.g., BRCA1, BRCA2, RAD51">
             <label>Variants:</label>
-            <input type="text" name="variants" placeholder="e.g., PTEN MED12 p. L1224, c.367C>T">
+            <input type="text" name="Variants" placeholder="e.g., PTEN MED12 p. L1224, c.367C>T">
         </div>
 
         <div class="form-group">
             <label>Biomarkers:</label>
             <label>PSMA Level (PET Scan, ng/mL):</label>
-            <input type="text" name="psmaLevel" placeholder="Enter PSMA level">
+            <input type="text" name="PSMA level" placeholder="Enter PSMA level">
             <label>ALP Level (Blood, ng/mL):</label>
-            <input type="text" name="alpLevel" placeholder="Enter ALP level" disabled>
+            <input type="text" name="ALP level" placeholder="Enter ALP level" >
         </div>
 
         <div class="form-group">
             <label>Histology:</label>
             <label>Gleason Score :</label>
-            <input type="number" name="gleasonScore" min="2" max="10" placeholder="Enter score (2-10)">
+            <input type="number" name="Gleason score" min="2" max="10" placeholder="Enter score (2-10)">
             <label>Histologic Variants:</label>
-            <input type="text" name="histologicVariants" placeholder="e.g., small cell carcinoma">
+            <input type="text" name="Histologic variants" placeholder="e.g., small cell carcinoma">
         </div>
 
         <div class="form-group">
             <label>Trial-Based Classifications:</label>
-            <input type="checkbox" name="trialBasedClassifications" value="High Volume"> High Volume
-            <input type="checkbox" name="trialBasedClassifications" value="High Risk"> High Risk<br>
+            <input type="checkbox" name="Trial-based classifications" value="High Volume"> High Volume
+            <input type="checkbox" name="Trial-based classifications" value="High Risk"> High Risk<br>
         </div>
     </div>
-
 
     <h3>Question</h3>
     <div class="form-group">
@@ -301,6 +301,7 @@
 </form>
 
 <script>
+ 
     //ignore empty text and number fields
     document.getElementById('patientForm').addEventListener('submit', function(e) {
             // Get all text input fields in the form
