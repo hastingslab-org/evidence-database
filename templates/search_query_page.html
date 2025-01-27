@@ -174,8 +174,13 @@
 
         <div class="form-group">
             <label>Disease Sensitivity:</label>
-            <input type="checkbox" value="Hormone-sensitive">Hormone-sensitive</label>
-            <input type="checkbox" value="Castration-resistant">Castration-resistant</br>
+            <select name = "disease_sensitivity" id="disease_sensitivity">
+                <option value="" disabled selected>Select disease sensitivity</option>
+                <option value="Hormone-sensitive">Hormone-sensitive</option>
+                <option value="Castration-resistant">Castration-resistant</option>
+                <option value="Unknown">Unknown</option>
+
+            </select>
         </div>
 
         <div class="form-group">
@@ -184,7 +189,9 @@
                 <label for="T-stage">T (Primary Tumor):</label>
                 <select name="T-stage" id="T-stage">
                     <option value="" disabled selected>Select T</option>
+                    <option value="X">TX</option>
                     <option value="0">T0</option>
+                    <option value="is">Tis</option>
                     <option value="1">T1</option>
                     <option value="2">T2</option>
                     <option value="3">T3</option>
@@ -196,6 +203,7 @@
                 <label for="N-stage">N (Regional Lymph Nodes):</label>
                 <select name="N-stage" id="N-stage">
                     <option value="" disabled selected>Select N</option>
+                    <option value="X">NX</option>
                     <option value="0">N0</option>
                     <option value="1">N1</option>
                     <option value="2">N2</option>
@@ -206,6 +214,7 @@
                 <label for="M-stage">M (Distant Metastasis):</label>
                 <select name="M-stage" id="M-stage">
                     <option value="" disabled selected>Select M</option>
+                    <option value="X">MX</option>
                     <option value="0">M0</option>
                     <option value="1">M1</option>
                 </select>
@@ -213,10 +222,27 @@
         </div>
 
         <div class="form-group">
+            <label> Staging Group:</label>
+            <select name="T-stage" id="T-stage">
+                <option value="" disabled selected>Select staging group</option>
+                <option value="0">0</option>
+                <option value="IA">IA</option>
+                <option value="IB">IB</option>
+                <option value="IIA">IIB</option>
+                <option value="III">III</option>
+                <option value="IV">IV</option>
+            </select> 
+        </div>
+
+        <div class="form-group">
             <label>Metastasis Location:</label>
-            <input type="checkbox" value="boneMetastasis">Bone</label>
-            <input type="checkbox" value="lymphMetastasis">Lymph</label>
-            <input type="checkbox" value="visceralMetastasis">Visceral</br>
+            <select name="metastasisLoc" id="metastasisLoc">
+                <option value="" disabled selected>Select metastasis location</option>
+                <option value="boneMetastasis">Bone only</option>
+                <option value="lymphMetastasis">Lymph only</option>
+                <option value="boneLymphMetastasis">Bone and lymph only</option>
+                <option value="otherMetastasis">Other than bone and lymph</option>
+            </select> 
         </div>
 
         <div class="form-group">
