@@ -1,33 +1,28 @@
-import os
-import sys
 import json
 import uuid
-
-# Add the parent directory to sys.path
-#parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-#if parent_dir not in sys.path:
-#    sys.path.insert(0, parent_dir)
-
 from flask import Flask, render_template, request, Response, session, jsonify
 from werkzeug.exceptions import abort, RequestEntityTooLarge
 from llm import call_llm_stream, get_relevant_papers
+from init_db import init_db
 import sqlite3 
 import chromadb
 
 # Get the db directory path
 DB_PATH = 'chroma_data2'
 
-def get_db_connexion():
-    conn = sqlite3.connect('database.db')
-    conn.row_factory = sqlite3.Row
-    return conn
-
-
+#app config
 app = Flask(__name__)
 app.config['SESSION_TYPE'] = 'filesystem'  # Use the filesystem to store session data
 app.config['SESSION_PERMANENT'] = False
 app.config['SESSION_USE_SIGNER'] = True
 app.config['SECRET_KEY'] = 'my_secret_key' #TODO 
+
+
+#db access functions
+def get_db_connexion():
+    conn = sqlite3.connect('database.db')
+    conn.row_factory = sqlite3.Row
+    return conn
 
 def get_response(response_id):
     """Fetch the stored response by its ID."""
@@ -214,4 +209,5 @@ def view_paper(paper_id):
         )
 
 if __name__ == "__main__":
+    init_db()
     app.run(host='0.0.0.0')

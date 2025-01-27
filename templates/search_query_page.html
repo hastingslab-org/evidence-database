@@ -1,7 +1,6 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<!-- CSS Styles -->
 <style>
     body {
         font-family: Arial, sans-serif;
@@ -106,13 +105,10 @@
 
 </style>
 
-
-
 <h2 style="margin-bottom: 40px; text-align: center;">Searchable literature database for genitourinary cancer</h2>
 
+<!-- Patient's Characteristics Form + User Query -->
 <form action="/answer" method="POST" id="patientForm">
-    <!-- Patient's Characteristics Form + User Query -->
-
     <h3>Patient's Characteristics</h3>
     <div class="form-group">
         <label>Genitourinary Cancer Type: <span class="required">*</label>
@@ -300,24 +296,25 @@
     <button type="submit">Submit</button>
 </form>
 
+
 <script>
- 
-    //ignore empty text and number fields
+
+    //ignore empty text and number fields:
     document.getElementById('patientForm').addEventListener('submit', function(e) {
-            // Get all text input fields in the form
-            const textInputs = document.querySelectorAll('#patientForm input[type="text"]');
-            const numberInputs = document.querySelectorAll('#patientForm input[type="number"]');
+        // Get all text input fields in the form
+        const textInputs = document.querySelectorAll('#patientForm input[type="text"]');
+        const numberInputs = document.querySelectorAll('#patientForm input[type="number"]');
 
-            textInputs.forEach(input => {
-                // Disable the input if it is empty
-                if (!input.value.trim()) {
-                    input.disabled = true;
-                }
-            });
-
-            numberInputs.forEach(input => {
-            if (input.value === "") {
+        textInputs.forEach(input => {
+            // Disable the input if it is empty
+            if (!input.value.trim()) {
                 input.disabled = true;
+            }
+        });
+
+        numberInputs.forEach(input => {
+        if (input.value === "") {
+            input.disabled = true;
             }
         });
     });

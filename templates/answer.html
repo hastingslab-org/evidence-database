@@ -1,9 +1,11 @@
 {% extends 'base.html' %}
 
 {% block content %}
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -101,32 +103,16 @@
 </body>
 
 <script>
-    // Toggle Function
-    function setupCollapsible(sectionId, contentId, iconId) {
-        const section = document.getElementById(sectionId);
-        const content = document.getElementById(contentId);
-        const icon = document.getElementById(iconId);
+    // ******** Display user query *********
+    const query = {{ query | tojson | safe }};
+    document.getElementById("userQuery").textContent = query;
 
-        section.addEventListener("click", function () {
-            if (content.style.display === "none" || content.style.display === "") {
-                content.style.display = "block";
-                icon.innerHTML = "&#x25B2;";  // Up arrow
-            } else {
-                content.style.display = "none";
-                icon.innerHTML = "&#x25BC;";  // Down arrow
-            }
-        });
-    }
+    // ******** Display patient's characteristics ********
 
     // Setup toggles for both sections
     setupCollapsible("togglePatientSection", "patientCharacteristics", "patientToggleIcon");
     setupCollapsible("togglePapersSection", "selectedPapers", "papersToggleIcon");
 
-    // Display user query
-    const query = {{ query | tojson | safe }};
-    document.getElementById("userQuery").textContent = query;
-
-    // Retrieve and display patient's characteristics
     const patientData = JSON.parse({{ patient_data | tojson | safe }});
     const characteristicsList = document.getElementById("patientCharacteristics");
 
@@ -136,7 +122,7 @@
         characteristicsList.appendChild(listItem);
     });
 
-    // Extract the necessary data from the papers object
+    // // ******** Display papers ********
     const papers = {{ query_results | tojson | safe }};
     const titles = papers.metadatas[0].map(paper => paper.titles);
     const abstracts = papers.documents[0];
@@ -159,10 +145,9 @@
         link.style.marginLeft = "10px";
 
         // Form submission to send paper data to the backend
-    link.addEventListener("click", (e) => {
-        e.preventDefault();  // Prevent default link behavior
+        link.addEventListener("click", (e) => {e.preventDefault();  // Prevent default link behavior
 
-        // Create a hidden form
+        // Create hidden form
         const form = document.createElement("form");
         form.method = "POST";
         form.action = `/paper_${index + 1}`;
@@ -186,14 +171,14 @@
 
         document.body.appendChild(form);
         form.submit();  // Submit the form with paper details
-    });
+        });
 
         li.appendChild(titleSpan);
         li.appendChild(link);
         papersList.appendChild(li);
     });
 
-    // Stream LLM response
+    // *********** Stream LLM response ********
     const responseContainer = document.getElementById("liveResponse");
     const responseID = "{{ response_id }}";
     const llmAnswer = {{ llm_answer | default('') | tojson | safe }};
@@ -240,6 +225,23 @@
         }).catch(error => {
             console.error("Error:", error);
             responseContainer.innerHTML = "<p style='color: red;'>An error occurred while fetching the response.</p>";
+        });
+    }
+
+    // Toggle Function
+    function setupCollapsible(sectionId, contentId, iconId) {
+        const section = document.getElementById(sectionId);
+        const content = document.getElementById(contentId);
+        const icon = document.getElementById(iconId);
+
+        section.addEventListener("click", function () {
+            if (content.style.display === "none" || content.style.display === "") {
+                content.style.display = "block";
+                icon.innerHTML = "&#x25B2;";  // Up arrow
+            } else {
+                content.style.display = "none";
+                icon.innerHTML = "&#x25BC;";  // Down arrow
+            }
         });
     }
 </script>
