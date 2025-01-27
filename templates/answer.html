@@ -57,7 +57,7 @@
     const titles = papers.metadatas[0].map(paper => paper.titles);
     const abstracts = papers.documents[0];
     const authors = papers.metadatas[0].map(paper => paper.first_author);
-    const years = papers.metadatas[0].map(paper => paper.year);
+    const years = papers.metadatas [0].map(paper => paper.year);
     const journals = papers.metadatas[0].map(paper => paper.journal);
 
     // Create an ordered list to display the papers
@@ -120,26 +120,19 @@
 
     // ----------------- Stream LLM response -------------------------
     const responseContainer = document.getElementById("liveResponse");
-    const llmAnswer = {{ llm_answer | tojson}};
+    const responseID = "{{ response_id }}";
+    const llmAnswer = "{{ llm_answer }}";
 
-    if (llmAnswer !== null && llmAnswer !== undefined) {
-        // If llm_answer exists, display i
-        fetch(`/get_response/${responseId}`)
-                        .then(res => res.json())
-                        .then(data => {
-                            responseContainer.innerHTML += `<br><strong>Final Response:</strong> ${data.response}`;
-                        });
-
-    } else {
-        // If llm_answer does not exist, call the streamLLMResponse function
+    if (llmAnswer === '') {
         streamLLMResponse(query);
+    } else {
+        responseContainer.innerHTML = llmAnswer;
     }
-    
+
     function streamLLMResponse(query) {
         // Use JSON to send the query to the server
         const responseContainer = document.getElementById("liveResponse");
         responseContainer.innerHTML = "";  // Clear previous content
-
         // Send the query via POST to /stream_response
         fetch('/stream_response', {
             method: 'POST',
@@ -147,7 +140,8 @@
             body: JSON.stringify({
                 query: query,
                 papers: papers,
-                patient_data: patientData,        
+                patient_data: patientData,  
+                response_id: responseID,    
             })  // Send both query and papers as a JSON object
         }).then(response => {
                 if (!response.body) {
