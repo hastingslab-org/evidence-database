@@ -6,24 +6,117 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ paper.title }}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f9f9f9;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 40px auto;
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            font-size: 28px;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+
+        .paper-info {
+            font-size: 18px;
+            color: #555;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+
+        .paper-info strong {
+            color: #333;
+        }
+
+        .abstract {
+            background-color: #f1f1f1;
+            padding: 20px;
+            border-radius: 10px;
+            font-size: 16px;
+            line-height: 1.8;
+            color: #444;
+            white-space: pre-line;
+        }
+
+        .btn-container {
+            text-align: center;
+            margin-top: 30px;
+        }
+
+        .btn {
+            padding: 12px 25px;
+            font-size: 18px;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 5px;
+            border: none;
+            transition: background-color 0.3s ease;
+            display: inline-block;
+            margin: 10px;
+        }
+
+        .btn-primary {
+            background-color: #007bff;
+        }
+
+        .btn-primary:hover {
+            background-color: #0056b3;
+        }
+
+        .btn-secondary {
+            background-color: #28a745;
+        }
+
+        .btn-secondary:hover {
+            background-color: #218838;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+            h1 {
+                font-size: 24px;
+            }
+            .btn {
+                width: 100%;
+                text-align: center;
+            }
+        }
+    </style>
 </head>
+
 <body>
+    <div class="container">
+        <h1>{{ paper.title }}</h1>
 
-<h1>{{ paper.title }}</h1>
-<p><strong>Author:</strong> {{ paper.author }}</p>
-<p><strong>Year:</strong> {{ paper.year }}</p>
-<p><strong>Journal:</strong> {{ paper.journal }}</p>
-<p><strong>Abstract:</strong> {{ paper.abstract }}</p>
+        <p class="paper-info"><strong>Author:</strong> {{ paper.author }}</p>
+        <p class="paper-info"><strong>Year:</strong> {{ paper.year }}</p>
+        <p class="paper-info"><strong>Journal:</strong> {{ paper.journal }}</p>
+
+        <h2 style="margin-top: 30px; color: #333; border-bottom: 2px solid #007bff; padding-bottom: 5px;">Abstract</h2>
+        <p class="abstract">{{ paper.abstract }}</p>
+
+        <div class="btn-container">
+            <a href="/answer" class="btn btn-secondary">Back to My Answer</a>
+            <a href="/" class="btn btn-primary">Ask a New Question</a>
+        </div>
+    </div>
 </body>
-
-<!-- Back to My Answer Button -->
-<a href="/answer" style="padding: 10px 20px; background-color: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer;">
-    Back to My Answer
-</a>
-
-<!-- Ask a New Question Button -->
-<a href="/" style="padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px; margin-left: 10px;">
-    Ask a New Question
-</a>
 
 {% endblock %}

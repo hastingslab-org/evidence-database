@@ -27,6 +27,10 @@
             border-bottom: 2px solid #007bff;
             padding-bottom: 10px;
             margin-bottom: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         p, li {
@@ -35,15 +39,18 @@
             line-height: 1.6;
         }
 
-        ol {
-            padding-left: 20px;
+        .collapsible-content {
+            padding: 15px;
+            background-color: #f1f1f1;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            display: none; /* Initially hidden */
         }
 
-        .answer-section {
-            background-color: #f1f1f1;
-            padding: 20px;
-            border-radius: 10px;
-            margin-top: 20px;
+        .toggle-icon {
+            margin-left: 10px;
+            font-size: 20px;
+            transition: transform 0.3s ease;
         }
 
         .btn {
@@ -70,11 +77,19 @@
         <h4>Your Question</h4>
         <pre id="userQuery"></pre>
 
-        <h4>Patient's Characteristics</h4>
-        <ul id="patientCharacteristics"></ul>
+        <!-- Patient's Characteristics Toggle -->
+        <h4 id="togglePatientSection">
+            Patient's Characteristics 
+            <span id="patientToggleIcon" class="toggle-icon">&#x25BC;</span>
+        </h4>
+        <ul id="patientCharacteristics" class="collapsible-content"></ul>
 
-        <h4>Selected Papers</h4>
-        <ol id="selectedPapers"></ol>
+        <!-- Selected Papers Toggle -->
+        <h4 id="togglePapersSection">
+            Selected Papers 
+            <span id="papersToggleIcon" class="toggle-icon">&#x25BC;</span>
+        </h4>
+        <ol id="selectedPapers" class="collapsible-content"></ol>
 
         <h2>Answer</h2>
         <div id="liveResponse" class="answer-section"></div>
@@ -86,18 +101,35 @@
 </body>
 
 <script>
+    // Toggle Function
+    function setupCollapsible(sectionId, contentId, iconId) {
+        const section = document.getElementById(sectionId);
+        const content = document.getElementById(contentId);
+        const icon = document.getElementById(iconId);
+
+        section.addEventListener("click", function () {
+            if (content.style.display === "none" || content.style.display === "") {
+                content.style.display = "block";
+                icon.innerHTML = "&#x25B2;";  // Up arrow
+            } else {
+                content.style.display = "none";
+                icon.innerHTML = "&#x25BC;";  // Down arrow
+            }
+        });
+    }
+
+    // Setup toggles for both sections
+    setupCollapsible("togglePatientSection", "patientCharacteristics", "patientToggleIcon");
+    setupCollapsible("togglePapersSection", "selectedPapers", "papersToggleIcon");
+
     // Display user query
-    const query = {{ query | tojson }};
+    const query = {{ query | tojson | safe }};
     document.getElementById("userQuery").textContent = query;
 
     // Retrieve and display patient's characteristics
-
     const patientData = JSON.parse({{ patient_data | tojson | safe }});
-    console.log(patientData); // Verify order in console
-
     const characteristicsList = document.getElementById("patientCharacteristics");
 
-    // Ensure the original order is preserved by directly iterating over patientData
     Object.entries(patientData).forEach(([key, value]) => {
         const listItem = document.createElement("li");
         listItem.textContent = `${key}: ${Array.isArray(value) ? value.join(", ") : value}`;
@@ -105,14 +137,14 @@
     });
 
     // Extract the necessary data from the papers object
-    const papers = {{ query_results | tojson }};
+    const papers = {{ query_results | tojson | safe }};
     const titles = papers.metadatas[0].map(paper => paper.titles);
     const abstracts = papers.documents[0];
     const authors = papers.metadatas[0].map(paper => paper.first_author);
     const years = papers.metadatas[0].map(paper => paper.year);
     const journals = papers.metadatas[0].map(paper => paper.journal);
 
-    const ol = document.getElementById("selectedPapers");
+    const papersList = document.getElementById("selectedPapers");
 
     titles.forEach((title, index) => {
         const li = document.createElement("li");
@@ -126,42 +158,45 @@
         link.style.textDecoration = "none";
         link.style.marginLeft = "10px";
 
-        link.addEventListener("click", (e) => {
-            e.preventDefault();
+        // Form submission to send paper data to the backend
+    link.addEventListener("click", (e) => {
+        e.preventDefault();  // Prevent default link behavior
 
-            const paperData = {
-                title: titles[index],
-                abstract: abstracts[index],
-                author: authors[index],
-                year: years[index],
-                journal: journals[index]
-            };
+        // Create a hidden form
+        const form = document.createElement("form");
+        form.method = "POST";
+        form.action = `/paper_${index + 1}`;
 
-            fetch(`/paper_${index + 1}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(paperData)
-            }).then(response => {
-                if (response.ok) {
-                    window.location.href = `/paper_${index + 1}`;
-                } else {
-                    console.error("Failed to send paper data.");
-                }
-            }).catch(error => {
-                console.error("Error:", error);
-            });
-        });
+        // Create hidden input fields for paper data
+        const paperData = {
+            title: titles[index],
+            abstract: abstracts[index],
+            author: authors[index],
+            year: years[index],
+            journal: journals[index]
+        };
+
+        for (const key in paperData) {
+            const input = document.createElement("input");
+            input.type = "hidden";
+            input.name = key;
+            input.value = paperData[key];
+            form.appendChild(input);
+        }
+
+        document.body.appendChild(form);
+        form.submit();  // Submit the form with paper details
+    });
 
         li.appendChild(titleSpan);
         li.appendChild(link);
-        ol.appendChild(li);
+        papersList.appendChild(li);
     });
 
     // Stream LLM response
     const responseContainer = document.getElementById("liveResponse");
     const responseID = "{{ response_id }}";
-    const llmAnswer = {{ llm_answer | default('') | tojson }};
-
+    const llmAnswer = {{ llm_answer | default('') | tojson | safe }};
 
     if (llmAnswer === '') {
         streamLLMResponse(query);
@@ -172,18 +207,15 @@
     function streamLLMResponse(query) {
         responseContainer.innerHTML = "";
 
-        const requestBody = JSON.stringify({
-            query: query,
-            papers: papers,
-            patient_data: patientData,
-            response_id: responseID,
-        });
-
-
         fetch('/stream_response', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: requestBody
+            body: JSON.stringify({
+                query: query,
+                papers: papers,
+                patient_data: patientData,
+                response_id: responseID,
+            })
         }).then(response => {
             if (!response.body) {
                 console.error("Response body is null.");

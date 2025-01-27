@@ -196,18 +196,22 @@ def stream_response():
 @app.route('/paper_<int:paper_id>', methods=['POST', 'GET'])
 def view_paper(paper_id):
     if request.method == 'POST':
-        # Get the paper data from the request
-        paper_data = request.get_json()
+        paper_title = request.form.get('title')
+        paper_abstract = request.form.get('abstract')
+        paper_author = request.form.get('author')
+        paper_year = request.form.get('year')
+        paper_journal = request.form.get('journal')
 
-        # Store paper data in a global variable TODO: or use a better solution like session
-        global selected_paper
-        selected_paper = paper_data
-
-    if not selected_paper:
-        return "No paper data available", 404
-
-    # Render the paper details page
-    return render_template('paper.html', paper=selected_paper)
+        return render_template(
+            'paper.html', 
+            paper={
+                "title": paper_title,
+                "abstract": paper_abstract,
+                "author": paper_author,
+                "year": paper_year,
+                "journal": paper_journal
+            }
+        )
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0')
