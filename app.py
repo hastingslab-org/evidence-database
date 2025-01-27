@@ -42,7 +42,7 @@ def get_response(response_id):
     conn.close()
 
     if row:
-        return row["response"]
+        return row[0]
     else:
         return jsonify({"error": "Response not found"}), 404
     
