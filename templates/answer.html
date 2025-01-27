@@ -91,14 +91,18 @@
     document.getElementById("userQuery").textContent = query;
 
     // Retrieve and display patient's characteristics
-    const patientData = {{ patient_data | tojson }};
+
+    const patientData = JSON.parse({{ patient_data | tojson | safe }});
+    console.log(patientData); // Verify order in console
+
     const characteristicsList = document.getElementById("patientCharacteristics");
 
-    for (const [key, value] of Object.entries(patientData)) {
+    // Ensure the original order is preserved by directly iterating over patientData
+    Object.entries(patientData).forEach(([key, value]) => {
         const listItem = document.createElement("li");
         listItem.textContent = `${key}: ${Array.isArray(value) ? value.join(", ") : value}`;
         characteristicsList.appendChild(listItem);
-    }
+    });
 
     // Extract the necessary data from the papers object
     const papers = {{ query_results | tojson }};
@@ -168,15 +172,18 @@
     function streamLLMResponse(query) {
         responseContainer.innerHTML = "";
 
+        const requestBody = JSON.stringify({
+            query: query,
+            papers: papers,
+            patient_data: patientData,
+            response_id: responseID,
+        });
+
+
         fetch('/stream_response', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                query: query,
-                papers: papers,
-                patient_data: patientData,
-                response_id: responseID,
-            })
+            body: requestBody
         }).then(response => {
             if (!response.body) {
                 console.error("Response body is null.");
