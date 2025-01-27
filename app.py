@@ -22,18 +22,76 @@ def get_db_connexion():
     conn.row_factory = sqlite3.Row
     return conn
 
-def get_query(query_id):
-    conn = get_db_connexion()
-    query = conn.execute('SELECT * FROM queries WHERE id = ?',
-                        (query_id,)).fetchone()
-    conn.close()
-    if query is None:
-        abort(404)
-    return query
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'your secret key'
+app.config['SESSION_TYPE'] = 'filesystem'  # Use the filesystem to store session data
+app.config['SESSION_PERMANENT'] = False
+app.config['SESSION_USE_SIGNER'] = True
+app.config['SECRET_KEY'] = 'my_secret_key' #TODO 
 
+def get_response(response_id):
+    """Fetch the stored response by its ID."""
+    print("RESPONS_ID_get")
+    print(session.get('response_id', {}))
+
+    conn = get_db_connexion()
+    cursor = conn.cursor()
+    cursor.execute("SELECT response FROM qa_data WHERE id = ?", (response_id,))
+    row = cursor.fetchone()
+    conn.commit()
+    conn.close()
+
+    if row:
+        return row["response"]
+    else:
+        return jsonify({"error": "Response not found"}), 404
+    
+def get_query(id):
+    """Fetch the stored response by its ID."""
+    conn = get_db_connexion()
+    cursor = conn.cursor()
+    cursor.execute("SELECT query FROM qa_data WHERE id = ?", (id,))
+    row = cursor.fetchone()
+    conn.commit()
+    conn.close()
+
+    if row:
+        print(row)
+        return row["query"]
+    else:
+        return "error: Query not found", 404
+
+def get_papers(id):
+    """Fetch the stored response by its ID."""
+    conn = get_db_connexion()
+    cursor = conn.cursor()
+    cursor.execute("SELECT papers FROM qa_data WHERE id = ?", (id,))
+    row = cursor.fetchone()
+    conn.commit()
+    conn.close()
+
+    if row:
+        print(row)
+        return json.loads(row[0])
+
+    else:
+        return "error: Query not found", 404
+    
+def get_patient_data(id): #TODO put 4 get fcts in one
+    """Fetch the stored response by its ID."""
+    conn = get_db_connexion()
+    cursor = conn.cursor()
+    cursor.execute("SELECT patient_data FROM qa_data WHERE id = ?", (id,))
+    row = cursor.fetchone()
+    conn.commit()
+    conn.close()
+
+    if row:
+        print(row)
+        return json.loads(row[0])
+
+    else:
+        return "error: Query not found", 404
 
 @app.errorhandler(RequestEntityTooLarge)
 def handle_large_request(error):
@@ -46,10 +104,13 @@ def search_query_page():
 @app.route("/answer", methods=['GET'])
 def answer_page_get(): #TODO same functiomn as asnwer_page()
     # Retrieve the data stored in session
-    query = session.get('query', '')
-    patient_data = session.get('patient_data', {})
-    query_results = session.get('query_results', {})
-    llm_answer = session.get('llm_answer', '')
+    response_id = session.get('response_id', {})
+    #get query and llm answer from db
+    llm_answer = get_response(response_id)
+    query = get_query(response_id)
+    patient_data = get_patient_data(response_id)
+    query_results = get_papers(response_id)
+
     return render_template('answer.html', query=query, query_results=query_results, patient_data=patient_data, llm_answer=llm_answer)
 
 
@@ -66,12 +127,15 @@ def answer_page():
     collection = chroma_client.get_collection(name="searchable_db_collection")
     query_results = get_relevant_papers(query, collection, patient_data)
 
-    # Store the answer in session (LLM response could be stored as part of query_results or separately)
-    session['query'] = query
-    session['patient_data'] = patient_data
-    session['query_results'] = query_results
+    response_id = str(uuid.uuid4())
+    session['response_id'] = None  # Clear previous response ID safely
+    session['response_id'] = response_id
+    session.modified = True 
+    print("RESPONSE_ID_post")
+    print(response_id)
 
-    return render_template('answer.html', query=query, query_results = query_results, patient_data=patient_data, llm_answer=None) #TODO check query_results optimization?
+    return render_template('answer.html', query=query, query_results = query_results, \
+                           patient_data=patient_data, response_id=response_id) #TODO check query_results optimization?
 
 
 # Route for streaming the LLM response
@@ -82,11 +146,14 @@ def stream_response():
         data = request.get_json()
         query = data.get('query', '')
         papers = data.get('papers', {})
+        papers_json = json.dumps(papers)
         patient_data = data.get('patient_data', {})
-       
+        patient_data_json = json.dumps(patient_data)
+        response_id = data.get('response_id', '')
+        print("RESPONS_ID_stream")
+        print(response_id)
 
         #titles = [paper["titles"] for paper in papers["metadatas"][0]]
-        response_id = str(uuid.uuid4())
         def generate_response():
 
             # Stream the LLM response
@@ -100,11 +167,12 @@ def stream_response():
             full_response = "".join(chunks)
 
             #store response in database
-
+            print("PATIENT DATAAAAAAAA")
+            print(patient_data)
             conn = get_db_connexion()
             cursor = conn.cursor()
-            cursor.execute("INSERT INTO llm_responses (id, query, response) VALUES (?, ?, ?)",
-                           (response_id, query, full_response))
+            cursor.execute("INSERT INTO qa_data (id, query, patient_data, papers, response) VALUES (?, ?, ?, ?, ?)",
+                           (response_id, query, patient_data_json, papers_json, full_response))
             conn.commit()
             conn.close()            
 
@@ -113,20 +181,7 @@ def stream_response():
     except Exception as e:
         print(f"Error: {e}")
         return Response("An error occurred while streaming the response.", status=500)
-    
-@app.route('/get_response/<response_id>', methods=['GET'])
-def get_response(response_id):
-    """Fetch the stored response by its ID."""
-    conn = get_db_connexion()
-    cursor = conn.cursor()
-    cursor.execute("SELECT response FROM llm_responses WHERE id = ?", (response_id,))
-    row = cursor.fetchone()
-    conn.close()
 
-    if row:
-        return jsonify({"response": row["response"]})
-    else:
-        return jsonify({"error": "Response not found"}), 404
     
 @app.route('/paper_<int:paper_id>', methods=['POST', 'GET'])
 def view_paper(paper_id):
