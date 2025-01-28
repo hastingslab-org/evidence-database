@@ -1,18 +1,25 @@
 #from chromadb.utils import embedding_functions
 from openai import OpenAI
+import json
 
+#paths
 CHROMA_DATA_PATH = "./chroma_data2/"
 COLLECTION_NAME = "searchable_db_collection"
+
+#params
 SYSTEM_MSG  = "You are a medical expert assisting doctors and clinicians in decision making" #"You are a helpful systematic reviewing assistant" #TODO try diff sytsem prompt
 MODEL = "meta-llama/Meta-Llama-3.1-70B-Instruct"
 NB_PAPERS_LLM = 5
-API_KEY = "your api key"
 
 
-def get_relevant_papers(user_query, collection):
-    #get relevant papers from collection
+def get_relevant_papers(user_query, collection, patient_data=None):
+    """ gets N most relevant papers from collection"""
+
+    if patient_data is not None: 
+        query = user_query + json.dumps(patient_data) #combine query and patient data TODO: investigate other options
+         
     query_results = collection.query(
-    query_texts=[user_query],
+    query_texts=[query],
     n_results=NB_PAPERS_LLM,
     )
 
@@ -20,18 +27,19 @@ def get_relevant_papers(user_query, collection):
 
 
 def call_llm_stream(user_query, title_and_abst, patient_data):
+    """Builds a message based on user query, papers and patient characteristics. Then generates a 
+    response using the LLM"""
     
-    #Patient Data to string
+    #Patient data to string
     patient_string = '\n'.join(f"{key.replace('_', ' ').title()}: {', '.join(value) if isinstance(value, list) else value}" for key, value in patient_data.items())
     
     #LLM
     openai_client = OpenAI(
-            api_key = API_KEY,
             base_url="https://api.deepinfra.com/v1/openai",
         )
     messages=[
     {"role": "system", "content": SYSTEM_MSG},
-    {"role": "user", "content": "Our patient has the following characteristics: " + patient_string
+    {"role": "user", "content": "The patient has the following characteristics: " + patient_string
       + "Using the following papers and abstract: " + title_and_abst 
       + "Please answer this question: " + user_query} #PROMPT + user_query + title_and_abst
     ]

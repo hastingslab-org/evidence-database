@@ -1,29 +1,28 @@
 {% extends 'base.html' %}
 
 {% block content %}
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ paper.title }}</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ paper.title }}</title>
 </head>
+
 <body>
+    <div class="container">
+        <h1>{{ paper.title }}</h1>
 
-<h1>{{ paper.title }}</h1>
-<p><strong>Author:</strong> {{ paper.author }}</p>
-<p><strong>Year:</strong> {{ paper.year }}</p>
-<p><strong>Journal:</strong> {{ paper.journal }}</p>
-<p><strong>Abstract:</strong> {{ paper.abstract }}</p>
+        <p class="paper-info"><strong>Author:</strong> {{ paper.author }}</p>
+        <p class="paper-info"><strong>Year:</strong> {{ paper.year }}</p>
+        <p class="paper-info"><strong>Journal:</strong> {{ paper.journal }}</p>
+
+        <h2 style="margin-top: 30px; color: #333; border-bottom: 2px solid #007bff; padding-bottom: 5px;">Abstract</h2>
+        <p class="abstract">{{ paper.abstract }}</p>
+
+        <div class="btn-container">
+            <a href="/answer" class="btn btn-secondary">Back to My Answer</a>
+            <a href="/" class="btn btn">Ask a New Question</a>
+        </div>
+    </div>
 </body>
-
-<!-- Back to My Answer Button -->
-<button onclick="history.back()" style="padding: 10px 20px; background-color: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer;">
-    Back to My Answer
-</button>
-
-<!-- Ask a New Question Button -->
-<a href="/" style="padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px; margin-left: 10px;">
-    Ask a New Question
-</a>
 
 {% endblock %}
