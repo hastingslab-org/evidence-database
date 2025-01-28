@@ -1,164 +1,208 @@
 {% extends 'base.html' %}
 
 {% block content %}
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 
 <body>
-    <h4>Your Question</h4>
-    <p id="userQuery"></p>
+    <div class="container">
+        <h4>Your Question</h4>
+        <pre id="userQuery"></pre>
 
-    <h4>Patient's Characteristics</h4>
-    <p id="patientCharacteristics"></p>
+        <!-- Patient's Characteristics Toggle -->
+        <h4 id="togglePatientSection">
+            Patient's Characteristics 
+            <span id="patientToggleIcon" class="toggle-icon">&#x25BC;</span>
+        </h4>
+        <ul id="patientCharacteristics" class="collapsible-content"></ul>
 
-    <h4>Selected papers</h4>
-    <p id="selectedPapers"></p>
+        <!-- Selected Papers Toggle -->
+        <h4 id="togglePapersSection">
+            Selected Papers 
+            <span id="papersToggleIcon" class="toggle-icon">&#x25BC;</span>
+        </h4>
+        <ol id="selectedPapers" class="collapsible-content"></ol>
 
-    <h2 style="margin-top: 20px;">Answer:</h2>
-    <div id="liveResponse"></div>
+        
+        <h2>
+            Answer
+            <span id="loadingSpinner" style="display: none; font-size: 16px; margin-left: 20px;">Loading...</span>
+        </h2>
+        <div id="liveResponse" class="answer-section"></div>
+
+        <div style="text-align: center;">
+            <a href="/" class="btn">Ask a New Question</a>
+        </div>
+    </div>
 </body>
 
-
-<!-- Follow up chat -->
-<!--<div class="form-group" style="margin-top: 20px;">
-    <textarea name="query" id="queryInput" placeholder="Enter your query here..." required></textarea>
-    <button type="send">send</button>
-</div> -->
-
-<!-- Ask a new question -->
-<div style="margin-top: 20px;">
-    <a href="/" class="btn" style="padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px;">
-        Ask a New Question
-    </a>
-</div>
-
-
-
 <script>
-    // Display Query
-    const query = {{ query | tojson }};
+    // ******** Display user query *********
+    const query = {{ query | tojson | safe }};
     document.getElementById("userQuery").textContent = query;
 
-    // Retrieve and display the patient's characteristics
-    const patientData = {{ patient_data | tojson }};
+    // ******** Display patient's characteristics ********
+
+    // Setup toggles for both sections
+    setupCollapsible("togglePatientSection", "patientCharacteristics", "patientToggleIcon");
+    setupCollapsible("togglePapersSection", "selectedPapers", "papersToggleIcon");
+
+    const patientData = JSON.parse({{ patient_data | tojson | safe }});
     const characteristicsList = document.getElementById("patientCharacteristics");
 
-    for (const [key, value] of Object.entries(patientData)) {
+    Object.entries(patientData).forEach(([key, value]) => {
         const listItem = document.createElement("li");
         listItem.textContent = `${key}: ${Array.isArray(value) ? value.join(", ") : value}`;
         characteristicsList.appendChild(listItem);
-    }
+    });
 
-    //papers
-    // Extract the necessary data from the papers object
-    const papers = {{ query_results | tojson }};
+    // // ******** Display papers ********
+    const papers = {{ query_results | tojson | safe }};
     const titles = papers.metadatas[0].map(paper => paper.titles);
     const abstracts = papers.documents[0];
     const authors = papers.metadatas[0].map(paper => paper.first_author);
     const years = papers.metadatas[0].map(paper => paper.year);
     const journals = papers.metadatas[0].map(paper => paper.journal);
 
-    // Create an ordered list to display the papers
-    const ol = document.createElement("ol");
+    const papersList = document.getElementById("selectedPapers");
 
-    // Populate the list and add a dynamic link for each paper
     titles.forEach((title, index) => {
         const li = document.createElement("li");
-
-        // Create a span for the title text
         const titleSpan = document.createElement("span");
-        titleSpan.textContent = title;
-        // Create the dynamic "View Paper" link
+        titleSpan.textContent = `${title} (${authors[index]}, ${years[index]}, ${journals[index]})`;
+
         const link = document.createElement("a");
-        link.href = `/paper_${index + 1}`;  // Dynamic link to /paper_1, /paper_2, etc.
-        link.textContent = "View Paper";
+        link.href = `/paper_${index + 1}`;
+        link.textContent = " [View Paper]";
+        link.className = "view-paper-btn"; // class to identify buttons
+        link.style.color = "#007bff";
+        link.style.textDecoration = "none";
         link.style.marginLeft = "10px";
 
-        // Add an event listener to send the paper details to the backend when clicked
+        // Form submission to send paper data to the backend
         link.addEventListener("click", (e) => {
             e.preventDefault();  // Prevent default link behavior
+            // Create hidden form
+            const form = document.createElement("form");
+            form.method = "POST";
+            form.action = `/paper_${index + 1}`;
 
+            // Create hidden input fields for paper data
             const paperData = {
                 title: titles[index],
                 abstract: abstracts[index],
                 author: authors[index],
                 year: years[index],
                 journal: journals[index]
-            };
+        };
 
-            // Send the paper data to the backend using fetch
-            fetch(`/paper_${index + 1}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(paperData)
-            }).then(response => {
-                if (response.ok) {
-                    window.location.href = `/paper_${index + 1}`;  // Redirect to the dynamic paper page
-                } else {
-                    console.error("Failed to send paper data.");
-                }
-            }).catch(error => {
-                console.error("Error:", error);
-            });
+        for (const key in paperData) {
+            const input = document.createElement("input");
+            input.type = "hidden";
+            input.name = key;
+            input.value = paperData[key];
+            form.appendChild(input);
+        }
+
+        document.body.appendChild(form);
+        form.submit();  // Submit the form with paper details
         });
 
-    // Append the title and the link to the list item
-    li.appendChild(titleSpan);
-    li.appendChild(link);
-
-    // Append the list item to the ordered list
-    ol.appendChild(li);
+        li.appendChild(titleSpan);
+        li.appendChild(link);
+        papersList.appendChild(li);
     });
 
-    // Append the ordered list to the HTML element with ID 'selectedPapers'
-    document.getElementById("selectedPapers").appendChild(ol);
+    // *********** Stream LLM response ********
+    const responseContainer = document.getElementById("liveResponse");
+    const responseID = "{{ response_id }}";
+    const llmAnswer = {{ llm_answer | default('') | tojson | safe }};
 
+    if (llmAnswer === '') {
+        streamLLMResponse(query);
+    } else {
+        responseContainer.innerHTML = llmAnswer;
+    }
 
-    // ----------------- Stream LLM response -------------------------
-    streamLLMResponse(query);
     function streamLLMResponse(query) {
-        // Use JSON to send the query to the server
-        const responseContainer = document.getElementById("liveResponse");
-        responseContainer.innerHTML = "";  // Clear previous content
+        responseContainer.innerHTML = "";
+        // Show loading spinner
+        const loadingSpinner = document.getElementById("loadingSpinner");
+        loadingSpinner.style.display = "inline"; // Show spinner next to "Answer" title
 
-        // Send the query via POST to /stream_response
+        // Disable "View Paper" buttons
+        const viewPaperButtons = document.querySelectorAll(".view-paper-btn");
+        viewPaperButtons.forEach((button) => {
+        button.style.pointerEvents = "none"; // Disable pointer events
+        button.style.opacity = "0.5"; // Make buttons look disabled
+        });
+
         fetch('/stream_response', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 query: query,
                 papers: papers,
-                patient_data: patientData,        
-            })  // Send both query and papers as a JSON object
+                patient_data: patientData,
+                response_id: responseID,
+            })
         }).then(response => {
-                if (!response.body) {
-                    console.error("Response body is null.");
-                    responseContainer.innerHTML = "<p style='color: red;'>An error occurred while fetching the response.</p>";
-                    return;
-                }
-        
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
+            if (!response.body) {
+                console.error("Response body is null.");
+                responseContainer.innerHTML = "<p style='color: red;'>An error occurred while fetching the response.</p>";
+                return;
+            }
 
-        // Function to read and append streamed data
-        function readStream() {
-            reader.read().then(({ done, value }) => {
-                if (done) {
-                    console.log("Stream finished.");
-                    return;
-                }
-                responseContainer.innerHTML += decoder.decode(value);
-                readStream();  // Continue reading
-            });
-        }
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+
+            function readStream() {
+                reader.read().then(({ done, value }) => {
+                    if (done) {
+                        console.log("Stream finished.");
+                        loadingSpinner.style.display = "none"; // Hide spinner
+                        // Re-enable "View Paper" buttons after streaming is complete
+                        viewPaperButtons.forEach((button) => {
+                            button.style.pointerEvents = "auto"; // Re-enable pointer events
+                            button.style.opacity = "1"; // Restore original opacity
+                        });
+                        return;
+                    }
+                    responseContainer.innerHTML += decoder.decode(value);
+                    readStream();
+                });
+            }
             readStream();
         }).catch(error => {
             console.error("Error:", error);
             responseContainer.innerHTML = "<p style='color: red;'>An error occurred while fetching the response.</p>";
+            loadingSpinner.style.display = "none"; // Hide spinner on error
+            // Re-enable "View Paper" buttons even in case of error
+            viewPaperButtons.forEach((button) => {
+                button.style.pointerEvents = "auto";
+                button.style.opacity = "1";
+            });
+
+        });
+    }
+
+    // Toggle Function
+    function setupCollapsible(sectionId, contentId, iconId) {
+        const section = document.getElementById(sectionId);
+        const content = document.getElementById(contentId);
+        const icon = document.getElementById(iconId);
+
+        section.addEventListener("click", function () {
+            if (content.style.display === "none" || content.style.display === "") {
+                content.style.display = "block";
+                icon.innerHTML = "&#x25B2;";  // Up arrow
+            } else {
+                content.style.display = "none";
+                icon.innerHTML = "&#x25BC;";  // Down arrow
+            }
         });
     }
 </script>
