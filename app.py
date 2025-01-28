@@ -24,69 +24,20 @@ def get_db_connexion():
     conn.row_factory = sqlite3.Row
     return conn
 
-def get_response(response_id):
-    """Fetch the stored response by its ID."""
-    print("RESPONS_ID_get")
-    print(session.get('response_id', {}))
-
+def get_qa_item(item_name, item_id, json_load=False):
     conn = get_db_connexion()
     cursor = conn.cursor()
-    cursor.execute("SELECT response FROM qa_data WHERE id = ?", (response_id,))
+
+    cursor.execute("SELECT " + item_name + " FROM qa_data WHERE id = ?", (item_id,))
     row = cursor.fetchone()
-    conn.commit()
-    conn.close()
 
     if row:
-        return row[0]
+        if json_load:
+            return json.loads(row[0])
+        else:
+            return row[0]
     else:
         return jsonify({"error": "Response not found"}), 404
-    
-def get_query(id):
-    """Fetch the stored response by its ID."""
-    conn = get_db_connexion()
-    cursor = conn.cursor()
-    cursor.execute("SELECT query FROM qa_data WHERE id = ?", (id,))
-    row = cursor.fetchone()
-    conn.commit()
-    conn.close()
-
-    if row:
-        print(row)
-        return row["query"]
-    else:
-        return "error: Query not found", 404
-
-def get_papers(id):
-    """Fetch the stored response by its ID."""
-    conn = get_db_connexion()
-    cursor = conn.cursor()
-    cursor.execute("SELECT papers FROM qa_data WHERE id = ?", (id,))
-    row = cursor.fetchone()
-    conn.commit()
-    conn.close()
-
-    if row:
-        print(row)
-        return json.loads(row[0])
-
-    else:
-        return "error: Query not found", 404
-    
-def get_patient_data(id): #TODO put 4 get fcts in one
-    """Fetch the stored response by its ID."""
-    conn = get_db_connexion()
-    cursor = conn.cursor()
-    cursor.execute("SELECT patient_data FROM qa_data WHERE id = ?", (id,))
-    row = cursor.fetchone()
-    conn.commit()
-    conn.close()
-
-    if row:
-        print(row)
-        return json.loads(row[0])
-
-    else:
-        return "error: Query not found", 404
 
 @app.errorhandler(RequestEntityTooLarge)
 def handle_large_request(error):
@@ -101,12 +52,11 @@ def answer_page_get(): #TODO same functiomn as asnwer_page()
     # Retrieve the data stored in session
     response_id = session.get('response_id', {})
     #get query and llm answer from db
-    llm_answer = get_response(response_id)
-    query = get_query(response_id)
-    patient_data = get_patient_data(response_id)
+    llm_answer = get_qa_item("response", response_id)
+    query = get_qa_item("query", response_id)
+    patient_data = get_qa_item("patient_data", response_id, json_load=True)
     json_patient_data = json.dumps(patient_data, ensure_ascii=False)
-
-    query_results = get_papers(response_id)
+    query_results = get_qa_item("papers", response_id, json_load=True)
 
     return render_template('answer.html', query=query, query_results=query_results, patient_data=json_patient_data, llm_answer=llm_answer)
 
