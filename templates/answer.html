@@ -26,7 +26,11 @@
         </h4>
         <ol id="selectedPapers" class="collapsible-content"></ol>
 
-        <h2>Answer</h2>
+        
+        <h2>
+            Answer
+            <span id="loadingSpinner" style="display: none; font-size: 16px; margin-left: 20px;">Loading...</span>
+        </h2>
         <div id="liveResponse" class="answer-section"></div>
 
         <div style="text-align: center;">
@@ -73,25 +77,26 @@
         const link = document.createElement("a");
         link.href = `/paper_${index + 1}`;
         link.textContent = " [View Paper]";
+        link.className = "view-paper-btn"; // class to identify buttons
         link.style.color = "#007bff";
         link.style.textDecoration = "none";
         link.style.marginLeft = "10px";
 
         // Form submission to send paper data to the backend
-        link.addEventListener("click", (e) => {e.preventDefault();  // Prevent default link behavior
+        link.addEventListener("click", (e) => {
+            e.preventDefault();  // Prevent default link behavior
+            // Create hidden form
+            const form = document.createElement("form");
+            form.method = "POST";
+            form.action = `/paper_${index + 1}`;
 
-        // Create hidden form
-        const form = document.createElement("form");
-        form.method = "POST";
-        form.action = `/paper_${index + 1}`;
-
-        // Create hidden input fields for paper data
-        const paperData = {
-            title: titles[index],
-            abstract: abstracts[index],
-            author: authors[index],
-            year: years[index],
-            journal: journals[index]
+            // Create hidden input fields for paper data
+            const paperData = {
+                title: titles[index],
+                abstract: abstracts[index],
+                author: authors[index],
+                year: years[index],
+                journal: journals[index]
         };
 
         for (const key in paperData) {
@@ -124,6 +129,16 @@
 
     function streamLLMResponse(query) {
         responseContainer.innerHTML = "";
+        // Show loading spinner
+        const loadingSpinner = document.getElementById("loadingSpinner");
+        loadingSpinner.style.display = "inline"; // Show spinner next to "Answer" title
+
+        // Disable "View Paper" buttons
+        const viewPaperButtons = document.querySelectorAll(".view-paper-btn");
+        viewPaperButtons.forEach((button) => {
+        button.style.pointerEvents = "none"; // Disable pointer events
+        button.style.opacity = "0.5"; // Make buttons look disabled
+        });
 
         fetch('/stream_response', {
             method: 'POST',
@@ -148,6 +163,12 @@
                 reader.read().then(({ done, value }) => {
                     if (done) {
                         console.log("Stream finished.");
+                        loadingSpinner.style.display = "none"; // Hide spinner
+                        // Re-enable "View Paper" buttons after streaming is complete
+                        viewPaperButtons.forEach((button) => {
+                            button.style.pointerEvents = "auto"; // Re-enable pointer events
+                            button.style.opacity = "1"; // Restore original opacity
+                        });
                         return;
                     }
                     responseContainer.innerHTML += decoder.decode(value);
@@ -158,6 +179,13 @@
         }).catch(error => {
             console.error("Error:", error);
             responseContainer.innerHTML = "<p style='color: red;'>An error occurred while fetching the response.</p>";
+            loadingSpinner.style.display = "none"; // Hide spinner on error
+            // Re-enable "View Paper" buttons even in case of error
+            viewPaperButtons.forEach((button) => {
+                button.style.pointerEvents = "auto";
+                button.style.opacity = "1";
+            });
+
         });
     }
 
