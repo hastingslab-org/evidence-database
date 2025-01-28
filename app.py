@@ -30,6 +30,8 @@ def get_qa_item(item_name, item_id, json_load=False):
 
     cursor.execute("SELECT " + item_name + " FROM qa_data WHERE id = ?", (item_id,))
     row = cursor.fetchone()
+    conn.commit()
+    conn.close()
 
     if row:
         if json_load:
