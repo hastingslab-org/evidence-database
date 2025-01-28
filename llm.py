@@ -1,4 +1,3 @@
-#from chromadb.utils import embedding_functions
 from openai import OpenAI
 import json
 
@@ -13,7 +12,7 @@ NB_PAPERS_LLM = 5
 
 
 def get_relevant_papers(user_query, collection, patient_data=None):
-    """ gets N most relevant papers from collection"""
+    """ Gets the n most relevant papers from a chroma-db collection (where n is NB_PAPERS_LLM)"""
 
     if patient_data is not None: 
         query = user_query + json.dumps(patient_data) #combine query and patient data TODO: investigate other options
@@ -27,8 +26,8 @@ def get_relevant_papers(user_query, collection, patient_data=None):
 
 
 def call_llm_stream(user_query, title_and_abst, patient_data):
-    """Builds a message based on user query, papers and patient characteristics. Then generates a 
-    response using the LLM"""
+    """Builds a message based on user query, papers and patient characteristics. 
+    Then generates and live streams a response using the LLM"""
     
     #Patient data to string
     patient_string = '\n'.join(f"{key.replace('_', ' ').title()}: {', '.join(value) if isinstance(value, list) else value}" for key, value in patient_data.items())
