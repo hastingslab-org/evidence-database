@@ -6,6 +6,7 @@ from llm import call_llm_stream, get_relevant_papers
 from init_db import init_db
 import sqlite3 
 import chromadb
+from chromadb.utils import embedding_functions
 
 # Get the db directory path
 DB_PATH = 'chroma_data2'
@@ -63,7 +64,8 @@ def answer_page():
         
         # Render the answer.html template with the data
         chroma_client = chromadb.PersistentClient(path=DB_PATH)
-        collection = chroma_client.get_collection(name="searchable_db_collection")
+        embedding_func = embedding_functions.SentenceTransformerEmbeddingFunction(model_name="mixedbread-ai/mxbai-embed-large-v1")
+        collection = chroma_client.get_collection(name="searchable_db_collection",embedding_function=embedding_func)
         query_results = get_relevant_papers(query, collection, patient_data)
 
         response_id = str(uuid.uuid4())
