@@ -1,21 +1,22 @@
 #from chromadb.utils import embedding_functions
 from openai import OpenAI
 import json
-import os 
 
+#paths
 CHROMA_DATA_PATH = "./chroma_data2/"
 COLLECTION_NAME = "searchable_db_collection"
+
+#params
 SYSTEM_MSG  = "You are a medical expert assisting doctors and clinicians in decision making" #"You are a helpful systematic reviewing assistant" #TODO try diff sytsem prompt
 MODEL = "meta-llama/Meta-Llama-3.1-70B-Instruct"
 NB_PAPERS_LLM = 5
-#API_KEY = ""
 
 
 def get_relevant_papers(user_query, collection, patient_data=None):
-    #get relevant papers from collection
+    """ gets N most relevant papers from collection"""
 
     if patient_data is not None: 
-        query = user_query + json.dumps(patient_data)    
+        query = user_query + json.dumps(patient_data) #combine query and patient data TODO: investigate other options
          
     query_results = collection.query(
     query_texts=[query],
@@ -26,8 +27,10 @@ def get_relevant_papers(user_query, collection, patient_data=None):
 
 
 def call_llm_stream(user_query, title_and_abst, patient_data):
+    """Builds a message based on user query, papers and patient characteristics. Then generates a 
+    response using the LLM"""
     
-    #Patient Data to string
+    #Patient data to string
     patient_string = '\n'.join(f"{key.replace('_', ' ').title()}: {', '.join(value) if isinstance(value, list) else value}" for key, value in patient_data.items())
     
     #LLM
