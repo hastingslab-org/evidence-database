@@ -1,96 +1,236 @@
-/* General Form Styling */
-.form-heading {
+/* general styling */
+
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f9f9f9;
+    margin: 0;
+    padding: 0;
+}
+
+h1 {
     text-align: center;
-    color: #222;
+    color: #333;
     font-size: 28px;
+    border-bottom: 2px solid #007bff;
+    padding-bottom: 10px;
     margin-bottom: 20px;
 }
 
-.form-container {
-    background-color: #fff;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    max-width: 800px;
-    margin: 0 auto;
+h2, h3 {
+    text-align: center;
+    color: #333;
 }
 
-label {
-    display: block;
-    margin-bottom: 5px;
-    font-weight: bold;
-}
-
-input, select, textarea {
-    width: 100%;
-    padding: 8px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    font-size: 14px;
-}
-
-textarea {
-    height: 100px;
-}
-
-.checkbox-group input {
-    margin-right: 5px;
-}
-
-.tnm-group {
+h4 {
+    text-align: center;
+    color: #333;
+    border-bottom: 2px solid #007bff;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+    cursor: pointer;
     display: flex;
     align-items: center;
-    gap: 10px;
-    margin-bottom: 10px;
+    justify-content: center;
 }
 
-.tnm-group select {
-    flex: 1;
+.container {
+    max-width: 900px;
+    margin: 40px auto;
+    background-color: #fff;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
 
-.prostate-section {
-    margin-top: 20px;
-    padding: 15px;
-    background-color: #f1f1f1;
-    border-radius: 8px;
-}
-
-.submit-button {
+.btn {
+    padding: 12px 25px;
+    font-size: 18px;
     background-color: #007bff;
     color: #fff;
-    padding: 10px 15px;
+    text-decoration: none;
+    border-radius: 5px;
     border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 16px;
+    transition: background-color 0.3s ease;
+    display: inline-block;
+    margin: 10px;
+    margin-top: 20px;
 }
 
-.submit-button:hover {
+.btn:hover {
     background-color: #0056b3;
 }
 
-.search-container {
-    display: flex;
-    justify-content: center; /* Center the form horizontally */
-    margin: 20px auto;
-    max-width: 80%; /* Width of the whole container */
+.btn-container {
+    text-align: center;
+    margin-top: 30px;
 }
 
-button {
-    padding: 10px 20px; /* Padding for button */
-    background-color: #4CAF50;
-    color: white;
-    border: 1px solid #4CAF50;
-    border-left: none; /* Remove border between textarea and button */
-    border-radius: 0 4px 4px 0; /* Rounded corners on the right */
-    font-size: 1rem; /* Button text size */
+@media (max-width: 600px) {
+    .container {
+        padding: 20px;
+    }
+    form {
+        padding: 20px;
+    }
+    h1 {
+        font-size: 24px;
+    }
+    h2 {
+        font-size: 24px;
+    }
+    h3 {
+        font-size: 20px;
+    }
+    .btn {
+        width: 100%;
+        text-align: center;
+    }
+}
+
+/*form styling*/
+form {
+    max-width: 800px;
+    margin: 40px auto;
+    background-color: #fff;
+    padding: 20px 30px;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 8px;
+    color: #555;
+}
+
+.form-group select, .form-group input, .form-group textarea {
+    width: 100%;
+    padding: 10px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    background-color: #f9f9f9;
+}
+
+.form-group textarea {
+    height: 120px;
+    resize: none;
+}
+
+button[type="submit"] {
+    width: 100%;
+    padding: 12px 20px;
+    font-size: 18px;
+    color: #fff;
+    background-color: #007bff;
+    border: none;
+    border-radius: 5px;
     cursor: pointer;
-    height: auto; /* Let the button size itself */
-    align-self: stretch; /* Prevent height inheritance */
+    transition: background-color 0.3s ease;
 }
 
-button:hover {
-    background-color: #45a049;
+button[type="submit"]:hover {
+    background-color: #0056b3;
 }
 
+#prostateFields {
+    margin-top: 30px;
+    padding: 20px;
+    background-color: #f1f1f1;
+    border-radius: 10px;
+}
+
+#prostateFields h3 {
+    margin-top: 0;
+    color: #444;
+}
+
+.form-group input[type="checkbox"] {
+    display: inline-block;
+    width: auto;
+    margin-right: 10px;
+    vertical-align: middle;
+}
+
+input::placeholder, textarea::placeholder {
+    color: #aaa;
+}
+
+.required {
+    color: red;
+    }
+
+/* toggle fields */
+.collapsible-content {
+    padding: 15px;
+    background-color: #f1f1f1;
+    border-radius: 5px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    display: none; /* Initially hidden */
+}
+
+.toggle-icon {
+    margin-left: 10px;
+    font-size: 20px;
+    transition: transform 0.3s ease;
+}
+
+/*question and answer*/
+#userQuery {
+    font-family: 'Arial', sans-serif; /* Change to desired font */
+    font-size: 16px; /* Adjust font size */
+    color: #333; /* Adjust text color */
+    white-space: pre-wrap; /* Preserve line breaks but allow wrapping */
+    line-height: 1.6;
+}
+
+/* LLM Response */
+#liveResponse {
+    font-family: 'Arial', sans-serif; /* Change to desired font */
+    font-size: 16px;
+    color: #444; /* Slightly different color for emphasis */
+    line-height: 1.8;
+    white-space: pre-wrap; /* Preserve line breaks */
+}
+
+/*papers display */
+p, li {
+    font-size: 16px;
+    color: #555;
+    line-height: 1.6;
+}
+
+.paper-info {
+    font-size: 18px;
+    color: #555;
+    line-height: 1.6;
+    margin-bottom: 15px;
+}
+
+.paper-info strong {
+    color: #333;
+}
+
+.abstract {
+    background-color: #f1f1f1;
+    padding: 20px;
+    border-radius: 10px;
+    font-size: 16px;
+    line-height: 1.8;
+    color: #444;
+    white-space: pre-line;
+}
+
+.btn-secondary {
+    background-color: #28a745;
+}
+
+.btn-secondary:hover {
+    background-color: #218838;
+}
 
