@@ -28,7 +28,7 @@
 
         
         <h2>
-            Answer
+            LLM Answer
             <span id="loadingSpinner" style="display: none; font-size: 16px; margin-left: 20px;">Loading...</span>
         </h2>
         <div id="liveResponse" class="answer-section"></div>
@@ -89,6 +89,8 @@
             const form = document.createElement("form");
             form.method = "POST";
             form.action = `/paper_${index + 1}`;
+            form.target = "_blank";  // Open in a new tab
+
 
             // Create hidden input fields for paper data
             const paperData = {
