@@ -5,7 +5,7 @@
     .section-divider {
     border: none;
     border-bottom: 1px solid #ddd;
-    margin: 10px 0;
+    margin: 15px 0;
   }
 
     /* Flexbox to align T, N, and M on the same line */
@@ -82,7 +82,7 @@
     </div>
 
     <!-- Prostate Cancer Specific Fields -->
-    <div id="prostateFields" style="display: none;">
+    <div id="prostateFields" style="display: none; margin-bottom: 20px;">
         <h3>Prostate Cancer Details</h3>
         <br>
 
@@ -194,9 +194,11 @@
         <hr class="section-divider">
 
         <div class="form-group">
-            <label style="display: block; text-align: center;">Genomic Features</label>
-            <input type="checkbox" name="Genomic features" value="DDR" style="margin-bottom:20px;"> DNA Damage Repair (DDR) Deficiency<br>
-            <label>Genes Involved:</label>
+            <label style="display: block; text-align: center;">
+                <h5>Genomic Features</h5>
+            </label>
+            <input type="checkbox" name="Genomic features" value="DDR"> DNA Damage Repair (DDR) Deficiency<br>
+            <label style="margin-top: 20px;">Genes Involved:</label>
             <input type="text" name="Genes involved" placeholder="e.g., BRCA1, BRCA2, RAD51", style="margin-bottom:20px;">
             <label>Variants:</label>
             <input type="text" name="Variants" placeholder="e.g., PTEN MED12 p. L1224, c.367C>T">
@@ -205,7 +207,9 @@
         <hr class="section-divider">
 
         <div class="form-group">
-            <label style="display: block; text-align: center;">Biomarkers</label>
+            <label style="display: block; text-align: center;">
+                <h5>Biomarkers</h5>
+            </label>
             <label>PSMA Level (PET Scan, ng/mL):</label>
             <input type="text" name="PSMA level" placeholder="Enter PSMA level" style="margin-bottom:20px;">
             <label>ALP Level (Blood, ng/mL):</label>
@@ -215,7 +219,9 @@
         <hr class="section-divider">
 
         <div class="form-group">
-            <label style="display: block; text-align: center;">Histology</label>
+            <label style="display: block; text-align: center;">
+                <h5>Histology</h5>
+            </label>
             <label>Gleason Score :</label>
             <input type="number" name="Gleason score" min="2" max="10" placeholder="Enter score (2-10)" style="margin-bottom:20px;">
             <label>Histologic Variants:</label>
@@ -225,7 +231,9 @@
         <hr class="section-divider">
 
         <div class="form-group">
-            <label style="display: block; text-align: center;">Trial-Based Classifications:</label>
+            <label style="display: block; text-align: center;">
+                <h5>Trial-Based Classifications</h5>
+            </label>
             <input type="checkbox" name="Trial-based classifications" value="High Volume"> High Volume <br>
             <input type="checkbox" name="Trial-based classifications" value="High Risk"> High Risk<br>
         </div>
