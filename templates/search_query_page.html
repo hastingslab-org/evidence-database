@@ -1,6 +1,26 @@
 {% extends 'base.html' %}
 
 {% block content %}
+<style>
+    .section-divider {
+    border: none;
+    border-bottom: 1px solid #ddd;
+    margin: 10px 0;
+  }
+
+    /* Flexbox to align T, N, and M on the same line */
+    .tnm-group {
+        display: flex;
+        justify-content: space-between;
+        gap: 15px;
+    }
+
+    .tnm-group div {
+        flex: 1; /* Makes each element take equal space */
+        margin-bottom: 15px;
+    }
+</style>
+
 <h2 style="margin-bottom: 40px; text-align: center;">Searchable literature database for genitourinary cancer</h2>
 
 <!-- Patient's Characteristics Form + User Query -->
@@ -66,7 +86,7 @@
         <h3>Prostate Cancer Details</h3>
 
         <div class="form-group">
-            <label>Disease Sensitivity:</label>
+            <label style="text-align: center;">Disease Sensitivity</label>
             <select name = "Disease sensitivity" id="disease_sensitivity">
                 <option value="" disabled selected>Select disease sensitivity</option>
                 <option value="Hormone-sensitive">Hormone-sensitive</option>
@@ -75,53 +95,58 @@
 
             </select>
         </div>
+    
+        <hr class="section-divider">
 
+        <!-- TNM Classification Section -->
         <div class="form-group">
-            <label>Disease Stage (TNM Classification):</label>
-            <div>
-                <label for="T-stage">T (Primary Tumor):</label>
-                <select name="T-stage" id="T-stage">
-                    <option value="" disabled selected>Select T</option>
-                    <option value="TX">TX</option>
-                    <option value="T0">T0</option>
-                    <option value="Tis">Tis</option>
-                    <option value="T1">T1</option>
-                    <option value="T2">T2</option>
-                    <option value="T3">T3</option>
-                    <option value="T4">T4</option>
-                </select>
-            </div>
-        
-            <div>
-                <label for="N-stage">N (Regional Lymph Nodes):</label>
-                <select name="N-stage" id="N-stage">
-                    <option value="" disabled selected>Select N</option>
-                    <option value="NX">NX</option>
-                    <option value="N0">N0</option>
-                    <option value="N1">N1</option>
-                    <option value="N2">N2</option>
-                </select>
-            </div>
-        
-            <div>
-                <label for="M-stage">M (Distant Metastasis):</label>
-                <select name="M-stage" id="M-stage">
-                    <option value="" disabled selected>Select M</option>
-                    <option value="MX">MX</option>
-                    <option value="M0">M0</option>
-                    <option value="M1">M1</option>
-                </select>
+            <label style="text-align: center;">Disease Stage</label>
+            <label>TNM Classification: </label>
+            <div class="tnm-group">
+                <div>
+                    <select name="T-stage" id="T-stage">
+                        <option value="" disabled selected>T (Primary Tumor)</option>
+                        <option value="TX">TX</option>
+                        <option value="T0">T0</option>
+                        <option value="Tis">Tis</option>
+                        <option value="T1">T1</option>
+                        <option value="T2">T2</option>
+                        <option value="T3">T3</option>
+                        <option value="T4">T4</option>
+                    </select>
+                </div>
+            
+                <div>
+                    <select name="N-stage" id="N-stage">
+                        <option value="" disabled selected>N (Regional Lymph Nodes)</option>
+                        <option value="NX">NX</option>
+                        <option value="N0">N0</option>
+                        <option value="N1">N1</option>
+                        <option value="N2">N2</option>
+                    </select>
+                </div>
+            
+                <div>
+                    <select name="M-stage" id="M-stage">
+                        <option value="" disabled selected>M (Distant Metastasis)</option>
+                        <option value="MX">MX</option>
+                        <option value="M0">M0</option>
+                        <option value="M1">M1</option>
+                    </select>
+                </div>
             </div>
         </div>
 
+        <!-- Staging Group Section -->
         <div class="form-group">
-            <label> Staging Group:</label>
-            <select name="Staging group" id="T-stage">
+            <label>Staging Group: </label>
+            <select name="Staging-group" id="Staging-group">
                 <option value="" disabled selected>Select staging group</option>
                 <option value="0">0</option>
                 <option value="IA">IA</option>
                 <option value="IB">IB</option>
-                <option value="IIA">IIB</option>
+                <option value="IIA">IIA</option>
+                <option value="IIB">IIB</option>
                 <option value="III">III</option>
                 <option value="IV">IV</option>
             </select> 
@@ -129,8 +154,9 @@
 
         <div class="form-group">
             <label>Metastasis Location:</label>
-            <select name="Metastasis location" id="metastasisLoc">
+            <select name="Metastasis location" id ="metastasisLoc">
                 <option value="" disabled selected>Select metastasis location</option>
+                <option value="No metastasis">No metastasis</option>
                 <option value="Bone metastasis">Bone only</option>
                 <option value="Lymph metastasis">Lymph only</option>
                 <option value="Bone and lymph metastasis">Bone and lymph only</option>
@@ -138,6 +164,9 @@
             </select> 
         </div>
 
+        <hr class="section-divider">
+
+        <label style="text-align: center;">Patient's History</label>
         <div class="form-group">
             <label>Timepoint of Diagnosis (Date/Year):</label>
             <input type="text" name="Timepoint of diagnosis" placeholder="Enter timepoint">
@@ -147,39 +176,47 @@
             <label>Treatment History:</label>
             <input type="checkbox" name="Treatment history" value="ADT"> ADT (Androgen Deprivation Therapy)<br>
             <input type="checkbox" name="Treatment history" value="ARPI"> ARPI (Androgen Receptor Pathway Inhibitor)<br>
-            <input type="checkbox" name="Treatment history" value="Triple Therapy"> Triple Therapy<br>
+            <input type="checkbox" name="Treatment history" value="Triple Therapy" style="margin-bottom:20px;"> Triple Therapy<br>
             <label>More information:</label>
-            <input type="text" name="Extra treatment history" placeholder="Extra treatment history">
+            <input type="text" name="Extra treatment history" placeholder="Other information about treatment history">
         </div>
 
+        <hr class="section-divider">
+
         <div class="form-group">
-            <label>Genomic Features:</label>
-            <input type="checkbox" name="Genomic features" value="DDR"> DNA Damage Repair (DDR) Deficiency<br>
+            <label style="display: block; text-align: center;">Genomic Features</label>
+            <input type="checkbox" name="Genomic features" value="DDR" style="margin-bottom:20px;"> DNA Damage Repair (DDR) Deficiency<br>
             <label>Genes Involved:</label>
-            <input type="text" name="Genes involved" placeholder="e.g., BRCA1, BRCA2, RAD51">
+            <input type="text" name="Genes involved" placeholder="e.g., BRCA1, BRCA2, RAD51", style="margin-bottom:20px;">
             <label>Variants:</label>
             <input type="text" name="Variants" placeholder="e.g., PTEN MED12 p. L1224, c.367C>T">
         </div>
 
+        <hr class="section-divider">
+
         <div class="form-group">
-            <label>Biomarkers:</label>
+            <label style="display: block; text-align: center;">Biomarkers</label>
             <label>PSMA Level (PET Scan, ng/mL):</label>
-            <input type="text" name="PSMA level" placeholder="Enter PSMA level">
+            <input type="text" name="PSMA level" placeholder="Enter PSMA level" style="margin-bottom:20px;">
             <label>ALP Level (Blood, ng/mL):</label>
             <input type="text" name="ALP level" placeholder="Enter ALP level" >
         </div>
 
+        <hr class="section-divider">
+
         <div class="form-group">
-            <label>Histology:</label>
+            <label style="display: block; text-align: center;">Histology</label>
             <label>Gleason Score :</label>
-            <input type="number" name="Gleason score" min="2" max="10" placeholder="Enter score (2-10)">
+            <input type="number" name="Gleason score" min="2" max="10" placeholder="Enter score (2-10)" style="margin-bottom:20px;">
             <label>Histologic Variants:</label>
             <input type="text" name="Histologic variants" placeholder="e.g., small cell carcinoma">
         </div>
 
+        <hr class="section-divider">
+
         <div class="form-group">
-            <label>Trial-Based Classifications:</label>
-            <input type="checkbox" name="Trial-based classifications" value="High Volume"> High Volume
+            <label style="display: block; text-align: center;">Trial-Based Classifications:</label>
+            <input type="checkbox" name="Trial-based classifications" value="High Volume"> High Volume <br>
             <input type="checkbox" name="Trial-based classifications" value="High Risk"> High Risk<br>
         </div>
     </div>
