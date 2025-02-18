@@ -11,6 +11,18 @@
     <div class="container">
         <h4>Your Question</h4>
         <pre id="userQuery"></pre>
+        <button id="editButton" onclick="showEditForm()" class="btn">Edit Question</button>
+        <!-- Hidden edit form for the question -->
+        <div id="editQuestionDiv" style="display: none; margin-top: 10px;">
+            <form id="editForm" action="/answer" method="POST">
+                <label for="queryInput">Edit your question:</label>
+                <textarea id="queryInput" name="query" rows="3" style="width: 100%;"></textarea>
+                <!-- Container for hidden inputs for patient data -->
+                <div id="patientDataInputs"></div>
+                <button type="submit" class="btn">Save Changes</button>
+            </form>
+        </div>
+
 
         <!-- Patient's Characteristics Toggle -->
         <h4 id="togglePatientSection">
@@ -207,6 +219,32 @@
             }
         });
     }
+
+    // ******** Edit Question Functions ********
+    function showEditForm() {
+        // Hide the static query display and the edit button
+        document.getElementById("userQuery").style.display = "none";
+        document.getElementById("editButton").style.display = "none";
+        // Show the edit form
+        document.getElementById("editQuestionDiv").style.display = "block";
+        // Set the textarea value to the current query
+        document.getElementById("queryInput").value = query;
+        // Populate hidden inputs for each patient data field
+        populatePatientDataInputs();
+    }
+
+    function populatePatientDataInputs() {
+        const container = document.getElementById("patientDataInputs");
+        container.innerHTML = ""; // Clear any previous inputs
+        for (const key in patientData) {
+            const input = document.createElement("input");
+            input.type = "hidden";
+            input.name = key;
+            input.value = Array.isArray(patientData[key]) ? patientData[key].join(", ") : patientData[key];
+            container.appendChild(input);
+        }
+    }
+
 </script>
 
 {% endblock %}
