@@ -84,9 +84,12 @@
     <!-- Prostate Cancer Specific Fields -->
     <div id="prostateFields" style="display: none;">
         <h3>Prostate Cancer Details</h3>
+        <br>
 
         <div class="form-group">
-            <label style="text-align: center;">Disease Sensitivity</label>
+            <label style="text-align: center;">
+                <h5>Disease Sensitivity</h5>
+            </label>
             <select name = "Disease sensitivity" id="disease_sensitivity">
                 <option value="" disabled selected>Select disease sensitivity</option>
                 <option value="Hormone-sensitive">Hormone-sensitive</option>
@@ -100,7 +103,9 @@
 
         <!-- TNM Classification Section -->
         <div class="form-group">
-            <label style="text-align: center;">Disease Stage</label>
+            <label style="text-align: center;">
+                <h5>Disease Stage</h5>  
+            </label>
             <label>TNM Classification: </label>
             <div class="tnm-group">
                 <div>
@@ -166,7 +171,9 @@
 
         <hr class="section-divider">
 
-        <label style="text-align: center;">Patient's History</label>
+        <label style="display: flex; justify-content: center; width: 100%;">
+            <h5>Patient's History</h5>
+        </label>
         <div class="form-group">
             <label>Timepoint of Diagnosis (Date/Year):</label>
             <input type="text" name="Timepoint of diagnosis" placeholder="Enter timepoint">
@@ -175,12 +182,15 @@
         <div class="form-group">
             <label>Treatment History:</label>
             <input type="checkbox" name="Treatment history" value="ADT"> ADT (Androgen Deprivation Therapy)<br>
-            <input type="checkbox" name="Treatment history" value="ARPI"> ARPI (Androgen Receptor Pathway Inhibitor)<br>
-            <input type="checkbox" name="Treatment history" value="Triple Therapy" style="margin-bottom:20px;"> Triple Therapy<br>
+            <input type="checkbox" name="Treatment history" value="ARPI" > ARPI (Androgen Receptor Pathway Inhibitor)<br>
+            <input type="checkbox" name="Treatment history" value="Triple Therapy"> Triple Therapy<br>
+        </div>
+
+        <div class="form-group">
             <label>More information:</label>
             <input type="text" name="Extra treatment history" placeholder="Other information about treatment history">
         </div>
-
+    
         <hr class="section-divider">
 
         <div class="form-group">
