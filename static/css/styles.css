@@ -164,7 +164,7 @@ button[type="submit"]:hover {
 .form-group input[type="checkbox"] {
     display: inline-block;
     width: auto;
-    margin-right: 30px;
+    margin-right: 10px;
     vertical-align: middle;
 }
 
