@@ -1,3 +1,6 @@
 chroma_data2/
 evidencedb_env/
 .env
+__pycache__/
+titles_and_abstracts.csv
+test_api.ipynb

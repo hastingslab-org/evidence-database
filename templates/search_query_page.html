@@ -2,11 +2,16 @@
 
 {% block content %}
 <style>
-    .section-divider {
-    border: none;
-    border-bottom: 1px solid #ddd;
-    margin: 15px 0;
-  }
+    #prostateFields {
+    margin-top: 30px;
+    padding: 20px;
+    background-color: #f1f1f1;
+    border-radius: 10px;
+    }
+
+    #prostateFields h3 {
+        margin-top: 0;
+    }
 
     /* Flexbox to align T, N, and M on the same line */
     .tnm-group {
@@ -249,7 +254,6 @@
 
 
 <script>
-
     //ignore empty text and number fields:
     document.getElementById('patientForm').addEventListener('submit', function(e) {
         // Get all text input fields in the form
