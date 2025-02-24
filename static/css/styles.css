@@ -1,17 +1,17 @@
 /* general styling */
 
 body {
-    font-family: Arial, sans-serif;
-    background-color: #f9f9f9;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    background-color: #f4f6f8;
+    color: #333;
     margin: 0;
     padding: 0;
-}
+  }
 
 h1 {
     text-align: center;
     color: #333;
     font-size: 28px;
-    border-bottom: 2px solid #007bff;
     padding-bottom: 10px;
     margin-bottom: 20px;
 }
@@ -19,15 +19,29 @@ h1 {
 h2, h3 {
     text-align: center;
     color: #333;
+    margin-top: 20px;
+    margin-bottom: 10px;
 }
 
 h4 {
     text-align: center;
     color: #333;
-    border-bottom: 2px solid #007bff;
+    /*border-bottom: 2px solid #007bff;*/
     padding-bottom: 10px;
     margin-bottom: 20px;
     cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 20px;
+    margin-bottom: 10px;
+}
+
+h5 {
+    font-size: 17px;
+    text-align: center;
+    color: #333;
+    padding-bottom: 5px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -87,6 +101,12 @@ h4 {
     }
 }
 
+.section-divider {
+    border: none;
+    border-bottom: 1px solid #ddd;
+    margin-bottom: 20px;
+  }
+
 /*form styling*/
 form {
     max-width: 800px;
@@ -127,7 +147,7 @@ button[type="submit"] {
     padding: 12px 20px;
     font-size: 18px;
     color: #fff;
-    background-color: #007bff;
+    background-color: #007eff;
     border: none;
     border-radius: 5px;
     cursor: pointer;
@@ -138,17 +158,6 @@ button[type="submit"]:hover {
     background-color: #0056b3;
 }
 
-#prostateFields {
-    margin-top: 30px;
-    padding: 20px;
-    background-color: #f1f1f1;
-    border-radius: 10px;
-}
-
-#prostateFields h3 {
-    margin-top: 0;
-    color: #444;
-}
 
 .form-group input[type="checkbox"] {
     display: inline-block;
@@ -167,17 +176,15 @@ input::placeholder, textarea::placeholder {
 
 /* toggle fields */
 .collapsible-content {
-    padding: 15px;
-    background-color: #f1f1f1;
-    border-radius: 5px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-    display: none; /* Initially hidden */
+    list-style: none;
+    padding-left: 20px;
+    margin-top: 0;
+    margin-bottom: 20px;
 }
 
 .toggle-icon {
-    margin-left: 10px;
-    font-size: 20px;
-    transition: transform 0.3s ease;
+    font-size: 10px;
+    margin-left: 5px;
 }
 
 /*question and answer*/

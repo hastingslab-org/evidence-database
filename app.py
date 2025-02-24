@@ -8,7 +8,7 @@ import sqlite3
 import chromadb
 from chromadb.utils import embedding_functions
 
-# Get the db directory path
+# Get db directory path
 DB_PATH = 'chroma_data2'
 
 #app config
@@ -147,7 +147,6 @@ def view_paper(paper_id):
             "journal": paper_journal
         }
     )
-
 
 
 if __name__ == "__main__":
