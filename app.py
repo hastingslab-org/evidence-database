@@ -20,13 +20,13 @@ app.config['SECRET_KEY'] = 'my_secret_key' #TODO
 
 
 #db access functions
-def get_db_connexion():
+def get_db_connection():
     conn = sqlite3.connect('database.db')
     conn.row_factory = sqlite3.Row
     return conn
 
 def get_qa_item(item_name, item_id, json_load=False):
-    conn = get_db_connexion()
+    conn = get_db_connection()
     cursor = conn.cursor()
 
     cursor.execute("SELECT " + item_name + " FROM qa_data WHERE id = ?", (item_id,))
@@ -52,6 +52,10 @@ def handle_large_request(error):
 def search_query_page():
     return render_template('search_query_page.html')
 
+@app.route('/genomics')
+def genomics_page():
+    return render_template('genomics.html')
+
 @app.route("/answer",  methods=['POST', 'GET'])
 def answer_page():
     if request.method == 'POST':
@@ -62,9 +66,9 @@ def answer_page():
         patient_data = {key: value[0] if len(value) == 1 else value for key, value in form_data.items()}
         json_patient_data = json.dumps(patient_data, ensure_ascii=False)
         
-        # Render the answer.html template with the data
+        # Get papers
         chroma_client = chromadb.PersistentClient(path=DB_PATH)
-        embedding_func = embedding_functions.SentenceTransformerEmbeddingFunction(model_name="mixedbread-ai/mxbai-embed-large-v1")
+        embedding_func = embedding_functions.SentenceTransformerEmbeddingFunction(model_name="mixedbread-ai/mxbai-embed-large-v1") #TODO move somewhere else
         collection = chroma_client.get_collection(name="searchable_db_collection",embedding_function=embedding_func)
         query_results = get_relevant_papers(query, collection, patient_data)
 
@@ -85,7 +89,6 @@ def answer_page():
         patient_data = get_qa_item("patient_data", response_id, json_load=True)
         json_patient_data = json.dumps(patient_data, ensure_ascii=False)
         query_results = get_qa_item("papers", response_id, json_load=True)
-
         return render_template('answer.html', query=query, query_results=query_results, \
                                patient_data=json_patient_data, llm_answer=llm_answer)
 
@@ -115,12 +118,28 @@ def stream_response():
             full_response = "".join(chunks)
 
             #store response in db
-            conn = get_db_connexion()
+            print("WRITING TO DB")
+            conn = get_db_connection()  # Ensure this function is correctly defined
             cursor = conn.cursor()
-            cursor.execute("INSERT INTO qa_data (id, query, patient_data, papers, response) VALUES (?, ?, ?, ?, ?)",
-                           (response_id, query, patient_data_json, papers_json, full_response))
-            conn.commit()
-            conn.close()            
+            try:
+                # Delete all rows from qa_data
+                cursor.execute("DELETE FROM qa_data")
+
+                # Insert new data
+                cursor.execute(
+                    "INSERT INTO qa_data (id, query, patient_data, papers, response) VALUES (?, ?, ?, ?, ?)",
+                    (response_id, query, patient_data_json, papers_json, full_response)
+                )
+
+                conn.commit()  # Commit the transaction
+
+            except Exception as e:
+                conn.rollback()  # Rollback on error to prevent partial updates
+                print("Database error:", e)
+
+            finally:
+                cursor.close()  # Close cursor
+                conn.close()  # Close connection         
 
         return Response(generate_response(), content_type='text/event-stream',  headers={"Response-ID": response_id})
     
@@ -149,6 +168,11 @@ def view_paper(paper_id):
     )
 
 
+
+# Initialize the database
+print("Initializing database...")
+init_db()
+print("Database initialized.")
+
 if __name__ == "__main__":
-    init_db()
     app.run(host='0.0.0.0')

@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Genomics Database</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>Genomics Database</h1>
+    </header>
+    <main>
+        <section>
+            <h2>Search for Gene Variants and Diseases</h2>
+            <form id="search-form">
+                <label for="gene-name">Gene Name:</label>
+                <input type="text" id="gene-name" name="gene-name" required>
+                <button type="submit">Search</button>
+            </form>
+        </section>
+        <section id="results">
+            <h2>Results</h2>
+            <div id="variants">
+                <h3>Variants</h3>
+                <ul id="variant-list"></ul>
+            </div>
+            <div id="diseases">
+                <h3>Diseases</h3>
+                <ul id="disease-list"></ul>
+            </div>
+        </section>
+    </main>
+    <footer>
+        <p>&copy; 2023 Genomics Database</p>
+    </footer>
+    <script>
+        document.getElementById('search-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const geneName = document.getElementById('gene-name').value;
+            // Assume fetchVariantsAndDiseases is a function that retrieves the data
+            const { variants, diseases } = fetchVariantsAndDiseases(geneName);
+            displayResults(variants, diseases);
+        });
+
+        function displayResults(variants, diseases) {
+            const variantList = document.getElementById('variant-list');
+            const diseaseList = document.getElementById('disease-list');
+            variantList.innerHTML = '';
+            diseaseList.innerHTML = '';
+
+            variants.forEach(variant => {
+                const li = document.createElement('li');
+                li.textContent = variant;
+                variantList.appendChild(li);
+            });
+
+            diseases.forEach(disease => {
+                const li = document.createElement('li');
+                li.textContent = disease;
+                diseaseList.appendChild(li);
+            });
+        }
+    </script>
+</body>
+</html>
+{% endblock %}
