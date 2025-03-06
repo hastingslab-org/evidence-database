@@ -28,7 +28,6 @@ def get_db_connection():
 def get_qa_item(item_name, item_id, json_load=False):
     conn = get_db_connection()
     cursor = conn.cursor()
-
     cursor.execute("SELECT " + item_name + " FROM qa_data WHERE id = ?", (item_id,))
     row = cursor.fetchone()
     conn.commit()
@@ -52,9 +51,17 @@ def handle_large_request(error):
 def search_query_page():
     return render_template('search_query_page.html')
 
-@app.route('/genomics')
+
+@app.route('/genomics', methods=['GET', 'POST'])
 def genomics_page():
-    return render_template('genomics.html')
+    if request.method == 'POST':
+        form_data = request.form.to_dict(flat=False)  # Converts form data to a dictionary
+        # Process the form data as needed
+        # For example, you can save it to the database or perform some analysis
+        return jsonify({"message": "Genomics data received", "data": form_data}), 200
+
+    if request.method == 'GET':
+        return render_template('genomics.html')
 
 @app.route("/answer",  methods=['POST', 'GET'])
 def answer_page():
@@ -71,6 +78,7 @@ def answer_page():
         embedding_func = embedding_functions.SentenceTransformerEmbeddingFunction(model_name="mixedbread-ai/mxbai-embed-large-v1") #TODO move somewhere else
         collection = chroma_client.get_collection(name="searchable_db_collection",embedding_function=embedding_func)
         query_results = get_relevant_papers(query, collection, patient_data)
+        print("query_results", query_results)
 
         response_id = str(uuid.uuid4())
         session['response_id'] = None  # Clear previous response ID
@@ -166,8 +174,6 @@ def view_paper(paper_id):
             "journal": paper_journal
         }
     )
-
-
 
 # Initialize the database
 print("Initializing database...")
