@@ -7,6 +7,7 @@ from init_db import init_db
 import sqlite3 
 import chromadb
 from chromadb.utils import embedding_functions
+from genomics.genomics import get_profile_by_name
 
 # Get db directory path
 DB_PATH = 'chroma_data2'
@@ -56,11 +57,21 @@ def search_query_page():
 def genomics_page():
     if request.method == 'POST':
         form_data = request.form.to_dict(flat=False)  # Converts form data to a dictionary
-        # Process the form data as needed
-        # For example, you can save it to the database or perform some analysis
-        return jsonify({"message": "Genomics data received", "data": form_data}), 200
+        gene_name = form_data["gene-name"][0]
+        print("gene_name", gene_name)
+        # Get the molecular profile for the gene
+        profile = get_profile_by_name(gene_name, db_path="database.db")
+        if profile:
+            description = profile["description"]
+            disease = profile["disease"]
+            variants = profile["variants"]
+            evidence_score = profile["molecularProfileScore"]
+            return render_template('genomics.html', description=description, disease=disease, variants=variants, evidence_score=evidence_score)
+        else:
+            return jsonify({"error": "Profile not found"}), 404
 
     if request.method == 'GET':
+        print("GET REQUEST")
         return render_template('genomics.html')
 
 @app.route("/answer",  methods=['POST', 'GET'])

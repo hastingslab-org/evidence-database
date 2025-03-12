@@ -1,45 +1,78 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Genomics Database</title>
-    <link rel="stylesheet" href="styles.css">
-</head>
+
 <body>
     <header>
-        <h1>Genomics Database</h1>
+        <h1 style="text-align: center; font-family: Arial, sans-serif; color: #333;">Genomics Database</h1>
     </header>
-    <main>
-        <section>
-            <h2>Search for Gene Variants and Diseases</h2>
-            <form id="search-form">
-                <label for="gene-name">Gene Name:</label>
-                <input type="text" id="gene-name" name="gene-name" required>
-                <button type="submit">Search</button>
-            </form>
-        </section>
-        <section id="results">
-            <h2>Results</h2>
-            <div id="variants">
-                <h3>Variants</h3>
-                <ul id="variant-list"></ul>
-            </div>
-            <div id="diseases">
-                <h3>Diseases</h3>
-                <ul id="disease-list"></ul>
-            </div>
-        </section>
-    </main>
+
+    <h4 style="font-family: Arial, sans-serif; color: #333;">Search for Molecular Profiles</h4>
+
+    <form action="/genomics" method="POST" id="mp-form" style="text-align: center; background: #f9f9f9; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
+        <div class="form-group" style="margin-bottom: 10px; text-align: center;"></div>
+            <label for="gene-name" style="font-family: Arial, sans-serif; color: #555; display: block; text-align: center;">Molecular Profile Name:</label>
+            <input type="text" id="gene-name" name="gene-name" required style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px;">
+        </div>
+        <button type="submit" style="background-color: #4CAF50; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-family: Arial, sans-serif;">Search</button>
+    </form>
    
+    <div>
+        <h3>Molecular Profile Name</h3>
+        <ul id="MP_name">
+            <li>{{ gene_name }}</li>
+        </ul>
+    </div>
+    {% if description %}
+        <div>
+            <h3>Description</h3>
+            <ul id="description">
+                    <ul>{{ description }}</ul>
+            </ul>
+        </div>
+    {% endif %}
+   
+
+    {% if disease %}
+        <div>
+            <h3>Diseases</h3>
+            <ul id="disease">
+                    <li>{{ disease }}</li>
+            </ul>
+        </div>
+    {% endif %}
+
+    {% if variants %}
+    <div>
+        <h3>Variants</h3>
+        <ul id="variants">
+                <li>{{ variants }}</li>
+        </ul>
+    </div>
+    {% endif %}
+
+    {% if evidence_score %}
+    <div>
+        <h3>Evidence Score</h3>
+        <ul id="evidence_score">
+                <li>{{ evidence_score }}</li>
+        </ul>
+    </div>
+    {% endif %}
+
+
     <script>
-        document.getElementById('search-form').addEventListener('submit', function(event) {
+        /*document.getElementById('search-form').addEventListener('submit', function(event) {
             event.preventDefault();
             const geneName = document.getElementById('gene-name').value;
-            // Assume fetchVariantsAndDiseases is a function that retrieves the data
-            const { variants, diseases } = fetchVariantsAndDiseases(geneName);
-            displayResults(variants, diseases);
+
+            fetch(`/get_profile_by_name?gene_name=${geneName}`)
+                .then(response => response.json())
+                .then(data => {
+                    const { variants, diseases } = data;
+                    displayResults(variants, diseases);
+                })
+            .catch(error => console.error('Error fetching data:', error));
         });
 
         function displayResults(variants, diseases) {
@@ -59,8 +92,7 @@
                 li.textContent = disease;
                 diseaseList.appendChild(li);
             });
-        }
+        }*/
     </script>
 </body>
-</html>
 {% endblock %}

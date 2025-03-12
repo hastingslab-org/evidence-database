@@ -48,7 +48,7 @@ h5 {
 }
 
 .container {
-    max-width: 900px;
+    max-width: 1200px;
     margin: 40px auto;
     background-color: #fff;
     padding: 30px;
@@ -109,7 +109,7 @@ h5 {
 
 /*form styling*/
 form {
-    max-width: 800px;
+    max-width: 1000px;
     margin: 40px auto;
     background-color: #fff;
     padding: 20px 30px;
