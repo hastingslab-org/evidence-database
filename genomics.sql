@@ -19,3 +19,10 @@ CREATE TABLE IF NOT EXISTS genes (
     diseases JSON,  -- Store list of disease IDs as a JSON array
     db_source TEXT
 );
+
+DROP TABLE IF EXISTS diseases;
+CREATE TABLE IF NOT EXISTS diseases (
+    id TEXT PRIMARY KEY,
+    name TEXT,
+    description TEXT,
+);
