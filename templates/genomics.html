@@ -7,19 +7,19 @@
         <h1 style="text-align: center; font-family: Arial, sans-serif; color: #333;">Genomics Database</h1>
     </header>
 
-    <h4 style="font-family: Arial, sans-serif; color: #333;">Search for Molecular Profiles</h4>
+    <h4 style="font-family: Arial, sans-serif; color: #333;">Search for Genes</h4>
 
     <form action="/genomics" method="POST" id="mp-form" style="text-align: center; background: #f9f9f9; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
         <div class="form-group" style="margin-bottom: 10px; text-align: center;"></div>
-            <label for="gene-name" style="font-family: Arial, sans-serif; color: #555; display: block; text-align: center;">Molecular Profile Name:</label>
-            <input type="text" id="gene-name" name="gene-name" required style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px;">
+            <label for="gene-name" style="font-family: Arial, sans-serif; color: #555; display: block; text-align: center;">Gene Name:</label>
+            <input type="text" id="gene_name" name="gene_name" required style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px;">
         </div>
         <button type="submit" style="background-color: #4CAF50; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-family: Arial, sans-serif;">Search</button>
     </form>
    
     <div>
-        <h3>Molecular Profile Name</h3>
-        <ul id="MP_name">
+        <h3> Gene Name</h3>
+        <ul id="gene_name">
             <li>{{ gene_name }}</li>
         </ul>
     </div>
@@ -53,9 +53,9 @@
 
     {% if evidence_score %}
     <div>
-        <h3>Evidence Score</h3>
-        <ul id="evidence_score">
-                <li>{{ evidence_score }}</li>
+        <h3>>Molecular Profiles</h3>
+        <ul id="molecular_profiles">
+                <li>{{ molecular_profiles }}</li>
         </ul>
     </div>
     {% endif %}

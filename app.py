@@ -7,7 +7,7 @@ from init_db import init_db
 import sqlite3 
 import chromadb
 from chromadb.utils import embedding_functions
-from genomics.genomics import get_profile_by_name
+from genomics.genomics import get_gene_by_name, get_diseases_fom_ids
 
 # Get db directory path
 DB_PATH = 'chroma_data2'
@@ -57,16 +57,17 @@ def search_query_page():
 def genomics_page():
     if request.method == 'POST':
         form_data = request.form.to_dict(flat=False)  # Converts form data to a dictionary
-        gene_name = form_data["gene-name"][0]
-        print("gene_name", gene_name)
+        gene_name = form_data["gene_name"][0]
         # Get the molecular profile for the gene
-        profile = get_profile_by_name(gene_name, db_path="database.db")
-        if profile:
-            description = profile["description"]
-            disease = profile["disease"]
-            variants = profile["variants"]
-            evidence_score = profile["molecularProfileScore"]
-            return render_template('genomics.html', description=description, disease=disease, variants=variants, evidence_score=evidence_score)
+        gene = get_gene_by_name(gene_name, db_path="database.db")
+        if gene:
+            gene_name = gene["name"]
+            description = gene["description"]
+            disease = get_diseases_fom_ids(gene["diseases"], db_path="database.db")
+            print(disease)
+            variants = gene["variants"]
+            molecular_profiles = gene["molecular_profiles"]
+            return render_template('genomics.html', gene_name=gene_name, description=description, disease=disease, variants=variants, molecular_profiles=molecular_profiles)
         else:
             return jsonify({"error": "Profile not found"}), 404
 
