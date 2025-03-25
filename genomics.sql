@@ -1,4 +1,3 @@
-DROP TABLE IF EXISTS molecular_profiles;
 CREATE TABLE IF NOT EXISTS molecular_profiles (
     id TEXT PRIMARY KEY,
     name TEXT,
@@ -9,7 +8,6 @@ CREATE TABLE IF NOT EXISTS molecular_profiles (
     db_source TEXT
 );
 
-DROP TABLE IF EXISTS genes;
 CREATE TABLE IF NOT EXISTS genes (
     id TEXT PRIMARY KEY,
     name TEXT,
@@ -20,9 +18,8 @@ CREATE TABLE IF NOT EXISTS genes (
     db_source TEXT
 );
 
-DROP TABLE IF EXISTS diseases;
 CREATE TABLE IF NOT EXISTS diseases (
     id TEXT PRIMARY KEY,
     name TEXT,
-    description TEXT,
+    db_source TEXT
 );
