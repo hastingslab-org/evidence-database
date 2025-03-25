@@ -59,6 +59,7 @@ def genomics_page():
         form_data = request.form.to_dict(flat=False)  # Converts form data to a dictionary
         gene_name = form_data["gene_name"][0]
         # Get the molecular profile for the gene
+        print("gene name", gene_name)
         gene = get_gene_by_name(gene_name, db_path="database.db")
         if gene:
             gene_name = gene["name"]
@@ -69,7 +70,7 @@ def genomics_page():
             molecular_profiles = gene["molecular_profiles"]
             return render_template('genomics.html', gene_name=gene_name, description=description, disease=disease, variants=variants, molecular_profiles=molecular_profiles)
         else:
-            return jsonify({"error": "Profile not found"}), 404
+            return jsonify({"error": "Gene not found"}), 404
 
     if request.method == 'GET':
         print("GET REQUEST")
