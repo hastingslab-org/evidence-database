@@ -62,14 +62,17 @@ def genomics_page():
         print("gene name", gene_name)
         genes = get_genes_by_name(gene_name, db_path="database.db")
         if genes:
-            gene_name = gene["name"]
-            description = gene["description"]
-            disease = get_elements_fom_ids(gene["diseases"], "diseases", db_path="database.db")
-            variants = get_elements_fom_ids(gene["variants"], "variants", db_path="database.db")
-            print("variants", variants)
-            print("disease", disease)
-            molecular_profiles = gene["molecular_profiles"]
-            return render_template('genomics.html', gene_name=gene_name, description=description, disease=disease, variants=variants, molecular_profiles=molecular_profiles)
+            gene_data_list = []
+            for gene in genes:
+                gene_data = {
+                    "name": gene["name"],
+                    "description": gene["description"],
+                    "diseases": get_elements_fom_ids(gene["diseases"], "diseases", db_path="database.db"),
+                    "variants": get_elements_fom_ids(gene["variants"], "variants", db_path="database.db"),
+                    "molecular_profiles": gene.get("molecular_profiles")
+                }
+                gene_data_list.append(gene_data)
+            return render_template('genomics.html', genes=gene_data_list)
         else:
             return jsonify({"error": "Gene not found"}), 404
 

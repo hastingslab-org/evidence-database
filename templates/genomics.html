@@ -3,10 +3,10 @@
 {% block content %}
 <body style="background-color: #f4f6f8;">
     <header>
-        <h1 style="text-align: center; font-family: 'Georgia', serif; color: #2c3e50; margin-top: 40px;">Genomics Database</h1>
+        <h1 style="text-align: center; margin-top: 40px;">Genomics Database</h1>
     </header>
     
-    <h4 style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #2c3e50; text-align: center; margin-bottom: 20px;">Search for Genes</h4>
+    <h4 style="text-align: center; margin-bottom: 20px;">Search for Genes</h4>
     
     <form action="/genomics" method="POST" id="mp-form" style="max-width: 600px; margin: 0 auto 40px; background: #fff; padding: 30px 40px; border: 1px solid #e0e0e0; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);">
         <div class="form-group" style="display: flex; align-items: center; margin-bottom: 20px;">
@@ -16,7 +16,7 @@
         <button type="submit" style="width: 100%; background-color: #4CAF50; color: #fff; padding: 12px; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; transition: background-color 0.3s ease;">Search</button>
     </form>
     
-    {% if gene_name or description or variants or disease %}
+    {% if genes %}
     <div class="container" style="max-width: 1000px; margin: 0 auto 60px; background-color: #fff; padding: 30px; border: 1px solid #e0e0e0; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);">
         <h3 style="text-align: center; font-family: 'Georgia', serif; color: #2c3e50; margin-bottom: 20px;">Gene Information</h3>
         <table style="width: 100%; border-collapse: collapse;">
@@ -29,35 +29,34 @@
                 </tr>
             </thead>
             <tbody>
+                {% for gene in genes %}
                 <tr style="transition: background-color 0.3s ease;">
-                    <td style="padding: 15px; border-bottom: 1px solid #f0f0f0;">{{ gene_name }}</td>
-                    <td style="padding: 15px; border-bottom: 1px solid #f0f0f0;">{{ description }}</td>
+                    <td style="padding: 15px; border-bottom: 1px solid #f0f0f0;">{{ gene.name }}</td>
+                    <td style="padding: 15px; border-bottom: 1px solid #f0f0f0;">{{ gene.description }}</td>
                     <td style="padding: 15px; border-bottom: 1px solid #f0f0f0;">
-                        {% if variants %}
+                        {% if gene.variants %}
                             <ul style="list-style: disc; padding-left: 20px; margin: 0;">
-                            {% for variant in variants %}
-                                <li>{{ variant }}</li>
-                            {% endfor %}
+                                {% for variant in gene.variants %}
+                                    <li>{{ variant }}</li>
+                                {% endfor %}
                             </ul>
                         {% endif %}
                     </td>
                     <td style="padding: 15px; border-bottom: 1px solid #f0f0f0;">
-                        {% if disease %}
+                        {% if gene.diseases %}
                             <ul style="list-style: disc; padding-left: 20px; margin: 0;">
-                            {% for dis in disease %}
-                                <li>{{ dis }}</li>
-                            {% endfor %}
+                                {% for dis in gene.diseases %}
+                                    <li>{{ dis }}</li>
+                                {% endfor %}
                             </ul>
                         {% endif %}
                     </td>
                 </tr>
+                {% endfor %}
             </tbody>
         </table>
     </div>
     {% endif %}
     
-    <script>
-        // Additional JavaScript if needed
-    </script>
 </body>
 {% endblock %}
