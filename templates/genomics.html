@@ -31,9 +31,9 @@
             <tbody>
                 {% for gene in genes %}
                 <tr style="transition: background-color 0.3s ease;">
-                    <td style="padding: 15px; border-bottom: 1px solid #f0f0f0;">{{ gene.name }}</td>
-                    <td style="padding: 15px; border-bottom: 1px solid #f0f0f0;">{{ gene.description }}</td>
-                    <td style="padding: 15px; border-bottom: 1px solid #f0f0f0;">
+                    <td style="padding: 15px; border-bottom: 1px solid #f0f0f0; vertical-align: top;">{{ gene.name }}</td>
+                    <td style="padding: 15px; border-bottom: 1px solid #f0f0f0; vertical-align: top;">{{ gene.description }}</td>
+                    <td style="padding: 15px; border-bottom: 1px solid #f0f0f0; vertical-align: top;">
                         {% if gene.variants %}
                             <ul style="list-style: disc; padding-left: 20px; margin: 0;">
                                 {% for variant in gene.variants %}
@@ -42,7 +42,7 @@
                             </ul>
                         {% endif %}
                     </td>
-                    <td style="padding: 15px; border-bottom: 1px solid #f0f0f0;">
+                    <td style="padding: 15px; border-bottom: 1px solid #f0f0f0; vertical-align: top;">
                         {% if gene.diseases %}
                             <ul style="list-style: disc; padding-left: 20px; margin: 0;">
                                 {% for dis in gene.diseases %}
