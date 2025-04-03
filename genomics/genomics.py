@@ -25,13 +25,11 @@ def get_all_genes(db_path):
     return genes_with_keys
 
 
-def get_gene_by_name(name, db_path):
+def get_genes_by_name(name, db_path):
     all_genes = get_all_genes(db_path)
-
-    for gene in all_genes:
-        if gene['name'] == name:
-            return gene
-    return None
+    # Return genes where the search term is found (case-insensitive)
+    matching_genes = [gene for gene in all_genes if name.lower() in gene['name'].lower()]
+    return matching_genes
 
 
 def get_diseases_fom_ids(ids, db_path):
@@ -49,3 +47,19 @@ def get_diseases_fom_ids(ids, db_path):
     conn.close()
 
     return diseases
+
+def get_elements_fom_ids(ids, element_name, db_path):
+    "IDs are provided as a string with comma separated values. element_name is the name of the table to query (string)" 
+    ids = json.loads(ids)
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+
+    elements = []
+    for element_ids in ids:
+        cursor.execute("SELECT name FROM " + element_name + " WHERE id = ?", (element_ids,))
+        element = cursor.fetchone()
+        elements.append(element[0])
+
+    conn.close()
+
+    return elements

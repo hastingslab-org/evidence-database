@@ -7,7 +7,7 @@ from init_db import init_db
 import sqlite3 
 import chromadb
 from chromadb.utils import embedding_functions
-from genomics.genomics import get_gene_by_name, get_diseases_fom_ids
+from genomics.genomics import get_genes_by_name, get_elements_fom_ids
 
 # Get db directory path
 DB_PATH = 'chroma_data2'
@@ -60,13 +60,14 @@ def genomics_page():
         gene_name = form_data["gene_name"][0]
         # Get the molecular profile for the gene
         print("gene name", gene_name)
-        gene = get_gene_by_name(gene_name, db_path="database.db")
-        if gene:
+        genes = get_genes_by_name(gene_name, db_path="database.db")
+        if genes:
             gene_name = gene["name"]
             description = gene["description"]
-            disease = get_diseases_fom_ids(gene["diseases"], db_path="database.db")
-            print(disease)
-            variants = gene["variants"]
+            disease = get_elements_fom_ids(gene["diseases"], "diseases", db_path="database.db")
+            variants = get_elements_fom_ids(gene["variants"], "variants", db_path="database.db")
+            print("variants", variants)
+            print("disease", disease)
             molecular_profiles = gene["molecular_profiles"]
             return render_template('genomics.html', gene_name=gene_name, description=description, disease=disease, variants=variants, molecular_profiles=molecular_profiles)
         else:
