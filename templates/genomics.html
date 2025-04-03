@@ -1,98 +1,63 @@
 {% extends 'base.html' %}
 
 {% block content %}
-
-<body>
+<body style="background-color: #f4f6f8;">
     <header>
-        <h1 style="text-align: center; font-family: Arial, sans-serif; color: #333;">Genomics Database</h1>
+        <h1 style="text-align: center; font-family: 'Georgia', serif; color: #2c3e50; margin-top: 40px;">Genomics Database</h1>
     </header>
-
-    <h4 style="font-family: Arial, sans-serif; color: #333;">Search for Genes</h4>
-
-    <form action="/genomics" method="POST" id="mp-form" style="text-align: center; background: #f9f9f9; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
-        <div class="form-group" style="margin-bottom: 10px; text-align: center;"></div>
-            <label for="gene-name" style="font-family: Arial, sans-serif; color: #555; display: block; text-align: center;">Gene Name:</label>
-            <input type="text" id="gene_name" name="gene_name" required style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px;">
+    
+    <h4 style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #2c3e50; text-align: center; margin-bottom: 20px;">Search for Genes</h4>
+    
+    <form action="/genomics" method="POST" id="mp-form" style="max-width: 600px; margin: 0 auto 40px; background: #fff; padding: 30px 40px; border: 1px solid #e0e0e0; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);">
+        <div class="form-group" style="display: flex; align-items: center; margin-bottom: 20px;">
+            <label for="gene_name" style="margin-right: 10px; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #555; white-space: nowrap;">Gene Name:</label>
+            <input type="text" id="gene_name" name="gene_name" required style="flex: 1; padding: 12px; border: 1px solid #e0e0e0; border-radius: 4px; font-size: 16px; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
         </div>
-        <button type="submit" style="background-color: #4CAF50; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-family: Arial, sans-serif;">Search</button>
+        <button type="submit" style="width: 100%; background-color: #4CAF50; color: #fff; padding: 12px; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; transition: background-color 0.3s ease;">Search</button>
     </form>
-   
-    <div>
-        <h3> Gene Name</h3>
-        <ul id="gene_name">
-            <li>{{ gene_name }}</li>
-        </ul>
-    </div>
-    {% if description %}
-        <div>
-            <h3>Description</h3>
-            <ul id="description">
-                    <ul>{{ description }}</ul>
-            </ul>
-        </div>
-    {% endif %}
-   
-
-    {% if disease %}
-        <div>
-            <h3>Diseases</h3>
-            <ul id="disease">
-                    <li>{{ disease }}</li>
-            </ul>
-        </div>
-    {% endif %}
-
-    {% if variants %}
-    <div>
-        <h3>Variants</h3>
-        <ul id="variants">
-                <li>{{ variants }}</li>
-        </ul>
-    </div>
-    {% endif %}
-
-    {% if evidence_score %}
-    <div>
-        <h3>>Molecular Profiles</h3>
-        <ul id="molecular_profiles">
-                <li>{{ molecular_profiles }}</li>
-        </ul>
+    
+    {% if gene_name or description or variants or disease %}
+    <div class="container" style="max-width: 1000px; margin: 0 auto 60px; background-color: #fff; padding: 30px; border: 1px solid #e0e0e0; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);">
+        <h3 style="text-align: center; font-family: 'Georgia', serif; color: #2c3e50; margin-bottom: 20px;">Gene Information</h3>
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr>
+                    <th style="padding: 15px; text-align: left; font-weight: normal; color: #2c3e50; border-bottom: 2px solid #e0e0e0;">Gene Name</th>
+                    <th style="padding: 15px; text-align: left; font-weight: normal; color: #2c3e50; border-bottom: 2px solid #e0e0e0;">Description</th>
+                    <th style="padding: 15px; text-align: left; font-weight: normal; color: #2c3e50; border-bottom: 2px solid #e0e0e0;">Variants</th>
+                    <th style="padding: 15px; text-align: left; font-weight: normal; color: #2c3e50; border-bottom: 2px solid #e0e0e0;">Diseases</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr style="transition: background-color 0.3s ease;">
+                    <td style="padding: 15px; border-bottom: 1px solid #f0f0f0;">{{ gene_name }}</td>
+                    <td style="padding: 15px; border-bottom: 1px solid #f0f0f0;">{{ description }}</td>
+                    <td style="padding: 15px; border-bottom: 1px solid #f0f0f0;">
+                        {% if variants %}
+                            <ul style="list-style: disc; padding-left: 20px; margin: 0;">
+                            {% for variant in variants %}
+                                <li>{{ variant }}</li>
+                            {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 15px; border-bottom: 1px solid #f0f0f0;">
+                        {% if disease %}
+                            <ul style="list-style: disc; padding-left: 20px; margin: 0;">
+                            {% for dis in disease %}
+                                <li>{{ dis }}</li>
+                            {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </td>
+                </tr>
+            </tbody>
+        </table>
     </div>
     {% endif %}
-
-
+    
     <script>
-        /*document.getElementById('search-form').addEventListener('submit', function(event) {
-            event.preventDefault();
-            const geneName = document.getElementById('gene-name').value;
-
-            fetch(`/get_profile_by_name?gene_name=${geneName}`)
-                .then(response => response.json())
-                .then(data => {
-                    const { variants, diseases } = data;
-                    displayResults(variants, diseases);
-                })
-            .catch(error => console.error('Error fetching data:', error));
-        });
-
-        function displayResults(variants, diseases) {
-            const variantList = document.getElementById('variant-list');
-            const diseaseList = document.getElementById('disease-list');
-            variantList.innerHTML = '';
-            diseaseList.innerHTML = '';
-
-            variants.forEach(variant => {
-                const li = document.createElement('li');
-                li.textContent = variant;
-                variantList.appendChild(li);
-            });
-
-            diseases.forEach(disease => {
-                const li = document.createElement('li');
-                li.textContent = disease;
-                diseaseList.appendChild(li);
-            });
-        }*/
+        // Additional JavaScript if needed
     </script>
 </body>
 {% endblock %}
