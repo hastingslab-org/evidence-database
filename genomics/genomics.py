@@ -1,6 +1,9 @@
 
 import sqlite3
 import json
+from rapidfuzz import fuzz
+
+MATCHING_RATIO_THRESH = 0.7
 
 def get_all_genes(db_path):
     # Connect to the SQLite database
@@ -29,6 +32,14 @@ def get_genes_by_name(name, db_path):
     all_genes = get_all_genes(db_path)
     # Return genes where the search term is found (case-insensitive)
     matching_genes = [gene for gene in all_genes if name.lower() in gene['name'].lower()]
+
+    #fuzzy matching
+    matching_genes = [
+        {**gene, 'fuzz_ratio': fuzz.ratio(name.lower(), gene['name'].lower())}
+        for gene in all_genes
+        if fuzz.ratio(name.lower(), gene['name'].lower()) > MATCHING_RATIO_THRESH*100
+    ]
+
     return matching_genes
 
 

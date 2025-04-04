@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS genes (
     name TEXT,
     description TEXT,
     variants INTEGER[], -- Store list of variant IDs as a JSON array
-    molecular_profiles JSON, -- Store list of molecular profile IDs as a JSON array
+    molecular_profiles INTEGER[], -- Store list of molecular profile IDs as a JSON array
     diseases INTEGER[],  -- Store list of disease IDs as a JSON array
     db_source TEXT
 );
