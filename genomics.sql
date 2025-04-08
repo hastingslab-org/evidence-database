@@ -28,6 +28,6 @@ CREATE TABLE IF NOT EXISTS variants (
     id INTEGER PRIMARY KEY,
     name TEXT,
     description TEXT,
-    gene_id INTEGER,
+    gene_id TEXT,
     db_source TEXT
 );
