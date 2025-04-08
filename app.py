@@ -69,7 +69,7 @@ def genomics_page():
                     "description": gene["description"],
                     "diseases": get_elements_fom_ids(gene["diseases"], "diseases", db_path="database.db"),
                     "variants": get_elements_fom_ids(gene["variants"], "variants", db_path="database.db"),
-                    "molecular_profiles": gene.get("molecular_profiles")
+                    "molecular_profiles": get_elements_fom_ids(gene["molecular_profiles"], "molecular_profiles", db_path="database.db")
                 }
                 gene_data_list.append(gene_data)
             return render_template('genomics.html', genes=gene_data_list)
