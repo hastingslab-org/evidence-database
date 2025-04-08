@@ -7,7 +7,7 @@ from init_db import init_db
 import sqlite3 
 import chromadb
 from chromadb.utils import embedding_functions
-from genomics.genomics import get_genes_by_name, get_elements_fom_ids
+from genomics.genomics import get_genes_by_name, get_elements_fom_ids, get_variant_by_name, get_element_from_single_id
 
 # Get db directory path
 DB_PATH = 'chroma_data2'
@@ -58,8 +58,7 @@ def genomics_page():
     if request.method == 'POST':
         form_data = request.form.to_dict(flat=False)  # Converts form data to a dictionary
         gene_name = form_data["gene_name"][0]
-        # Get the molecular profile for the gene
-        print("gene name", gene_name)
+        # Get gene info
         genes = get_genes_by_name(gene_name, db_path="database.db")
         if genes:
             gene_data_list = []
@@ -77,13 +76,19 @@ def genomics_page():
             return jsonify({"error": "Gene not found"}), 404
 
     if request.method == 'GET':
-        print("GET REQUEST")
         return render_template('genomics.html')
 
 @app.route('/genomics/variant/<string:variant_name>')
 def variant_page(variant_name):
-    # For now, simply pass the variant name to the template.
-    return render_template('variant.html', variant_name=variant_name)
+    variant= get_variant_by_name(variant_name, db_path="database.db")
+    #get variant info
+    variant_data = {
+        "name": variant["name"],
+        "description": variant["description"],
+        "gene": get_element_from_single_id(variant["gene_id"], "genes", db_path="database.db"),
+    }
+
+    return render_template('variant.html', variant_data=variant_data)
 
 @app.route("/answer",  methods=['POST', 'GET'])
 def answer_page():
@@ -100,7 +105,6 @@ def answer_page():
         embedding_func = embedding_functions.SentenceTransformerEmbeddingFunction(model_name="mixedbread-ai/mxbai-embed-large-v1") #TODO move somewhere else
         collection = chroma_client.get_collection(name="searchable_db_collection",embedding_function=embedding_func)
         query_results = get_relevant_papers(query, collection, patient_data)
-        print("query_results", query_results)
 
         response_id = str(uuid.uuid4())
         session['response_id'] = None  # Clear previous response ID
