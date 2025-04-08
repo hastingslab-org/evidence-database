@@ -1,17 +1,30 @@
 {% extends 'base.html' %}
 
 {% block content %}
+<style>
+    /* For the list-related items (variants, diseases, and molecular profiles) */
+    .hidden-item {
+        display: none;
+    }
+
+    /* CSS for clamping the description to 5 lines */
+    .description-preview.clamped {
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 5;
+        -webkit-box-orient: vertical;
+    }
+</style>
+
 <body style="background-color: #f4f6f8;">
     <header>
-        <h1 style="text-align: center; margin-top: 40px;">Genomics Database</h1>
+        <h1 style="text-align: center; margin-top: 20px;">Genomics Database</h1>
     </header>
-    
-    <h4 style="text-align: center; margin-bottom: 20px;">Search for Genes</h4>
-    
+        
     <form action="/genomics" method="POST" id="mp-form" style="max-width: 600px; margin: 0 auto 40px; background: #fff; padding: 30px 40px; border: 1px solid #e0e0e0; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);">
+        <label style="display: block; text-align: center; font-size: 18px; margin-bottom: 10px;">Search for Genes</label>
         <div class="form-group" style="display: flex; align-items: center; margin-bottom: 20px;">
-            <label for="gene_name" style="margin-right: 10px; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #555; white-space: nowrap;">Gene Name:</label>
-            <input type="text" id="gene_name" name="gene_name" required style="flex: 1; padding: 12px; border: 1px solid #e0e0e0; border-radius: 4px; font-size: 16px; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
+            <input type="text" id="gene_name" name="gene_name" placeholder="Enter gene name" required style="flex: 1; padding: 12px; border: 1px solid #e0e0e0; border-radius: 4px; font-size: 16px; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
         </div>
         <button type="submit" style="width: 100%; background-color: #4CAF50; color: #fff; padding: 12px; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; transition: background-color 0.3s ease;">Search</button>
     </form>
@@ -32,33 +45,68 @@
             <tbody>
                 {% for gene in genes %}
                 <tr style="transition: background-color 0.3s ease;">
+                    <!-- Gene Name -->
                     <td style="padding: 15px; border-bottom: 1px solid #f0f0f0; vertical-align: top;">{{ gene.name }}</td>
-                    <td style="padding: 15px; border-bottom: 1px solid #f0f0f0; vertical-align: top;">{{ gene.description }}</td>
+                    
+                    <!-- Description with toggle for more than 5 lines -->
+                    <td style="padding: 15px; border-bottom: 1px solid #f0f0f0; vertical-align: top;">
+                        <div class="description-preview clamped" style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
+                            {{ gene.description }}
+                        </div>
+                        <button class="toggle-description-btn" onclick="toggleDescription(this)" style="background: none; border: none; cursor: pointer; color: #007BFF; padding: 0; font-size: 14px;">[more]</button>
+                    </td>
+                    
+                    <!-- Variants: Show only the first 5 elements with list toggle -->
                     <td style="padding: 15px; border-bottom: 1px solid #f0f0f0; vertical-align: top;">
                         {% if gene.variants %}
-                            <ul style="list-style: disc; padding-left: 20px; margin: 0;">
-                                {% for variant in gene.variants %}
+                        <ul style="list-style: disc; padding-left: 20px; margin: 0;">
+                            {% for variant in gene.variants %}
+                                {% if loop.index <= 5 %}
                                     <li>{{ variant }}</li>
-                                {% endfor %}
-                            </ul>
+                                {% else %}
+                                    <li class="hidden-item">{{ variant }}</li>
+                                {% endif %}
+                            {% endfor %}
+                        </ul>
+                        {% if gene.variants|length > 5 %}
+                            <button class="toggle-list-btn" onclick="toggleList(this)" style="background: none; border: none; color: #007BFF; cursor: pointer; padding: 0; font-size: 14px;">[more]</button>
+                        {% endif %}
                         {% endif %}
                     </td>
+                    
+                    <!-- Diseases: Show only the first 5 elements with list toggle -->
                     <td style="padding: 15px; border-bottom: 1px solid #f0f0f0; vertical-align: top;">
                         {% if gene.diseases %}
-                            <ul style="list-style: disc; padding-left: 20px; margin: 0;">
-                                {% for dis in gene.diseases %}
-                                    <li>{{ dis }}</li>
-                                {% endfor %}
-                            </ul>
+                        <ul style="list-style: disc; padding-left: 20px; margin: 0;">
+                            {% for disease in gene.diseases %}
+                                {% if loop.index <= 5 %}
+                                    <li>{{ disease }}</li>
+                                {% else %}
+                                    <li class="hidden-item">{{ disease }}</li>
+                                {% endif %}
+                            {% endfor %}
+                        </ul>
+                        {% if gene.diseases|length > 5 %}
+                            <button class="toggle-list-btn" onclick="toggleList(this)" style="background: none; border: none; color: #007BFF; cursor: pointer; padding: 0; font-size: 14px;">[more]</button>
+                        {% endif %}
                         {% endif %}
                     </td>
+                    
+                    <!-- Molecular Profiles: Show only the first 5 elements with list toggle -->
                     <td style="padding: 15px; border-bottom: 1px solid #f0f0f0; vertical-align: top;">
                         {% if gene.molecular_profiles %}
-                            <ul style="list-style: disc; padding-left: 20px; margin: 0;">
-                                {% for mp in gene.molecular_profiles %}
+                        <ul style="list-style: disc; padding-left: 20px; margin: 0;">
+                            {% for mp in gene.molecular_profiles %}
+                                {% if loop.index <= 5 %}
                                     <li>{{ mp }}</li>
-                                {% endfor %}
-                            </ul>
+                                {% else %}
+                                    <li class="hidden-item">{{ mp }}</li>
+                                {% endif %}
+                            {% endfor %}
+                        </ul>
+                        {% if gene.molecular_profiles|length > 5 %}
+                            <button class="toggle-list-btn" onclick="toggleList(this)" style="background: none; border: none; color: #007BFF; cursor: pointer; padding: 0; font-size: 14px;">[more]</button>
+                        {% endif %}
                         {% endif %}
                     </td>
                 </tr>
@@ -68,5 +116,55 @@
     </div>
     {% endif %}
     
+    <script>
+        /**
+         * Toggles the visibility of extra list items.
+         */
+        function toggleList(button) {
+            // Find the <ul> element preceding the button.
+            const list = button.previousElementSibling;
+            const hiddenItems = list.querySelectorAll('.hidden-item');
+            const isHidden = window.getComputedStyle(hiddenItems[0]).display === 'none';
+            if (isHidden) {
+                hiddenItems.forEach(item => item.style.display = 'list-item');
+                button.textContent = '[less]';
+            } else {
+                hiddenItems.forEach(item => item.style.display = 'none');
+                button.textContent = '[more]';
+            }
+        }
+
+        /**
+         * Toggles the clamped description text.
+         * Removes (or reapplies) the clamped class that limits to 5 lines.
+         */
+        function toggleDescription(button) {
+            const descriptionDiv = button.previousElementSibling;
+            if (descriptionDiv.classList.contains('clamped')) {
+                // Remove clamping to show full text.
+                descriptionDiv.classList.remove('clamped');
+                button.textContent = '[less]';
+            } else {
+                // Reapply clamping.
+                descriptionDiv.classList.add('clamped');
+                button.textContent = '[more]';
+            }
+        }
+
+        /**
+         * On page load, checks each description preview.
+         * If the description does not overflow 5 lines, hide its toggle button.
+         */
+        window.addEventListener('load', function () {
+            const toggleButtons = document.querySelectorAll('.toggle-description-btn');
+            toggleButtons.forEach(button => {
+                const description = button.previousElementSibling;
+                // If the full content height equals the clamped height then no overflow exists.
+                if (description.scrollHeight <= description.offsetHeight + 1) {
+                    button.style.display = 'none';
+                }
+            });
+        });
+    </script>
 </body>
 {% endblock %}
