@@ -80,6 +80,11 @@ def genomics_page():
         print("GET REQUEST")
         return render_template('genomics.html')
 
+@app.route('/genomics/variant/<string:variant_name>')
+def variant_page(variant_name):
+    # For now, simply pass the variant name to the template.
+    return render_template('variant.html', variant_name=variant_name)
+
 @app.route("/answer",  methods=['POST', 'GET'])
 def answer_page():
     if request.method == 'POST':
