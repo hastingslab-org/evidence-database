@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS diseases (
     db_source TEXT
 );
 
+DROP TABLE variants;
 CREATE TABLE IF NOT EXISTS variants (
     id INTEGER PRIMARY KEY,
     name TEXT,
