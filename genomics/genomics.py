@@ -33,31 +33,14 @@ def get_genes_by_name(name, db_path):
     # Return genes where the search term is found (case-insensitive)
     matching_genes = [gene for gene in all_genes if name.lower() in gene['name'].lower()]
 
-    #fuzzy matching
-    matching_genes = [
-        {**gene, 'fuzz_ratio': fuzz.ratio(name.lower(), gene['name'].lower())}
-        for gene in all_genes
-        if fuzz.ratio(name.lower(), gene['name'].lower()) > MATCHING_RATIO_THRESH*100
-    ]
+    # Fuzzy matching
+    for gene in all_genes:
+        fuzz_ratio = fuzz.ratio(name.lower(), gene['name'].lower())
+        if fuzz_ratio > MATCHING_RATIO_THRESH * 100 and gene not in matching_genes:
+            matching_genes.append({**gene, 'fuzz_ratio': fuzz_ratio})
 
     return matching_genes
 
-
-def get_diseases_fom_ids(ids, db_path):
-    "IDs are provided as a string with comma separated values"
-    ids = json.loads(ids)
-    conn = sqlite3.connect(db_path)
-    cursor = conn.cursor()
-
-    diseases = []
-    for disease_id in ids:
-        cursor.execute("SELECT name FROM diseases WHERE id = ?", (disease_id,))
-        disease = cursor.fetchone()
-        diseases.append(disease[0])
-
-    conn.close()
-
-    return diseases
 
 def get_elements_fom_ids(ids, element_name, db_path):
     "IDs are provided as a string with comma separated values. element_name is the name of the table to query (string)" 
@@ -69,7 +52,8 @@ def get_elements_fom_ids(ids, element_name, db_path):
     for element_ids in ids:
         cursor.execute("SELECT name FROM " + element_name + " WHERE id = ?", (element_ids,))
         element = cursor.fetchone()
-        elements.append(element[0])
+        if element is not None:
+            elements.append(element[0])
 
     conn.close()
 
