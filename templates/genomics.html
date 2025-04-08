@@ -2,12 +2,12 @@
 
 {% block content %}
 <style>
+    /* Custom styling for the list as described previously */
     .my-list {
         list-style: none;
         padding: 0;
         margin: 0;
     }
-    /* Each list item appears as a grey square with a minimalist style */
     .my-list li {
         display: inline-block;
         background-color: #e0e0e0;
@@ -17,12 +17,9 @@
         border-radius: 4px;
         font-size: 14px;
     }
-    /* Hide extra list items initially. Use a more specific selector to override the display rule above. */
     .my-list li.hidden-item {
         display: none;
     }
-    
-    /* CSS for clamping the description to 5 lines */
     .description-preview.clamped {
         overflow: hidden;
         display: -webkit-box;
@@ -46,7 +43,7 @@
     
     {% if genes %}
     <div class="container" style="max-width: 1000px; margin: 0 auto 60px; background-color: #fff; padding: 30px; border: 1px solid #e0e0e0; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);">
-        <h3 style="text-align: center; color: #2c3e50; margin-bottom: 20px;">Gene Information</h3>
+        <h3 style="text-align: center; font-family: 'Georgia', serif; color: #2c3e50; margin-bottom: 20px;">Gene Information</h3>
         <table style="width: 100%; border-collapse: collapse;">
             <thead>
                 <tr>
@@ -60,10 +57,8 @@
             <tbody>
                 {% for gene in genes %}
                 <tr style="transition: background-color 0.3s ease;">
-                    <!-- Gene Name -->
                     <td style="padding: 15px; border-bottom: 1px solid #f0f0f0; vertical-align: top;">{{ gene.name }}</td>
                     
-                    <!-- Description with toggle for more than 5 lines -->
                     <td style="padding: 15px; border-bottom: 1px solid #f0f0f0; vertical-align: top;">
                         <div class="description-preview clamped" style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
                             {{ gene.description }}
@@ -71,15 +66,23 @@
                         <button class="toggle-description-btn" onclick="toggleDescription(this)" style="background: none; border: none; cursor: pointer; color: #007BFF; padding: 0; font-size: 14px;">[more]</button>
                     </td>
                     
-                    <!-- Variants: Show only the first 5 elements with custom list styling -->
+                    <!-- Variants: Wrap each variant in an anchor tag -->
                     <td style="padding: 15px; border-bottom: 1px solid #f0f0f0; vertical-align: top;">
                         {% if gene.variants %}
                         <ul class="my-list">
                             {% for variant in gene.variants %}
                                 {% if loop.index <= 5 %}
-                                    <li>{{ variant }}</li>
+                                    <li>
+                                      <a href="/genomics/variant/{{ variant|urlencode }}" target="_blank" style="text-decoration: none; color: inherit;">
+                                          {{ variant }}
+                                      </a>
+                                    </li>
                                 {% else %}
-                                    <li class="hidden-item">{{ variant }}</li>
+                                    <li class="hidden-item">
+                                      <a href="/genomics/variant/{{ variant|urlencode }}" target="_blank" style="text-decoration: none; color: inherit;">
+                                          {{ variant }}
+                                      </a>
+                                    </li>
                                 {% endif %}
                             {% endfor %}
                         </ul>
@@ -89,7 +92,7 @@
                         {% endif %}
                     </td>
                     
-                    <!-- Diseases: Show only the first 5 elements with custom list styling -->
+                    <!-- Diseases: Same custom list styling as before -->
                     <td style="padding: 15px; border-bottom: 1px solid #f0f0f0; vertical-align: top;">
                         {% if gene.diseases %}
                         <ul class="my-list">
@@ -107,7 +110,7 @@
                         {% endif %}
                     </td>
                     
-                    <!-- Molecular Profiles: Show only the first 5 elements with custom list styling -->
+                    <!-- Molecular Profiles: Same custom list styling as before -->
                     <td style="padding: 15px; border-bottom: 1px solid #f0f0f0; vertical-align: top;">
                         {% if gene.molecular_profiles %}
                         <ul class="my-list">
@@ -132,14 +135,9 @@
     {% endif %}
     
     <script>
-        /**
-         * Toggles the visibility of extra list items.
-         */
         function toggleList(button) {
-            // Find the <ul> element preceding the button.
             const list = button.previousElementSibling;
             const hiddenItems = list.querySelectorAll('.hidden-item');
-            // Use getComputedStyle to check current display state of the first hidden item
             const isHidden = window.getComputedStyle(hiddenItems[0]).display === 'none';
             if (isHidden) {
                 hiddenItems.forEach(item => item.style.display = 'inline-block');
@@ -150,9 +148,6 @@
             }
         }
 
-        /**
-         * Toggles the clamped description text.
-         */
         function toggleDescription(button) {
             const descriptionDiv = button.previousElementSibling;
             if (descriptionDiv.classList.contains('clamped')) {
@@ -164,9 +159,6 @@
             }
         }
 
-        /**
-         * On window load, hide the description toggle button if the content doesn't overflow 5 lines.
-         */
         window.addEventListener('load', function () {
             const toggleButtons = document.querySelectorAll('.toggle-description-btn');
             toggleButtons.forEach(button => {
