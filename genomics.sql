@@ -24,10 +24,13 @@ CREATE TABLE IF NOT EXISTS diseases (
     db_source TEXT
 );
 
+
 CREATE TABLE IF NOT EXISTS variants (
     id INTEGER PRIMARY KEY,
     name TEXT,
     description TEXT,
     gene_id TEXT,
+    molecular_profiles INTEGER[], -- Store list of molecular profile IDs as a JSON array
+    diseases INTEGER[], 
     db_source TEXT
 );

@@ -71,6 +71,8 @@ def genomics_page():
                     "molecular_profiles": get_elements_fom_ids(gene["molecular_profiles"], "molecular_profiles", db_path="database.db")
                 }
                 gene_data_list.append(gene_data)
+            print("geneData gene page: ", gene_data_list)
+
             return render_template('genomics.html', genes=gene_data_list)
         else:
             return jsonify({"error": "Gene not found"}), 404
@@ -86,7 +88,11 @@ def variant_page(variant_name):
         "name": variant["name"],
         "description": variant["description"],
         "gene": get_element_from_single_id(variant["gene_id"], "genes", db_path="database.db"),
+        "molecular_profiles": get_elements_fom_ids(variant["molecular_profiles"], "molecular_profiles", db_path="database.db"),
+        "diseases": get_elements_fom_ids(variant["diseases"], "diseases", db_path="database.db"),
     }
+
+    print("varData variant page: ", variant_data)
 
     return render_template('variant.html', variant_data=variant_data)
 

@@ -88,7 +88,6 @@ A461T
 A500T
 A502_Y503insAY
 A50= (c.150C>G)
-A50= (c.150C>G) and Splice Site (c.463-1G>T)
 A56FS (c.164_165insG)
 A56_P59del (c.166_178del)
 A56fs (c.164_165insA)
@@ -145,14 +144,10 @@ A883S
 A883T
 A883V
 A883Y
-ALTERNATIVE TRANSCRIPT (ATI)
 APC
-AR alternative transcripts
+AR-V7
 ATM
 ATRX
-Alternative Transcript (ATI)
-Alternative splicing
-Alu insertion
 C1156Y
 C121S
 C124R
@@ -174,7 +169,6 @@ C162W (c.486C>G)
 C162W (c.486C>G)
 C162Wfs*12(c.485dupG)
 C162Y (c.485G>A)
-C162Y(c.486C>G) and L188V(c.562C>G) and P81S(c.241C>T) and F119L(c.357C>G)
 C162fs (c.483del)
 C1685F
 C176F
@@ -255,20 +249,12 @@ C843G
 C91S
 C971R
 CD44s
-CD44v5 and CD44v6
 CD44v6
-CD44v6 and CD44v10
 CD44v6+/CD44s-
 CD44v8-10
 CD44v9
-CD4v8-v10 and CD44v3-v10
 CEACAM1-L
 CEACAM1-S
-CONSERVED DOMAIN MUT
-CYTOPLASMIC MISLOCALIZATION
-Cis double mutants
-Copy Number Variation
-CpG island hypermethylation
 D1010H
 D1010N
 D1010Y
@@ -296,7 +282,6 @@ D126Y (c.376G>T)
 D139G
 D140G
 D143= (c.429C>T)
-D143= (c.429C>T) and c.340+770T>C
 D143Efs*13 (c.429_438del)
 D143fs (c.430delG)
 D162G
@@ -482,10 +467,7 @@ DELNVTAP
 DPYD*13 HOMOZYGOSITY
 DPYD*2A HOMOZYGOSITY
 DX2
-Deficient
-Deficient
 DelPhe76 (c.225del3bp)
-Double Ph
 E102_I103delEI
 E1051K
 E114K
@@ -693,10 +675,6 @@ EWSR1::TFCP2
 Exon 1 del (151nt)
 Exon 11 557_560delWKVVE
 Exon 11 577-582insPYD
-Exon 19 insertion
-Exon 20 Insertion
-Exon 20 Insertion
-Exon 3 Variant
 F1025L
 F104I
 F104L
@@ -876,7 +854,6 @@ G144* (c.430G>T)
 G144Dfs*15 (c.431del)
 G144E (c.431G>A)
 G144R (c.430G>A)
-G144R (c.430G>A) and c.340+694_340+711dup
 G144R (c.430G>C)
 G144fs (c.429_430insGGAC)
 G144fs (c.429_439del)
@@ -1079,8 +1056,6 @@ G93V (c.278G>T)
 G93_Y98del (c.275_292del)
 G93fs (c.278delG)
 GRCh37/hg19 11q14.3(chr11:88960991-88961138)x160
-Gain
-Gain
 Glu34Lys (c.100G>A)
 H1-47R
 H1047L
@@ -1093,7 +1068,6 @@ H110P (c.329A>C)
 H110PFS*49 (c.329delA)
 H115FS (c.343delC)
 H115P (c.344A>C)
-H115Pfs*44(c.344delA) and P61=(c.183C>G)
 H115Q (c.345C>A)
 H115Q (c.345C>G)
 H115Q (c.346C>A)
@@ -1219,7 +1193,6 @@ I836T
 I843DEL
 I891FS
 I972F
-INCREASED COPY NUMBER
 ITD
 ITD 
 ITD 
@@ -1352,7 +1325,6 @@ K944N
 K966E
 KMT2A rearragements
 KRAS4A
-Knockdown
 L101G (c.301_302delCTinsGG)
 L101G (c.301_302delinsGG)
 L101R (c.302T>G)
@@ -1365,7 +1337,6 @@ L1152V
 L116V (c.346C>G)
 L116fs (c.347delT)
 L118P (c.353T>C)
-L118P (c.353T>C) and R107G  (c.319C>G)
 L118R (c.353T>G)
 L118fs (c.349_350insG)
 L118fs (c.352_353insA)
@@ -1458,7 +1429,6 @@ L194P
 L194R
 L198Gfs*57 (c.592_593del)
 L198P (c.593T>C)
-L198P (c.593T>C) and P25L (c.74C>T)
 L198Q  (c.593T>A)
 L198R (c.593T>G)
 L198Wfs*4 (c.592delC)
@@ -1645,7 +1615,6 @@ M246T
 M343T
 M351T
 M388L
-M3I(c.3G>A) and M211L (c.631A>C)
 M472I
 M490T
 M511I
@@ -1669,9 +1638,6 @@ M774DELINSWLV
 M90I
 M918T
 M918V
-MEF2D Rearrangement
-METHYLATION
-METHYLATION
 N100fsX131 (c.298_299InsA)
 N1044K
 N114D
@@ -1780,7 +1746,6 @@ N90del (c.268_270del)
 N90fs (c.269delA)
 N94I
 NM_001163213.1:c.2355_2356del
-NUCLEAR TRANSLOCATION
 Non-V600
 Null (c.-678-?_340+?del)
 Null (c.-678-?_642+?del)
@@ -1790,9 +1755,6 @@ Null (c.1-?_642+?del)
 Null (c.341+1_341–1)
 Null (c.341-?_463+ ?del)
 Null (c.341-?_463+?del)
-Null (del one VHL allele)
-Null (large rearrangement)
-Null (rearrangement)
 P102fs (c.305delC)
 P103A (c.307C>G)
 P103FS (c.309_310delTG)
@@ -1854,8 +1816,6 @@ P250L
 P2514FS
 P253R
 P25L (c.74C>T)
-P25L (c.74C>T) AND D126Rfs*6 (c.375_376insA) AND E55Rfs(c.163delG)
-P25L (c.74C>T) and P86T (c.256C>A)
 P262H
 P278
 P278A
@@ -1867,7 +1827,6 @@ P287T
 P292R
 P29S
 P2=(c.6C>G)
-P2=(c.6C>G) and P81S(c.241C>T)
 P340L
 P34R
 P378L
@@ -1937,7 +1896,6 @@ P80R
 P81L (c.242C>T)
 P81S
 P81S (c.241C>T)
-P81S (c.241C>T) and L188V (c.562C>G)
 P81T
 P834L
 P848L
@@ -1963,14 +1921,11 @@ P96Q
 P97= (c.291C>G)
 P97Afs*35 (c.287_288insA)
 P97L (c.290C>T)
-P97L (c.290C>T) and L116P (c.347T>C)
 P98L
 P98S
 PA-NF1
 PA. 
 "PRKAR1A LOH, allelic imbalance 17q"
-Positive
-Positive
 Pro1104Ala
 Q1084*
 Q1178*
@@ -1995,7 +1950,6 @@ Q164* (c.490C>T)
 Q164H (c.491G>C)
 Q164H (c.492G>C)
 Q164H (c.492G>T)
-Q164H (c.492G>T) and c.340+574A>T
 Q164L (c.491A>T)
 Q164R (c.491A>G)
 Q167R
@@ -2170,7 +2124,6 @@ R158P
 R1598P
 R15K
 R161* (c.481C>T)
-R161* (c.481C>T) AND R200fs (c.598del)
 R161= (c.481C>A)
 R161G (c.481C>G)
 R161P (c.482G>C)
@@ -2186,8 +2139,6 @@ R167G (c.500G>A)
 R167L (c.500G>T)
 R167P (c.500G>C)
 R167Q (c.500G>A)
-R167Q (c.500G>A) and I151N (c.452T>A)
-R167Q(c.500G>A) and c.464-94T>A
 R167W (c.499C>T)
 R167fs (c.501insTTGTCCGT)
 R167fs (c.502insTTGTCCGT)
@@ -2229,8 +2180,6 @@ R196X
 R197_L198ins7(c.572_592dup)
 R200C
 R200W (c.598C>T)
-R200W (c.598C>T) and V130L (c.388G>C)
-R200W (c.598C>T) and c.340+694_340+711dup
 R201
 R201C
 R201H
@@ -2323,7 +2272,6 @@ R383*
 R38C
 R38H
 R391W
-R392fs and E1813D
 R399C
 R399C
 R414X
@@ -2393,7 +2341,6 @@ R836L
 R841K
 R841M
 R849W
-R849W and R1108*
 R87P
 R882
 R882C
@@ -2429,17 +2376,6 @@ RS557806
 RS61764370
 RS67376798 HOMOZYGOSITY
 RS751402
-Rearrangement
-Rearrangement
-Rearrangement
-Rearrangement
-Rearrangement
-Rearrangement
-Rearrangement
-Rearrangement
-Rearrangement
-Rearrangement 
-Rearrangement 
 S103I
 S103N
 S103T
@@ -2555,7 +2491,6 @@ S65A (c.193T>G)
 S65FS (c.194delC)
 S65L (c.194C>T)
 S65L (c.194C>T)
-S65L (c.194C>T) AND L89P (c.266T>A)
 S65P (c.193T>C)
 S65T (c.193T>A)
 S65W (c.194C>G)
@@ -2588,7 +2523,6 @@ S80I (c.239G>T)
 S80Ifs*79 (c.239del)
 S80N
 S80N (c.239G>A)
-S80N (c.239G>A) and P25L (c.74C>T)
 S80R
 S80R (c.238A>C)
 S80R (c.240T>G)
@@ -2612,9 +2546,7 @@ SERUM LEVELS
 SNP
 SNP309
 SPECC1L
-SPLICE VARIANT 7
 ST-EPN-ZFTA
-Single nucleotide variant
 Splice Region (c.340 3_340 10delACGGGCCCinsCG)
 Splice Region (c.340+1_340+5del)
 Splice Region (c.340+2T>C)
@@ -2703,7 +2635,6 @@ T104fs (c.313_315delC)
 T105M (c.314C>T)
 T105P (c.313A>C)
 T105fs (c.315insAC)
-T1105N and T1106N
 T1151K
 T1151M
 T1151dup
@@ -2797,11 +2728,6 @@ T930P
 TGFBR3
 TNC-L
 TOP2A/90
-Translocation
-Translocation
-Translocation
-Translocation
-Translocation
 Truncation
 Type 16
 Type 18
@@ -2828,7 +2754,6 @@ V154I
 V155= (c.465G>C)
 V155E (c.464T>A)
 V155G (c.464T>G)
-V155G (c.464T>G) and c.463+43A>G
 V155L (c.463G>C)
 V155L (c.463G>T)
 V155M (c.463G>A)
@@ -3016,12 +2941,10 @@ V851I
 V855A
 V87A (c.260T>C)
 V87E (c.260T>A)
-V87Gfs*71(c.260_263del) and P81S(c.241C>T)
 V87fs (c.255_256insC)
 V87fs (c.259_260insA)
 V955G
 V955I
-VARIANTS
 VIII
 W110*
 W112C (c.335A>G)
@@ -3080,17 +3003,6 @@ W88S (c.263G>C)
 W88fs (c.261dup)
 W893S
 W9*
-WILD TYPE
-Wildtype
-Wildtype
-Wildtype
-Wildtype
-Wildtype
-Wildtype
-Wildtype
-Wildtype
-Wildtype
-Wildtype
 Y1003H
 Y1003N
 Y1003S
@@ -3207,7 +3119,6 @@ Y849S
 Y869X
 Y86C
 Y88C
-Y897C and R915C
 Y956N
 Y98* (c.294C>G)
 Y98Afs(c.282_291dup)
@@ -3222,13 +3133,10 @@ Y98N (c.292T>A)
 Y98N (c.292T>A)
 Y98S (c.293A>C)
 Y98S (c.293A>C)
-alternative transcripts
 b
-beta-2 and beta-5
 c.*294G>A
 c.-124C.T
 c.-195G>A
-c.-195G>A AND c.*294G>A
 c.-195G>A/C
 c.-61_-51dup11
 c.-65_-55dup11
@@ -3246,19 +3154,15 @@ c.21delC
 c.251-?_429+?
 c.329ins2
 c.340+384G>C
-c.340+617C>G and c.340+648T>C
 c.340+694_340+711dup
 c.340+770T>C
-c.340+770T>C and R200W (c.598C>T)
 c.340+7G>A
 c.341-59_341-14del
-c.341-59_341-14del AND F136fs (c.408delT)
 c.358ins2
 c.393T>C
 c.463+37_463+39del
 c.463+43A>G
 c.502ins8bp
-c.516_517dupGTCAAGCCT and c.532_542delCTGGACATCGTinsATTA
 c.556‐490_*8438del
 c.563ins20
 c.56_57DupInvCGGGAGGC
@@ -3293,15 +3197,10 @@ e6::e19
 e6::e20
 e6::e7
 e7::e6
-fas
 gBRCAm
 h
-intron 10 rearrangement
-intron 9 rearrangement
 k27m
 low ratio of VEGF165b/VEGFtotal
-nm0
-null variant
 p.193_196dupSTSC (c.577_588dupAGCACCAGCTGC)
 p.F76del
 p.H2393fs*3
@@ -3313,9 +3212,7 @@ p.S45F
 p.Ser51Alafs*86
 p.W426*
 p16 R80*
-p25l (C.74C>T) AND D126Rfs*6 (c.375_376insA) AND E55Rfs (c.163delG)
 p61BRAF(V600E)
-positive
 r249
 reg_e@[IGH]::BCL2
 reg_e@[SCPP]::NR4A3
@@ -3325,7 +3222,6 @@ rs143348853
 rs1456315
 rs17084733
 rs1801270
-rs1801270 and rs1059234
 rs681673
 rs9679162
 rs9679162: intron
