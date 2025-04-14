@@ -87,7 +87,7 @@ def variant_page(variant_name):
     variant_data = {
         "name": variant["name"],
         "description": variant["description"],
-        "gene": get_element_from_single_id(variant["gene_id"], "genes", db_path="database.db"),
+        "gene": get_element_from_single_id(variant["gene_id"], "genes", db_path="database.db")[0],
         "molecular_profiles": get_elements_fom_ids(variant["molecular_profiles"], "molecular_profiles", db_path="database.db"),
         "diseases": get_elements_fom_ids(variant["diseases"], "diseases", db_path="database.db"),
     }

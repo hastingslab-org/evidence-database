@@ -58,7 +58,11 @@
             <tbody>
                 {% for gene in genes %}
                 <tr style="transition: background-color 0.3s ease;">
-                    <td style="padding: 15px; border-bottom: 1px solid #f0f0f0; vertical-align: top;">{{ gene.name }}</td>
+                    <td style="padding: 15px; border-bottom: 1px solid #f0f0f0; vertical-align: top;">
+                        <ul class="my-list">
+                            <li>{{ gene.name }}</li>
+                        </ul>
+                    </td></ul></td>
                     
                     <td style="padding: 15px; border-bottom: 1px solid #f0f0f0; vertical-align: top;">
                         <div class="description-preview clamped" style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
