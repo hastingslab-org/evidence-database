@@ -121,9 +121,17 @@
                         <ul class="my-list">
                             {% for mp in gene.molecular_profiles %}
                                 {% if loop.index <= 5 %}
-                                    <li>{{ mp }}</li>
+                                <li>
+                                    <a href="/genomics/molecular-profile/{{ mp|urlencode }}" target="_blank" style="text-decoration: none; color: inherit;">
+                                        {{ mp }}
+                                    </a>
+                                </li>
                                 {% else %}
-                                    <li class="hidden-item">{{ mp }}</li>
+                                    <li class="hidden-item">
+                                        <a href="/genomics/molecular-profile/{{ mp|urlencode }}" target="_blank" style="text-decoration: none; color: inherit;">
+                                            {{ mp }}
+                                        </a>
+                                    </li>
                                 {% endif %}
                             {% endfor %}
                         </ul>
