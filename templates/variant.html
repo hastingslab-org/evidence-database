@@ -6,16 +6,24 @@
         <p><strong>Description:</strong> {{ variant_data.description }}</p>
         <p><strong>Gene:</strong> {{ variant_data.gene }}</p>
         <p><strong>Molecular Profiles:</strong></p>
+        {% if variant_data.molecular_profiles %}
         <ul>
             {% for profile in variant_data.molecular_profiles %}
             <li>{{ profile }}</li>
             {% endfor %}
         </ul>
+        {% else %}
+        <p>None</p>
+        {% endif %}
         <p><strong>Diseases:</strong></p>
+        {% if variant_data.diseases %}
         <ul>
             {% for disease in variant_data.diseases %}
             <li>{{ disease }}</li>
             {% endfor %}
         </ul>
+        {% else %}
+        <p>None</p>
+        {% endif %}
     </div>
 {% endblock %}
