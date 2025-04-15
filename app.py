@@ -7,7 +7,7 @@ from init_db import init_db
 import sqlite3 
 import chromadb
 from chromadb.utils import embedding_functions
-from genomics.genomics import get_genes_by_name, get_elements_fom_ids, get_variant_by_name, get_element_from_single_id
+from genomics.genomics import get_genes_by_name, get_items_fom_ids, get_item_by_name, get_item_from_single_id
 
 # Get db directory path
 DB_PATH = 'chroma_data2'
@@ -66,9 +66,9 @@ def genomics_page():
                 gene_data = {
                     "name": gene["name"],
                     "description": gene["description"],
-                    "diseases": get_elements_fom_ids(gene["diseases"], "diseases", db_path="database.db"),
-                    "variants": get_elements_fom_ids(gene["variants"], "variants", db_path="database.db"),
-                    "molecular_profiles": get_elements_fom_ids(gene["molecular_profiles"], "molecular_profiles", db_path="database.db")
+                    "diseases": get_items_fom_ids(gene["diseases"], "diseases", db_path="database.db"),
+                    "variants": get_items_fom_ids(gene["variants"], "variants", db_path="database.db"),
+                    "molecular_profiles": get_items_fom_ids(gene["molecular_profiles"], "molecular_profiles", db_path="database.db")
                 }
                 gene_data_list.append(gene_data)
             print("geneData gene page: ", gene_data_list)
@@ -82,7 +82,23 @@ def genomics_page():
 
 @app.route('/genomics/variant/<string:variant_name>')
 def variant_page(variant_name):
-    variant= get_variant_by_name(variant_name, db_path="database.db")
+    variant= get_item_by_name(variant_name, table_name="variants", db_path="database.db")
+    #get variant info
+    variant_data = {
+        "name": variant["name"],
+        "description": variant["description"],
+        "gene": get_item_from_single_id(variant["gene_id"], "genes", db_path="database.db")[0],
+        "molecular_profiles": get_items_fom_ids(variant["molecular_profiles"], "molecular_profiles", db_path="database.db"),
+        "diseases": get_items_fom_ids(variant["diseases"], "diseases", db_path="database.db"),
+    }
+
+    print("varData variant page: ", variant_data)
+
+    return render_template('variant.html', variant_data=variant_data)
+
+"""@app.route('/genomics/molecular-profile/<string:molecular_profile_name>')
+def molecular_profile_page(mp_name):
+    mp = get_variant_by_name(mp_name, db_path="database.db")
     #get variant info
     variant_data = {
         "name": variant["name"],
@@ -94,7 +110,7 @@ def variant_page(variant_name):
 
     print("varData variant page: ", variant_data)
 
-    return render_template('variant.html', variant_data=variant_data)
+    return render_template('variant.html', variant_data=variant_data)"""
 
 @app.route("/answer",  methods=['POST', 'GET'])
 def answer_page():
