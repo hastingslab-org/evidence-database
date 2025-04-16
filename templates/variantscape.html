@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    /* Custom styling for the list as described previously */
+    .my-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    .my-list li {
+        display: inline-block;
+        background-color: #e0e0e0;
+        color: #333;
+        padding: 6px 10px;
+        margin: 4px 4px 4px 0;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+    .my-list li.hidden-item {
+        display: none;
+    }
+    .description-preview.clamped {
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 5;
+        line-clamp: 5;
+        -webkit-box-orient: vertical;
+    }
+</style>
+
+<body style="background-color: #f4f6f8;">
+    <header>
+        <h1 style="text-align: center; margin-top: 20px;">Variantscape</h1>
+    </header>    
+</body>
+{% endblock %}

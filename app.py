@@ -48,10 +48,16 @@ def handle_large_request(error):
     return "The request is too large!", 413
 
 ########################### app routes ###########################
+
+
 @app.route('/')
 def search_query_page():
     return render_template('search_query_page.html')
 
+@app.route('/variantscape', methods=['GET'])
+def variantscape_page():
+    
+    return render_template('variantscape.html')
 
 @app.route('/genomics', methods=['GET', 'POST'])
 def genomics_page():
