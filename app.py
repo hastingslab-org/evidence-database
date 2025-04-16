@@ -7,7 +7,7 @@ from init_db import init_db
 import sqlite3 
 import chromadb
 from chromadb.utils import embedding_functions
-from genomics.genomics import get_genes_by_name, get_items_fom_ids, get_item_by_name, get_item_from_single_id
+from genomics.genomics import get_genes_by_name, get_items_from_ids, get_item_by_name, get_item_from_single_id
 
 # Get db directory path
 DB_PATH = 'chroma_data2'
@@ -47,7 +47,7 @@ def get_qa_item(item_name, item_id, json_load=False):
 def handle_large_request(error):
     return "The request is too large!", 413
 
-# ************** app routes ************
+########################### app routes ###########################
 @app.route('/')
 def search_query_page():
     return render_template('search_query_page.html')
@@ -66,12 +66,11 @@ def genomics_page():
                 gene_data = {
                     "name": gene["name"],
                     "description": gene["description"],
-                    "diseases": get_items_fom_ids(gene["diseases"], "diseases", db_path="database.db"),
-                    "variants": get_items_fom_ids(gene["variants"], "variants", db_path="database.db"),
-                    "molecular_profiles": get_items_fom_ids(gene["molecular_profiles"], "molecular_profiles", db_path="database.db")
+                    "diseases": get_items_from_ids(gene["diseases"], "diseases", db_path="database.db"),
+                    "variants": get_items_from_ids(gene["variants"], "variants", db_path="database.db"),
+                    "molecular_profiles": get_items_from_ids(gene["molecular_profiles"], "molecular_profiles", db_path="database.db")
                 }
                 gene_data_list.append(gene_data)
-            print("geneData gene page: ", gene_data_list)
 
             return render_template('genomics.html', genes=gene_data_list)
         else:
@@ -88,29 +87,27 @@ def variant_page(variant_name):
         "name": variant["name"],
         "description": variant["description"],
         "gene": get_item_from_single_id(variant["gene_id"], "genes", db_path="database.db")[0],
-        "molecular_profiles": get_items_fom_ids(variant["molecular_profiles"], "molecular_profiles", db_path="database.db"),
-        "diseases": get_items_fom_ids(variant["diseases"], "diseases", db_path="database.db"),
+        "molecular_profiles": get_items_from_ids(variant["molecular_profiles"], "molecular_profiles", db_path="database.db"),
+        "diseases": get_items_from_ids(variant["diseases"], "diseases", db_path="database.db"),
     }
-
-    print("varData variant page: ", variant_data)
 
     return render_template('variant.html', variant_data=variant_data)
 
-"""@app.route('/genomics/molecular-profile/<string:molecular_profile_name>')
+@app.route('/genomics/molecular-profile/<string:mp_name>')
 def molecular_profile_page(mp_name):
-    mp = get_variant_by_name(mp_name, db_path="database.db")
-    #get variant info
-    variant_data = {
-        "name": variant["name"],
-        "description": variant["description"],
-        "gene": get_element_from_single_id(variant["gene_id"], "genes", db_path="database.db")[0],
-        "molecular_profiles": get_elements_fom_ids(variant["molecular_profiles"], "molecular_profiles", db_path="database.db"),
-        "diseases": get_elements_fom_ids(variant["diseases"], "diseases", db_path="database.db"),
-    }
+    mp = get_item_by_name(mp_name, table_name="molecular_profiles", db_path="database.db")
 
-    print("varData variant page: ", variant_data)
+    #get mp info
+    print("variants", mp["variants"])
+    mp_data = {
+        "name": mp["name"],
+        "description": mp["description"],
+        "variants": get_items_from_ids(mp["variants"], "variants", db_path="database.db"),
+        "diseases": get_items_from_ids(mp["disease"], "diseases", db_path="database.db"),
+        "score": mp["molecularProfileScore"],   
+        }
 
-    return render_template('variant.html', variant_data=variant_data)"""
+    return render_template('molecular_profile.html', mp_data=mp_data)
 
 @app.route("/answer",  methods=['POST', 'GET'])
 def answer_page():
