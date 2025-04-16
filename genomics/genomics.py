@@ -5,7 +5,6 @@ from rapidfuzz import fuzz
 
 MATCHING_RATIO_THRESH = 0.7
 
-
 def get_item_by_name(name, table_name, db_path): #TODO this is by exact name
     all_items = get_all_items(table_name, db_path)
     # Return variant where the search term is found (case-insensitive)
@@ -59,7 +58,7 @@ def get_item_from_single_id(id, item_name, db_path):
 
     return item
 
-def get_items_fom_ids(ids, item_name, db_path):
+def get_items_from_ids(ids, item_name, db_path):
     "IDs are provided as a string with comma separated values. element_name is the name of the table to query (string)" 
     ids = json.loads(ids)
     conn = sqlite3.connect(db_path)

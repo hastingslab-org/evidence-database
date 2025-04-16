@@ -2,8 +2,8 @@ CREATE TABLE IF NOT EXISTS molecular_profiles (
     id INTEGER PRIMARY KEY,
     name TEXT,
     description TEXT,
-    variants, TEXT,
-    disease TEXT,
+    variants INTEGER[],
+    disease INTEGER[],
     molecularProfileScore REAL,
     db_source TEXT
 );
