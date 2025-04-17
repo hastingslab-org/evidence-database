@@ -8,6 +8,8 @@ import sqlite3
 import chromadb
 from chromadb.utils import embedding_functions
 from genomics.genomics import get_genes_by_name, get_items_from_ids, get_item_by_name, get_item_from_single_id
+from variantscape.variantscape import compute_associations
+
 
 # Get db directory path
 DB_PATH = 'chroma_data2'
@@ -48,16 +50,28 @@ def handle_large_request(error):
     return "The request is too large!", 413
 
 ########################### app routes ###########################
-
-
 @app.route('/')
 def search_query_page():
     return render_template('search_query_page.html')
 
-@app.route('/variantscape', methods=['GET'])
+@app.route('/variantscape', methods=['GET', 'POST'])
 def variantscape_page():
-    
-    return render_template('variantscape.html')
+
+    if request.method == 'POST':
+        form_data = request.form.to_dict(flat=False)  
+        gene_search = form_data["gene"][0]
+        variant_search = form_data["variant"][0]
+        cancer_search = form_data["disease"][0]
+
+        print("gene_search", gene_search)
+        print(variant_search)
+        print(cancer_search)
+        #compute_associations("egfr", "l861q", "nsclc")
+        return render_template('variantscape.html')
+
+
+    if request.method == 'GET':
+        return render_template('variantscape.html')
 
 @app.route('/genomics', methods=['GET', 'POST'])
 def genomics_page():
@@ -80,7 +94,7 @@ def genomics_page():
 
             return render_template('genomics.html', genes=gene_data_list)
         else:
-            return jsonify({"error": "Gene not found"}), 404
+            return jsonify({"error": "Gene not found"}), 404 #TODO handle error in frontend
 
     if request.method == 'GET':
         return render_template('genomics.html')
