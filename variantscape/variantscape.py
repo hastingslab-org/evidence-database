@@ -87,8 +87,8 @@ def compute_associations(gene_name, variant_name, cancer_name):
         vc_w = list(vc_weights.values())
         cancer_pct = np.percentile(vc_w, CANCER_THRESHOLD_PERCENTILE) if vc_w else 0
 
-        # === Assemble & save ===
-    results = []
+    # === Assemble & save ===
+    """results = []
     for t, w in top_sens:
         results.append({
             "Cancer": cancer_name, "Variant": variant_of_interest,
@@ -106,11 +106,9 @@ def compute_associations(gene_name, variant_name, cancer_name):
             "Cancer": c, "Variant": variant_of_interest,
             "Treatment": None, "Association_Type": "Cross-Cancer",
             "Prediction": "NA", "Combined_Weight": w
-        })
+        })"""
 
-    #print("RESULTS", results)
-    print("sensitive", top_sens)
-    print("resistant", top_res)
-    print("cancer", top_var_c)
+    # get gene and variant name from the variant of interest
+    variant_name, gene_name = variant_of_interest.split("_")
 
-    return top_sens, top_res, top_var_c
+    return top_sens, top_res, top_var_c, sens_pct, res_pct, cancer_pct, gene_name, variant_name
