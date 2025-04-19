@@ -52,38 +52,83 @@
 
 <!-- Display results -->
 {% if top_sens or top_res or top_var_c %}
-<div class="container" style="max-width: 1000px; margin: 40px auto; background-color: #fff; padding: 30px; border: 1px solid #e0e0e0; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);">
+<div class="container" style="margin: 40px auto; background-color: #fff; padding: 30px; border: 1px solid #e0e0e0; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); max-width: 1000px; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
+
+    <h2 style="color: #2c3e50; margin-bottom: 70px;">Associations for <strong>{{ gene }}</strong> <strong>{{ variant }}</strong> and <strong>{{ disease }}</strong></h2>
 
     {% if top_sens %}
-    <h3 style="color: #2c3e50; margin-bottom: 10px;">Top Sensitive Treatments</h3>
-    <ul class="my-list">
-        {% for treatment, score in top_sens %}
-        <li title="Score: {{ score }}">{{ treatment }} ({{ '%.2f'|format(score) }})</li>
-        {% endfor %}
-    </ul>
+    <div style="margin-bottom: 50px;">
+        <h3 style="color: #2c3e50; font-size: 18px; font-weight: bold; margin-bottom: 15px;">Sensitive Treatments</h3>
+        <div style="display: flex; justify-content: space-between; font-weight: bold; color: #666; font-size: 14px;">
+            <span>Treatment</span>
+            <span>Score</span>
+        </div>        
+        <hr style="border: none; border-top: 1px solid #e0e0e0;  margin: 0 0;">
+        <div style="font-family: 'Courier New', monospace; font-size: 15px; margin-top: 10px;">
+            {% for treatment, score in top_sens %}
+            <div style="display: flex; justify-content: space-between; padding: 4px 0;">
+                <span style="color: {{ '#2e7d32' if score >= sens_pct else '#b0b0b0' }}; font-weight: {{ '600' if score >= sens_pct else 'normal' }};">
+                    {{ treatment }}
+                </span>
+                <span style="color: {{ '#2e7d32' if score >= sens_pct else '#b0b0b0' }}; font-weight: {{ '600' if score >= sens_pct else 'normal' }};">
+                    {{ score|round|int }}
+                </span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
     {% endif %}
 
     {% if top_res %}
-    <h3 style="color: #2c3e50; margin-top: 30px; margin-bottom: 10px;">Top Resistant Treatments</h3>
-    <ul class="my-list">
-        {% for treatment, score in top_res %}
-        <li title="Score: {{ score }}">{{ treatment }} ({{ '%.2f'|format(score) }})</li>
-        {% endfor %}
-    </ul>
+    <div style="margin-bottom: 50px;">
+        <h3 style="color: #2c3e50; font-size: 18px; font-weight: bold; margin-bottom: 15px;">Resistant Treatments</h3>
+        <div style="display: flex; justify-content: space-between; font-weight: bold; color: #666; font-size: 14px; margin-top: 10px;">
+            <span>Treatment</span>
+            <span>Score</span>
+        </div>        
+        <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 0 0;">
+        <div style="font-family: 'Courier New', monospace; font-size: 15px; margin-top: 10px;">
+            {% for treatment, score in top_res %}
+            <div style="display: flex; justify-content: space-between; padding: 4px 0;">
+                <span style="color: {{ '#333' if score >= res_pct else '#b0b0b0' }}; font-weight: {{ '600' if score >= res_pct else 'normal' }};">
+                    {{ treatment }}
+                </span>
+                <span style="color: {{ '#333' if score >= res_pct else '#b0b0b0' }}; font-weight: {{ '600' if score >= res_pct else 'normal' }};">
+                    {{ score|round|int }}
+                </span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
     {% endif %}
 
     {% if top_var_c %}
-    <h3 style="color: #2c3e50; margin-top: 30px; margin-bottom: 10px;">Top Variant-Associated Cancers</h3>
-    <ul class="my-list">
-        {% for cancer, score in top_var_c %}
-        <li title="Score: {{ score }}">{{ cancer }} ({{ '%.2f'|format(score) }})</li>
-        {% endfor %}
-    </ul>
+    <div>
+        <h3 style="color: #2c3e50; font-size: 18px; font-weight: bold; margin-bottom: 4px;">Other cancer types</h3>
+        <p style="color: #888; font-size: 13px; margin-top: 4px; margin-bottom: 20px; text-align: center;">
+            Associated with {{ gene }} {{ variant }}
+        </p>
+        <div style="display: flex; justify-content: space-between; font-weight: bold; color: #666; font-size: 14px;">
+            <span>Cancer type</span>
+            <span>Score</span>
+        </div>
+        <hr style="border: none; border-top: 1px solid #e0e0e0;  margin: 0 0;">
+        <div style="font-family: 'Courier New', monospace; font-size: 15px; margin-top: 10px;">
+            {% for cancer, score in top_var_c %}
+            <div style="display: flex; justify-content: space-between; padding: 4px 0;">
+                <span style="color: {{ '#1565c0' if score >= cancer_pct else '#b0b0b0' }}; font-weight: {{ '600' if score >= cancer_pct else 'normal' }};">
+                    {{ cancer }}
+                </span>
+                <span style="color: {{ '#1565c0' if score >= cancer_pct else '#b0b0b0' }}; font-weight: {{ '600' if score >= cancer_pct else 'normal' }};">
+                    {{ score|round|int }}
+                </span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
     {% endif %}
 
 </div>
 {% endif %}
-
-
 
 {% endblock %}
