@@ -49,4 +49,41 @@
         Search
     </button>
 </form>
+
+<!-- Display results -->
+{% if top_sens or top_res or top_var_c %}
+<div class="container" style="max-width: 1000px; margin: 40px auto; background-color: #fff; padding: 30px; border: 1px solid #e0e0e0; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);">
+
+    {% if top_sens %}
+    <h3 style="color: #2c3e50; margin-bottom: 10px;">Top Sensitive Treatments</h3>
+    <ul class="my-list">
+        {% for treatment, score in top_sens %}
+        <li title="Score: {{ score }}">{{ treatment }} ({{ '%.2f'|format(score) }})</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+
+    {% if top_res %}
+    <h3 style="color: #2c3e50; margin-top: 30px; margin-bottom: 10px;">Top Resistant Treatments</h3>
+    <ul class="my-list">
+        {% for treatment, score in top_res %}
+        <li title="Score: {{ score }}">{{ treatment }} ({{ '%.2f'|format(score) }})</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+
+    {% if top_var_c %}
+    <h3 style="color: #2c3e50; margin-top: 30px; margin-bottom: 10px;">Top Variant-Associated Cancers</h3>
+    <ul class="my-list">
+        {% for cancer, score in top_var_c %}
+        <li title="Score: {{ score }}">{{ cancer }} ({{ '%.2f'|format(score) }})</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+
+</div>
+{% endif %}
+
+
+
 {% endblock %}
