@@ -61,14 +61,10 @@ def variantscape_page():
         form_data = request.form.to_dict(flat=False)  
         gene_search = form_data["gene"][0]
         variant_search = form_data["variant"][0]
-        cancer_search = form_data["disease"][0]
+        disease_search = form_data["disease"][0]
 
-        print("gene_search", gene_search)
-        print(variant_search)
-        print(cancer_search)
-        #compute_associations("egfr", "l861q", "nsclc")
-        return render_template('variantscape.html')
-
+        top_sens, top_res, top_var_c = compute_associations(gene_search, variant_search, disease_search)
+        return render_template('variantscape.html', top_sens=top_sens, top_res=top_res, top_var_c=top_var_c)
 
     if request.method == 'GET':
         return render_template('variantscape.html')
