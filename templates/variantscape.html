@@ -39,18 +39,19 @@
     </p>
 </header>
 
+
 <form action="/variantscape" method="post" style="text-align: center; margin-top: 20px; display: flex; justify-content: center; gap: 20px; flex-wrap: wrap;">
     <div class="form-group" style="flex: 1; min-width: 250px; max-width: 300px;">
         <label for="gene-search" style="display: block; font-size: 14px; margin-bottom: 5px;">Enter gene</label>
-        <input id="gene-search" name="gene" type="text" placeholder="search gene" style="padding: 10px; width: 100%; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;">
+        <input id="gene-search" name="gene" type="text" placeholder="search gene" value="{{ gene }}" style="padding: 10px; width: 100%; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;">
     </div>
     <div class="form-group" style="flex: 1; min-width: 250px; max-width: 300px;">
         <label for="variant-search" style="display: block; font-size: 14px; margin-bottom: 5px;">Enter variant</label>
-        <input id="variant-search" name="variant" type="text" placeholder="search variant" style="padding: 10px; width: 100%; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;">
+        <input id="variant-search" name="variant" type="text" placeholder="search variant" value="{{ variant }}" style="padding: 10px; width: 100%; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;">
     </div>
     <div class="form-group" style="flex: 1; min-width: 250px; max-width: 300px;">
         <label for="disease-search" style="display: block; font-size: 14px; margin-bottom: 5px;">Enter cancer type</label>
-        <input id="disease-search" name="disease" type="text" placeholder="search cancer type" style="padding: 10px; width: 100%; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;">
+        <input id="disease-search" name="disease" type="text" placeholder="search cancer type" value="{{ disease }}" style="padding: 10px; width: 100%; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;">
     </div>
     <button type="submit" style="margin-top: 20px; padding: 10px 20px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; font-size: 14px; cursor: pointer;">
         Search
