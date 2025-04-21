@@ -29,21 +29,28 @@
     }
 </style>
 
-<header>
-    <h1 style="text-align: center; margin-top: 20px;">Variantscape</h1>
+<header style="text-align: center; margin-top: 20px; margin-bottom: 30px;">
+    <h1 style="font-size: 32px; margin-bottom: 5px;">Variantscape</h1>
+    <p style="font-size: 16px; color: #555; margin: 0 0 5px;">
+        Search literature-derived associations between variants, cancer types, and treatments
+    </p>
+    <p style="font-size: 12px; color: #999; margin-top: 2px;">
+        For research purposes only
+    </p>
 </header>
+
 <form action="/variantscape" method="post" style="text-align: center; margin-top: 20px; display: flex; justify-content: center; gap: 20px; flex-wrap: wrap;">
     <div class="form-group" style="flex: 1; min-width: 250px; max-width: 300px;">
-        <label for="gene-search" style="display: block; font-size: 14px; margin-bottom: 5px;">Enter Gene</label>
-        <input id="gene-search" name="gene" type="text" placeholder="Search Gene" style="padding: 10px; width: 100%; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;">
+        <label for="gene-search" style="display: block; font-size: 14px; margin-bottom: 5px;">Enter gene</label>
+        <input id="gene-search" name="gene" type="text" placeholder="search gene" style="padding: 10px; width: 100%; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;">
     </div>
     <div class="form-group" style="flex: 1; min-width: 250px; max-width: 300px;">
-        <label for="variant-search" style="display: block; font-size: 14px; margin-bottom: 5px;">Enter Variant</label>
-        <input id="variant-search" name="variant" type="text" placeholder="Search Variant" style="padding: 10px; width: 100%; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;">
+        <label for="variant-search" style="display: block; font-size: 14px; margin-bottom: 5px;">Enter variant</label>
+        <input id="variant-search" name="variant" type="text" placeholder="search variant" style="padding: 10px; width: 100%; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;">
     </div>
     <div class="form-group" style="flex: 1; min-width: 250px; max-width: 300px;">
-        <label for="disease-search" style="display: block; font-size: 14px; margin-bottom: 5px;">Enter Disease</label>
-        <input id="disease-search" name="disease" type="text" placeholder="Search Disease" style="padding: 10px; width: 100%; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;">
+        <label for="disease-search" style="display: block; font-size: 14px; margin-bottom: 5px;">Enter cancer type</label>
+        <input id="disease-search" name="disease" type="text" placeholder="search cancer type" style="padding: 10px; width: 100%; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;">
     </div>
     <button type="submit" style="margin-top: 20px; padding: 10px 20px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; font-size: 14px; cursor: pointer;">
         Search
