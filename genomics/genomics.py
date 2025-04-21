@@ -34,19 +34,37 @@ def get_all_items(table_name, db_path): #TODO merge with get_genes_by_name
 
     return items_with_keys
 
+def fuzzy_match_sql(user_input, all_items):
 
-def get_genes_by_name(name, db_path):
-    all_genes = get_all_items("genes", db_path)
-    # Return genes where the search term is found (case-insensitive)
-    matching_genes = [gene for gene in all_genes if name.lower() in gene['name'].lower()]
+    #sub-string match
+    matching_items = [item for item in all_items if user_input.lower() in item['name'].lower()]
 
     # Fuzzy matching
-    for gene in all_genes:
-        fuzz_ratio = fuzz.ratio(name.lower(), gene['name'].lower())
-        if fuzz_ratio > MATCHING_RATIO_THRESH * 100 and gene not in matching_genes:
-            matching_genes.append({**gene, 'fuzz_ratio': fuzz_ratio})
+    for item in all_items:
+        fuzz_ratio = fuzz.ratio(user_input.lower(), item['name'].lower())
+        if fuzz_ratio > MATCHING_RATIO_THRESH * 100 and item not in matching_items:
+            matching_items.append({**item, 'fuzz_ratio': fuzz_ratio})
 
-    return matching_genes
+    return matching_items
+
+def fuzzy_match_gml(user_input, all_items): #TODO find a better strategy and merge with fuzzy_match_sql
+    # sub-string match
+    matching_items = [item for item in all_items if user_input.lower() in item.lower()]
+
+    # Fuzzy matching
+    for item in all_items:
+        fuzz_ratio = fuzz.ratio(user_input.lower(), item.lower())
+        if fuzz_ratio > MATCHING_RATIO_THRESH * 100 and item not in matching_items:
+            matching_items.append({**item, 'fuzz_ratio': fuzz_ratio})
+
+    return matching_items
+
+def get_items_by_name_fuzzy(name, item_name, db_path):
+    all_items = get_all_items(item_name, db_path)
+    # Return genes where the search term is found (case-insensitive)
+
+    matching_items = fuzzy_match_sql(name, all_items)
+    return matching_items
 
 
 def get_item_from_single_id(id, item_name, db_path):

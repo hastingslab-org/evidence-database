@@ -57,6 +57,17 @@
     </button>
 </form>
 
+
+<!-- Display Variant recommandations -->
+{% if not exist_variant_bool %}
+<p>Variant not found. Did you mean:</p>
+<ul>
+    {% for variant in recommended_variants %}
+    <li>{{ variant }}</li>
+    {% endfor %}
+</ul>
+{% endif %}
+
 <!-- Display results -->
 {% if top_sens or top_res or top_var_c %}
 <div class="container" style="margin: 40px auto; background-color: #fff; padding: 30px; border: 1px solid #e0e0e0; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); max-width: 1000px; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
