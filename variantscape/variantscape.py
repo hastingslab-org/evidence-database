@@ -29,9 +29,22 @@ EXCLUDED_TREATMENTS = {
 }
 
 
+def check_variant_in_graph(user_gene_name, user_variant_name):
+    """Check if the variant exists in the graph."""
+    variant_of_interest = (user_variant_name + "_" + user_gene_name).lower()
+    lowercase_mapping = {key.lower(): key for key in G.nodes}  # Create a temporary mapping of lowercase keys to original keys
+    variant_of_interest = lowercase_mapping.get(variant_of_interest)
+    return variant_of_interest in G.nodes
+
 def compute_associations(gene_name, variant_name, cancer_name):
     
+    top_sens, top_res, top_var_c, sens_pct, res_pct, cancer_pct = \
+        None, None, None, None, None, None
+
     variant_of_interest = (variant_name + "_" + gene_name).lower()
+    lowercase_mapping = {key.lower(): key for key in G.nodes}  # Create a temporary mapping of lowercase keys to original keys
+    variant_of_interest = lowercase_mapping.get(variant_of_interest) #TODO do this block only once in app.py ?
+    
     clean_input = cancer_name.strip().lower()
     cancer_of_interest = CANCER_ALIAS_MAP.get(clean_input, clean_input)
 
@@ -48,9 +61,6 @@ def compute_associations(gene_name, variant_name, cancer_name):
     treat_pct = np.percentile(c_w, TREATMENT_THRESHOLD_PERCENTILE) if c_w else 0"""
 
     # === Step 2: Variant + cancer associations ===
-    lowercase_mapping = {key.lower(): key for key in G.nodes}     # Create a temporary mapping of lowercase keys to original keys
-    variant_of_interest = lowercase_mapping.get(variant_of_interest) #TODO deal with case where key does not exist 
-
     sensitive, resistant = [], []
     for t in treatments:
         try:

@@ -7,9 +7,9 @@ from init_db import init_db
 import sqlite3 
 import chromadb
 from chromadb.utils import embedding_functions
-from genomics.genomics import get_genes_by_name, get_items_from_ids, get_item_by_name, get_item_from_single_id
-from variantscape.variantscape import compute_associations
-
+from genomics.genomics import fuzzy_match_gml, get_items_by_name_fuzzy, get_items_from_ids, get_item_by_name, get_item_from_single_id
+from variantscape.variantscape import compute_associations, check_variant_in_graph
+from variantscape.graph_store import G
 
 # Get db directory path
 DB_PATH = 'chroma_data2'
@@ -63,6 +63,14 @@ def variantscape_page():
         variant_search = form_data["variant"][0]
         disease_search = form_data["disease"][0]
 
+        EXIST_VARIANT_BOOL = check_variant_in_graph(gene_search, variant_search)
+
+        if not EXIST_VARIANT_BOOL:
+            variant_of_interest = (variant_search + "_" + gene_search).lower()
+            recommended_variants = fuzzy_match_gml(variant_of_interest, G.nodes)
+            print("recommended variants", recommended_variants)
+            return render_template('variantscape.html', recommended_variants=recommended_variants, exist_variant_bool = EXIST_VARIANT_BOOL)
+
         top_sens, top_res, top_var_c, sens_pct, res_pct, cancer_pct, \
             gene_name, variant_name = compute_associations(gene_search, variant_search, disease_search)
         
@@ -79,7 +87,7 @@ def genomics_page():
         form_data = request.form.to_dict(flat=False)  # Converts form data to a dictionary
         gene_name = form_data["gene_name"][0]
         # Get gene info
-        genes = get_genes_by_name(gene_name, db_path="database.db")
+        genes = get_items_by_name_fuzzy(gene_name, item_name="genes", db_path="database.db")
         if genes:
             gene_data_list = []
             for gene in genes:
