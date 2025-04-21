@@ -43,21 +43,22 @@ def fuzzy_match_sql(user_input, all_items):
     for item in all_items:
         fuzz_ratio = fuzz.ratio(user_input.lower(), item['name'].lower())
         if fuzz_ratio > MATCHING_RATIO_THRESH * 100 and item not in matching_items:
-            matching_items.append({**item, 'fuzz_ratio': fuzz_ratio})
+            matching_items.append({**item, 'fuzz_ratio': fuzz_ratio})  #TODO overkill if we never need to access the fuzz_ratio
 
     return matching_items
 
-def fuzzy_match_gml(user_input, all_items): #TODO find a better strategy and merge with fuzzy_match_sql
+def fuzzy_match_gml(user_input, all_names): #TODO find a better strategy and merge with fuzzy_match_sql
     # sub-string match
-    matching_items = [item for item in all_items if user_input.lower() in item.lower()]
+    matching_names = [name for name in all_names if user_input.lower() in name.lower()]
 
     # Fuzzy matching
-    for item in all_items:
-        fuzz_ratio = fuzz.ratio(user_input.lower(), item.lower())
-        if fuzz_ratio > MATCHING_RATIO_THRESH * 100 and item not in matching_items:
-            matching_items.append({**item, 'fuzz_ratio': fuzz_ratio})
+    for name in all_names:
+        print("name", name)
+        fuzz_ratio = fuzz.ratio(user_input.lower(), name.lower())
+        if fuzz_ratio > MATCHING_RATIO_THRESH * 100 and name not in matching_names:
+            matching_names.append(name)
 
-    return matching_items
+    return matching_names
 
 def get_items_by_name_fuzzy(name, item_name, db_path):
     all_items = get_all_items(item_name, db_path)
