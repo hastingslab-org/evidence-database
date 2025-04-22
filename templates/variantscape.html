@@ -68,12 +68,22 @@
     </p>
     <ul style="list-style: none; padding-left: 0; margin: 0;">
         {% for variant in recommended_variants %}
-        <li style="background-color: #fff; border: 1px solid #e0e0e0; padding: 8px 12px; margin-bottom: 6px; border-radius: 4px; font-size: 14px;">
+        <li style="background-color: #fff; border: 1px solid #e0e0e0; padding: 8px 12px; margin-bottom: 6px; border-radius: 4px; font-size: 14px; cursor: pointer;" 
+            onmouseover="this.style.backgroundColor='#f0f0f0'; this.style.transform='scale(1.02)';" 
+            onmouseout="this.style.backgroundColor='#fff'; this.style.transform='scale(1)';" 
+            onclick="populateFields('{{ variant }}')">
             {{ variant }}
         </li>
         {% endfor %}
     </ul>
 </div>
+<script>
+    function populateFields(variant) {
+        const [gene, variantName] = variant.split(' ');
+        document.getElementById('gene-search').value = gene;
+        document.getElementById('variant-search').value = variantName;
+    }
+</script>
 {% endif %}
 
 <!-- Display cancer types recommandations -->
@@ -85,12 +95,20 @@
     </p>
     <ul style="list-style: none; padding-left: 0; margin: 0;">
         {% for cancer in recommended_cancers %}
-        <li style="background-color: #fff; border: 1px solid #e0e0e0; padding: 8px 12px; margin-bottom: 6px; border-radius: 4px; font-size: 14px;">
+        <li style="background-color: #fff; border: 1px solid #e0e0e0; padding: 8px 12px; margin-bottom: 6px; border-radius: 4px; font-size: 14px; cursor: pointer; transition: background-color 0.3s, transform 0.2s;" 
+            onmouseover="this.style.backgroundColor='#f0f0f0'; this.style.transform='scale(1.02)';" 
+            onmouseout="this.style.backgroundColor='#fff'; this.style.transform='scale(1)';" 
+            onclick="populateCancerField('{{ cancer }}')">
             {{ cancer }}
         </li>
         {% endfor %}
     </ul>
 </div>
+<script>
+    function populateCancerField(cancer) {
+        document.getElementById('disease-search').value = cancer;
+    }
+</script>
 {% endif %}
 
 
