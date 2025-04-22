@@ -76,6 +76,22 @@
 </div>
 {% endif %}
 
+<!-- Display cancer types recommandations -->
+{% if exist_cancer_bool is defined and not exist_cancer_bool %}
+<div style="margin: 40px auto; max-width: 600px; background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; padding: 20px 25px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.03); font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
+    <p style="margin: 0 0 10px;">
+        <strong>Cancer type "{{ disease }}" not found.</strong><br>
+        Did you mean:
+    </p>
+    <ul style="list-style: none; padding-left: 0; margin: 0;">
+        {% for cancer in recommended_cancers %}
+        <li style="background-color: #fff; border: 1px solid #e0e0e0; padding: 8px 12px; margin-bottom: 6px; border-radius: 4px; font-size: 14px;">
+            {{ cancer }}
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
 
 
 <!-- Display results -->
@@ -95,10 +111,10 @@
         <div style="font-family: 'Courier New', monospace; font-size: 15px; margin-top: 10px;">
             {% for treatment, score in top_sens %}
             <div style="display: flex; justify-content: space-between; padding: 4px 0;">
-                <span style="color: {{ '#2e7d32' if score >= sens_pct else '#b0b0b0' }}; font-weight: {{ '600' if score >= sens_pct else 'normal' }};">
+                <span style="color: {{ '#2e7d32' if score >= sens_pct and score >= treatment_min_highlight else '#b0b0b0' }}; font-weight: {{ '600' if score >= sens_pct and score >= treatment_min_highlight else 'normal' }};">
                     {{ treatment }}
                 </span>
-                <span style="color: {{ '#2e7d32' if score >= sens_pct else '#b0b0b0' }}; font-weight: {{ '600' if score >= sens_pct else 'normal' }};">
+                <span style="color: {{ '#2e7d32' if score >= sens_pct  and score >= treatment_min_highlight else '#b0b0b0' }}; font-weight: {{ '600' if score >= sens_pct  and score >= treatment_min_highlight else 'normal' }};">
                     {{ score|round|int }}
                 </span>
             </div>
@@ -118,10 +134,10 @@
         <div style="font-family: 'Courier New', monospace; font-size: 15px; margin-top: 10px;">
             {% for treatment, score in top_res %}
             <div style="display: flex; justify-content: space-between; padding: 4px 0;">
-                <span style="color: {{ '#333' if score >= res_pct else '#b0b0b0' }}; font-weight: {{ '600' if score >= res_pct else 'normal' }};">
+                <span style="color: {{ '#333' if score >= res_pct  and score >= treatment_min_highlight else '#b0b0b0' }}; font-weight: {{ '600' if score >= res_pct  and score >= treatment_min_highlight else 'normal' }};">
                     {{ treatment }}
                 </span>
-                <span style="color: {{ '#333' if score >= res_pct else '#b0b0b0' }}; font-weight: {{ '600' if score >= res_pct else 'normal' }};">
+                <span style="color: {{ '#333' if score >= res_pct  and score >= treatment_min_highlight else '#b0b0b0' }}; font-weight: {{ '600' if score >= res_pct  and score >= treatment_min_highlight else 'normal' }};">
                     {{ score|round|int }}
                 </span>
             </div>
@@ -144,10 +160,10 @@
         <div style="font-family: 'Courier New', monospace; font-size: 15px; margin-top: 10px;">
             {% for cancer, score in top_var_c %}
             <div style="display: flex; justify-content: space-between; padding: 4px 0;">
-                <span style="color: {{ '#1565c0' if score >= cancer_pct else '#b0b0b0' }}; font-weight: {{ '600' if score >= cancer_pct else 'normal' }};">
+                <span style="color: {{ '#1565c0' if score >= cancer_pct and score >= cancer_min_highlight else '#b0b0b0' }}; font-weight: {{ '600' if score >= cancer_pct and score >= cancer_min_highlight else 'normal' }};">
                     {{ cancer }}
                 </span>
-                <span style="color: {{ '#1565c0' if score >= cancer_pct else '#b0b0b0' }}; font-weight: {{ '600' if score >= cancer_pct else 'normal' }};">
+                <span style="color: {{ '#1565c0' if score >= cancer_pct and score >= cancer_min_highlight else '#b0b0b0' }}; font-weight: {{ '600' if score >= cancer_pct and score >= cancer_min_highlight else 'normal' }};">
                     {{ score|round|int }}
                 </span>
             </div>

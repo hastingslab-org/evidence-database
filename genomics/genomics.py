@@ -3,7 +3,7 @@ import sqlite3
 import json
 from rapidfuzz import fuzz
 
-MATCHING_RATIO_THRESH = 0.7
+MATCHING_RATIO_THRESH = 0.8
 
 def get_item_by_name(name, table_name, db_path): #TODO this is by exact name
     all_items = get_all_items(table_name, db_path)
