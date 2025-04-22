@@ -43,15 +43,15 @@
 <form action="/variantscape" method="post" style="text-align: center; margin-top: 20px; display: flex; justify-content: center; gap: 20px; flex-wrap: wrap;">
     <div class="form-group" style="flex: 1; min-width: 250px; max-width: 300px;">
         <label for="gene-search" style="display: block; font-size: 14px; margin-bottom: 5px;">Enter gene</label>
-        <input id="gene-search" name="gene" type="text" placeholder="search gene" value="{{ gene }}" style="padding: 10px; width: 100%; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;">
+        <input id="gene-search" name="gene" type="text" placeholder="search gene" value="{{ gene }}" style="padding: 10px; width: 100%; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;" required>
     </div>
     <div class="form-group" style="flex: 1; min-width: 250px; max-width: 300px;">
         <label for="variant-search" style="display: block; font-size: 14px; margin-bottom: 5px;">Enter variant</label>
-        <input id="variant-search" name="variant" type="text" placeholder="search variant" value="{{ variant }}" style="padding: 10px; width: 100%; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;">
+        <input id="variant-search" name="variant" type="text" placeholder="search variant" value="{{ variant }}" style="padding: 10px; width: 100%; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;" required>
     </div>
     <div class="form-group" style="flex: 1; min-width: 250px; max-width: 300px;">
         <label for="disease-search" style="display: block; font-size: 14px; margin-bottom: 5px;">Enter cancer type</label>
-        <input id="disease-search" name="disease" type="text" placeholder="search cancer type" value="{{ disease }}" style="padding: 10px; width: 100%; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;">
+        <input id="disease-search" name="disease" type="text" placeholder="search cancer type" value="{{ disease }}" style="padding: 10px; width: 100%; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;" required>
     </div>
     <button type="submit" style="margin-top: 20px; padding: 10px 20px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; font-size: 14px; cursor: pointer;">
         Search
@@ -60,14 +60,23 @@
 
 
 <!-- Display Variant recommandations -->
-{% if not exist_variant_bool %}
-<p>Variant not found. Did you mean:</p>
-<ul>
-    {% for variant in recommended_variants %}
-    <li>{{ variant }}</li>
-    {% endfor %}
-</ul>
+{% if exist_variant_bool is defined and not exist_variant_bool %}
+<div style="margin: 40px auto; max-width: 600px; background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; padding: 20px 25px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.03); font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
+    <p style="margin: 0 0 10px;">
+        <strong>Variant "{{ variant }}" for gene "{{ gene }}" not found.</strong><br>
+        Did you mean:
+    </p>
+    <ul style="list-style: none; padding-left: 0; margin: 0;">
+        {% for variant in recommended_variants %}
+        <li style="background-color: #fff; border: 1px solid #e0e0e0; padding: 8px 12px; margin-bottom: 6px; border-radius: 4px; font-size: 14px;">
+            {{ variant }}
+        </li>
+        {% endfor %}
+    </ul>
+</div>
 {% endif %}
+
+
 
 <!-- Display results -->
 {% if top_sens or top_res or top_var_c %}

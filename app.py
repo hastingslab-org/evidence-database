@@ -67,9 +67,12 @@ def variantscape_page():
 
         if not EXIST_VARIANT_BOOL:
             variant_of_interest = (variant_search + "_" + gene_search).lower()
-            recommended_variants = fuzzy_match_gml(variant_of_interest, G.nodes)
+            recommended_variants = [
+                " ".join(reversed(variant.split("_"))) for variant in fuzzy_match_gml(variant_of_interest, G.nodes)
+            ]
             print("recommended variants", recommended_variants)
-            return render_template('variantscape.html', recommended_variants=recommended_variants, exist_variant_bool = EXIST_VARIANT_BOOL)
+            return render_template('variantscape.html', recommended_variants=recommended_variants, exist_variant_bool = EXIST_VARIANT_BOOL, \
+                                   gene=gene_search, variant=variant_search, disease = disease_search)
 
         top_sens, top_res, top_var_c, sens_pct, res_pct, cancer_pct, \
             gene_name, variant_name = compute_associations(gene_search, variant_search, disease_search)
