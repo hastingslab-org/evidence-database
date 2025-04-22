@@ -8,11 +8,16 @@ import sqlite3
 import chromadb
 from chromadb.utils import embedding_functions
 from genomics.genomics import fuzzy_match_gml, get_items_by_name_fuzzy, get_items_from_ids, get_item_by_name, get_item_from_single_id
-from variantscape.variantscape import compute_associations, check_variant_in_graph
+from variantscape.variantscape import compute_associations, check_variant_in_graph, check_cancer_in_graph
 from variantscape.graph_store import G
 
 # Get db directory path
 DB_PATH = 'chroma_data2'
+
+#Variantscape config
+TREATMENT_MIN_HIGHLIGHT        = 300   # and require ≥X total weight
+CANCER_MIN_HIGHLIGHT           = 80    # and require ≥X total weight
+#TODO add percentile and fuzzy raiot. Move to a config file ? 
 
 #app config
 app = Flask(__name__)
@@ -64,6 +69,8 @@ def variantscape_page():
         disease_search = form_data["disease"][0]
 
         EXIST_VARIANT_BOOL = check_variant_in_graph(gene_search, variant_search)
+        EXIST_CANCER_BOOL = check_cancer_in_graph(disease_search)
+
 
         if not EXIST_VARIANT_BOOL:
             variant_of_interest = (variant_search + "_" + gene_search).lower()
@@ -74,12 +81,24 @@ def variantscape_page():
             return render_template('variantscape.html', recommended_variants=recommended_variants, exist_variant_bool = EXIST_VARIANT_BOOL, \
                                    gene=gene_search, variant=variant_search, disease = disease_search)
 
+        if not EXIST_CANCER_BOOL:
+            cancer_of_interest = disease_search.strip().lower()
+            recommended_cancers = [
+                name for name in fuzzy_match_gml(cancer_of_interest, G.nodes)
+            ]
+            print("recommended cancers", recommended_cancers)
+            return render_template('variantscape.html', recommended_cancers=recommended_cancers, exist_cancer_bool = EXIST_CANCER_BOOL, \
+                                   gene=gene_search, variant=variant_search, disease = disease_search)
+
         top_sens, top_res, top_var_c, sens_pct, res_pct, cancer_pct, \
             gene_name, variant_name = compute_associations(gene_search, variant_search, disease_search)
         
         return render_template('variantscape.html', top_sens=top_sens, top_res=top_res, top_var_c=top_var_c, \
                                sens_pct=sens_pct, res_pct=res_pct, cancer_pct=cancer_pct, gene=gene_name, \
-                                variant=variant_name, disease = disease_search)
+                                variant=variant_name, disease = disease_search, \
+                                    treatment_min_highlight = TREATMENT_MIN_HIGHLIGHT,
+                                    cancer_min_highlight = CANCER_MIN_HIGHLIGHT) #TODO add error handling for empty results
+    #TODO pass params more elegantly
 
     if request.method == 'GET':
         return render_template('variantscape.html')

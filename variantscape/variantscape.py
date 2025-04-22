@@ -11,9 +11,7 @@ from graph_store import G, consensus_dict
 
 # === Adjustable thresholds ===
 TREATMENT_THRESHOLD_PERCENTILE = 80    # highlight top X% of treatment weights
-TREATMENT_MIN_HIGHLIGHT        = 300   # and require ≥X total weight
 CANCER_THRESHOLD_PERCENTILE    = 80    # highlight top X% of cancer–variant weights
-CANCER_MIN_HIGHLIGHT           = 80    # and require ≥X total weight
 
 CANCER_ALIAS_MAP = {
     "nsclc": "lung cancer",
@@ -35,6 +33,13 @@ def check_variant_in_graph(user_gene_name, user_variant_name):
     lowercase_mapping = {key.lower(): key for key in G.nodes}  # Create a temporary mapping of lowercase keys to original keys
     variant_of_interest = lowercase_mapping.get(variant_of_interest)
     return variant_of_interest in G.nodes
+
+def check_cancer_in_graph(user_cancer_name):
+    """Check if the cancer exists in the graph."""
+    clean_input = user_cancer_name.strip().lower()
+    cancer_of_interest = CANCER_ALIAS_MAP.get(clean_input, clean_input)
+    return cancer_of_interest in G.nodes
+
 
 def compute_associations(gene_name, variant_name, cancer_name):
     
