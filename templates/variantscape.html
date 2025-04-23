@@ -125,6 +125,42 @@
         .legend-list{grid-template-columns:1fr;}
     }
 
+    /* —–– citation / GitHub footer —–– */
+    .cite-footer{
+        max-width:1000px;
+        margin:80px auto 40px;        /* plenty of breathing room              */
+        padding:20px 24px;
+        background:#fafafa;           /* subtle contrast with page background  */
+        border-top:1px solid #e5e5e5; /* visual break from tool content        */
+        box-shadow:0 -1px 3px rgba(0,0,0,.03);
+        text-align:center;
+        font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;
+        font-size:12px;
+        color:#666;
+    }
+
+    .cite-footer p{margin:0 0 10px;}
+
+    .cite-footer em{font-style:italic;}
+
+    .cite-footer a{
+        color:#1565c0;
+        text-decoration:none;
+        font-weight:500;
+    }
+    .cite-footer a:hover,
+    .cite-footer a:focus{ text-decoration:underline; }
+
+    /* tiny GitHub mark */
+    .cite-footer svg{
+        width:14px;
+        height:14px;
+        vertical-align:-2px;          /* lines up with the text                */
+        margin-right:4px;
+        fill:#444;
+    }
+
+
 </style>
 
 <header style="text-align: center; margin-top: 20px; margin-bottom: 30px;">
@@ -345,4 +381,44 @@
 </div>
 {% endif %}
 
+<div style="max-width: 1000px; margin: 30px auto 0; margin-top: 30px; text-align: center;">
+    <a href="/variantscape/networkgraph" target="_blank" style="font-size: 13px; color: #1565c0; text-decoration: none; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
+        View Variantscape graph →
+    </a>
+</div>
+
+<!-- Citation and GitHub link -->
+<footer class="cite-footer">
+    <p>If you use <strong>Variantscape</strong> in your work, please cite:</p>
+
+    <p>
+        <em>Wosny&nbsp;M., Boesch M., Peres T., Niederhauser T., Früh M., Rothermundt C., Hastings J. (2025)<br>
+        “Variantscape: Using large language models to build a comprehensive landscape of cancer variants”</em>
+        (Preprint)
+    </p>
+
+    <p>
+        <!-- GitHub icon (pure SVG) -->
+        <svg viewBox="0 0 16 16" aria-hidden="true">
+            <path d="M8 .198a8 8 0 0 0-2.53 15.59c.4.075.547-.173.547-.385
+                     0-.19-.007-.693-.01-1.36-2.226.485-2.695-1.073-2.695-1.073
+                     -.364-.924-.89-1.17-.89-1.17-.728-.497.055-.487.055-.487
+                     .805.056 1.23.827 1.23.827.716 1.226 1.878.872 2.335.667
+                     .073-.519.28-.873.507-1.073-1.777-.202-3.644-.888-3.644-3.953
+                     0-.873.31-1.585.824-2.144-.083-.203-.357-1.017.078-2.12 0 0
+                     .672-.215 2.2.82a7.657 7.657 0 0 1 4.004 0c1.527-1.035
+                     2.198-.82 2.198-.82.437 1.103.163 1.917.08 2.12.514.56.823
+                     1.271.823 2.144 0 3.073-1.87 3.748-3.65 3.947.287.248.543
+                     .738.543 1.487 0 1.074-.01 1.94-.01 2.203 0 .214.145.464.55
+                     .385A8.001 8.001 0 0 0 8 .197z"/>
+        </svg>
+
+        <a href="https://github.com/hastingslab-org/Variantscape" target="_blank">
+            hastingslab-org/Variantscape
+        </a>
+    </p>
+</footer>
+
+
 {% endblock %}
+
