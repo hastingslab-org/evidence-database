@@ -1,7 +1,46 @@
 {% extends 'base.html' %}
 
 {% block content %}
+{% set score_tooltip = "Edge weight in the network, calculated as the frequency of co‑mentions across publications, weighted by the tiered evidence level of each study design." %}
+
 <style>
+    .tooltip-container {
+        position: relative;
+        display: inline-block;
+        cursor: help;
+    }
+
+    .tooltip-text {
+        visibility: hidden;
+        width: 220px;
+        background-color: #333;
+        color: #fff;
+        text-align: justify;
+        border-radius: 6px;
+        padding: 8px;
+        font-size: 12px;
+        position: absolute;
+        z-index: 1;
+        bottom: 125%; /* Show above the icon */
+        left: 50%;
+        transform: translateX(-50%);
+        opacity: 0;
+        transition: opacity 0.3s;
+    }
+
+    .tooltip-container:hover .tooltip-text {
+        visibility: visible;
+        opacity: 1;
+    }
+
+    .tooltip-icon {
+        font-size: 10px;
+        color: #888;
+        vertical-align: super;
+        cursor: help;
+        margin-right: 0;
+    }
+
     /* Custom styling for the list as described previously */
     .my-list {
         list-style: none;
@@ -123,7 +162,13 @@
         <h3 style="color: #2c3e50; font-size: 18px; font-weight: bold; margin-bottom: 15px;">Sensitive Treatments</h3>
         <div style="display: flex; justify-content: space-between; font-weight: bold; color: #666; font-size: 14px;">
             <span>Treatment</span>
-            <span>Score</span>
+            <span>
+                Score
+                <span class="tooltip-container">
+                    <sup class="tooltip-icon">ⓘ</sup>
+                    <span class="tooltip-text">{{ score_tooltip }}</span>
+                </span>
+            </span>     
         </div>        
         <hr style="border: none; border-top: 1px solid #e0e0e0;  margin: 0 0;">
         <div style="font-family: 'Courier New', monospace; font-size: 15px; margin-top: 10px;">
@@ -146,7 +191,13 @@
         <h3 style="color: #2c3e50; font-size: 18px; font-weight: bold; margin-bottom: 15px;">Resistant Treatments</h3>
         <div style="display: flex; justify-content: space-between; font-weight: bold; color: #666; font-size: 14px; margin-top: 10px;">
             <span>Treatment</span>
-            <span>Score</span>
+            <span>
+                Score
+                <span class="tooltip-container">
+                    <sup class="tooltip-icon">ⓘ</sup>
+                    <span class="tooltip-text">{{ score_tooltip }}</span>
+                </span>
+            </span>    
         </div>        
         <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 0 0;">
         <div style="font-family: 'Courier New', monospace; font-size: 15px; margin-top: 10px;">
@@ -172,7 +223,13 @@
         </p>
         <div style="display: flex; justify-content: space-between; font-weight: bold; color: #666; font-size: 14px;">
             <span>Cancer type</span>
-            <span>Score</span>
+            <span>
+                Score
+                <span class="tooltip-container">
+                    <sup class="tooltip-icon">ⓘ</sup>
+                    <span class="tooltip-text">{{ score_tooltip }}</span>
+                </span>
+            </span>    
         </div>
         <hr style="border: none; border-top: 1px solid #e0e0e0;  margin: 0 0;">
         <div style="font-family: 'Courier New', monospace; font-size: 15px; margin-top: 10px;">
