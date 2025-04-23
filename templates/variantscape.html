@@ -66,6 +66,65 @@
         line-clamp: 5;
         -webkit-box-orient: vertical;
     }
+
+        /* --- legend card --- */
+        .legend-card{
+        max-width:1000px;                 /* nice, compact width on large screens   */
+        margin:0 auto 3rem;              /* centred + breathing room below         */
+        padding:1.25rem 1.5rem;
+        background:#fafafa;              /* soft neutral surface                   */
+        border:1px solid #e5e5e5;
+        border-radius:8px;
+        box-shadow:0 2px 4px rgba(0,0,0,.04);
+        font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;
+        font-size:14px;
+    }
+    .legend-card h4{
+        margin:0 0 .75rem;
+        font-size:16px;
+        color:#333;
+        font-weight:600;
+        text-align:center;
+        letter-spacing:.15px;
+    }
+    .legend-list{
+        list-style:none;
+        padding:0;
+        margin:0;
+        display:grid;
+        grid-template-columns:1fr 1fr;     /* always two columns          */
+        gap:.75rem 1.5rem;                 /* row / column spacing        */
+    }
+    .legend-item{
+        display:flex;
+        align-items:center;
+        line-height:1.35;
+    }
+    /* --- coloured bullets --- */
+    .legend-dot{
+        flex:0 0 12px;
+        height:12px;
+        border-radius:50%;
+        margin-right:.5rem;
+        border:1px solid #cfcfcf;        /* subtle edge for better contrast        */
+    }
+    .legend-dot.sens{background:#2e7d32;}
+    .legend-dot.res {background:#a94442;}
+    .legend-dot.cross{background:#1565c0;}
+    .legend-dot.low {background:#b0b0b0;}
+
+    /* fine-print */
+    .legend-item small{
+        font-size:12px;
+        color:#777;
+        margin-left:.25rem;
+    }
+
+    /* stack on phones narrower than 420 px                      */
+    @media (max-width:420px){
+        .legend-list{grid-template-columns:1fr;}
+    }
+
 </style>
 
 <header style="text-align: center; margin-top: 20px; margin-bottom: 30px;">
@@ -150,12 +209,38 @@
 </script>
 {% endif %}
 
+{% if top_sens or top_res or top_var_c %}
 
 <!-- Display results -->
-{% if top_sens or top_res or top_var_c %}
 <div class="container" style="margin: 40px auto; background-color: #fff; padding: 30px; border: 1px solid #e0e0e0; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); max-width: 1000px; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
 
     <h2 style="color: #2c3e50; margin-bottom: 70px;">Associations for <strong>{{ gene }}</strong> <strong>{{ variant }}</strong> and <strong>{{ disease }}</strong></h2>
+    
+    <!-- Color Legend -->
+    <div class="legend-card">
+        <h4>Color legend</h4>
+        <ul class="legend-list">
+            <li class="legend-item">
+                <span class="legend-dot sens"></span>
+                Strong sensitivity co-associations
+                <small>(score ≥ 80th percentile)</small>
+            </li>
+            <li class="legend-item">
+                <span class="legend-dot res"></span>
+                Strong resistance co-associations
+                <small>(score ≥ 80th percentile)</small>
+            </li>
+            <li class="legend-item">
+                <span class="legend-dot cross"></span>
+                Cross-cancer co-associations
+                <small>(score ≥ 80th percentile)</small>
+            </li>
+            <li class="legend-item">
+                <span class="legend-dot low"></span>
+                Co‑associations below the confidence cutoff (not deemed relevant), or absence of any co-associations
+            </li>
+        </ul>
+    </div>
 
     {% if top_sens %}
     <div style="margin-bottom: 50px;">
@@ -203,10 +288,10 @@
         <div style="font-family: 'Courier New', monospace; font-size: 15px; margin-top: 10px;">
             {% for treatment, score in top_res %}
             <div style="display: flex; justify-content: space-between; padding: 4px 0;">
-                <span style="color:  {{ '#333' if score >= res_pct and score >= treatment_min_highlight else '#b0b0b0' if score < treatment_min_highlight else 'black' }}; font-weight: {{ '600' if score >= res_pct and score >= treatment_min_highlight else 'normal' }};">
+                <span style="color:  {{ '#a94442' if score >= res_pct and score >= treatment_min_highlight else '#b0b0b0' if score < treatment_min_highlight else 'black' }}; font-weight: {{ '600' if score >= res_pct and score >= treatment_min_highlight else 'normal' }};">
                     {{ treatment }}
                 </span>
-                <span style="color:  {{ '#333' if score >= res_pct and score >= treatment_min_highlight else '#b0b0b0' if score < treatment_min_highlight else 'black' }}; font-weight: {{ '600' if score >= res_pct and score >= treatment_min_highlight else 'normal' }};">
+                <span style="color:  {{ '#a94442' if score >= res_pct and score >= treatment_min_highlight else '#b0b0b0' if score < treatment_min_highlight else 'black' }}; font-weight: {{ '600' if score >= res_pct and score >= treatment_min_highlight else 'normal' }};">
                     {{ score|round|int }}
                 </span>
             </div>
