@@ -103,6 +103,12 @@ def variantscape_page():
     if request.method == 'GET':
         return render_template('variantscape.html')
 
+
+@app.route('/variantscape/networkgraph', methods=['GET'])
+def networkgraph_page():
+    return render_template('downsampled_network_visualization_with_custom_colors_and_nodes.html')
+
+
 @app.route('/genomics', methods=['GET', 'POST'])
 def genomics_page():
     if request.method == 'POST':
