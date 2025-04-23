@@ -210,11 +210,10 @@
 {% endif %}
 
 {% if top_sens or top_res or top_var_c %}
-
 <!-- Display results -->
 <div class="container" style="margin: 40px auto; background-color: #fff; padding: 30px; border: 1px solid #e0e0e0; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); max-width: 1000px; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
 
-    <h2 style="color: #2c3e50; margin-bottom: 70px;">Associations for <strong>{{ gene }}</strong> <strong>{{ variant }}</strong> and <strong>{{ disease }}</strong></h2>
+    <h2 style="color: #2c3e50; margin-bottom: 70px;">Associations for <strong><em>{{ gene }}</em> <span style="font-variant: small-caps;">{{ variant }}</span></strong> and <strong>{{ disease }}</strong></h2>
     
     <!-- Color Legend -->
     <div class="legend-card">
@@ -237,12 +236,11 @@
             </li>
             <li class="legend-item">
                 <span class="legend-dot low"></span>
-                Co‑associations below the confidence cutoff (not deemed relevant), or absence of any co-associations
+                Co‑associations below the confidence cutoff (not deemed relevant)
             </li>
         </ul>
     </div>
 
-    {% if top_sens %}
     <div style="margin-bottom: 50px;">
         <h3 style="color: #2c3e50; font-size: 18px; font-weight: bold; margin-bottom: 15px;">Sensitive Treatments</h3>
         <div style="display: flex; justify-content: space-between; font-weight: bold; color: #666; font-size: 14px;">
@@ -256,6 +254,7 @@
             </span>     
         </div>        
         <hr style="border: none; border-top: 1px solid #e0e0e0;  margin: 0 0;">
+        {%if top_sens%}
         <div style="font-family: 'Courier New', monospace; font-size: 15px; margin-top: 10px;">
             {% for treatment, score in top_sens %}
             <div style="display: flex; justify-content: space-between; padding: 4px 0;">
@@ -268,10 +267,13 @@
             </div>
             {% endfor %}
         </div>
+        {% else %}
+        <div style="text-align: center; margin-top: 20px; color: #888; font-size: 14px;">
+            No association found.
+        </div>
+        {% endif %}
     </div>
-    {% endif %}
 
-    {% if top_res %}
     <div style="margin-bottom: 50px;">
         <h3 style="color: #2c3e50; font-size: 18px; font-weight: bold; margin-bottom: 15px;">Resistant Treatments</h3>
         <div style="display: flex; justify-content: space-between; font-weight: bold; color: #666; font-size: 14px; margin-top: 10px;">
@@ -285,6 +287,7 @@
             </span>    
         </div>        
         <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 0 0;">
+        {%if top_res%}
         <div style="font-family: 'Courier New', monospace; font-size: 15px; margin-top: 10px;">
             {% for treatment, score in top_res %}
             <div style="display: flex; justify-content: space-between; padding: 4px 0;">
@@ -297,14 +300,17 @@
             </div>
             {% endfor %}
         </div>
+        {% else %}
+        <div style="text-align: center; margin-top: 20px; color: #888; font-size: 14px;">
+            No association found.
+        </div>
+        {% endif %}
     </div>
-    {% endif %}
 
-    {% if top_var_c %}
     <div>
         <h3 style="color: #2c3e50; font-size: 18px; font-weight: bold; margin-bottom: 4px;">Other cancer types</h3>
         <p style="color: #888; font-size: 13px; margin-top: 4px; margin-bottom: 20px; text-align: center;">
-            Associated with {{ gene }} {{ variant }}
+            Associated with <em>{{ gene }}</em> <span style="font-variant: small-caps;">{{ variant }}</span>
         </p>
         <div style="display: flex; justify-content: space-between; font-weight: bold; color: #666; font-size: 14px;">
             <span>Cancer type</span>
@@ -317,6 +323,7 @@
             </span>    
         </div>
         <hr style="border: none; border-top: 1px solid #e0e0e0;  margin: 0 0;">
+        {%if top_var_c%}
         <div style="font-family: 'Courier New', monospace; font-size: 15px; margin-top: 10px;">
             {% for cancer, score in top_var_c %}
             <div style="display: flex; justify-content: space-between; padding: 4px 0;">
@@ -329,9 +336,12 @@
             </div>
             {% endfor %}
         </div>
+        {% else %}
+        <div style="text-align: center; margin-top: 20px; color: #888; font-size: 14px;">
+            No association found.
+        </div>
+        {% endif %}
     </div>
-    {% endif %}
-
 </div>
 {% endif %}
 
