@@ -7,7 +7,8 @@ from init_db import init_db
 import sqlite3 
 import chromadb
 from chromadb.utils import embedding_functions
-from genomics.genomics import fuzzy_match_gml, get_items_by_name_fuzzy, get_items_from_ids, get_item_by_name, get_item_from_single_id
+
+from genomics.genomics_data import fuzzy_match_gml, get_items_by_name_fuzzy, get_items_from_ids, get_item_by_name, get_item_from_single_id
 from variantscape.variantscape import compute_associations, check_variant_in_graph, check_cancer_in_graph
 from variantscape.graph_store import G
 
@@ -17,7 +18,7 @@ DB_PATH = 'chroma_data2'
 #Variantscape config
 TREATMENT_MIN_HIGHLIGHT        = 300   # and require ≥X total weight
 CANCER_MIN_HIGHLIGHT           = 80    # and require ≥X total weight
-#TODO add percentile and fuzzy raiot. Move to a config file ? 
+#TODO add percentile and fuzzy ratio (currently in other files). Move to a config file ? 
 
 #app config
 app = Flask(__name__)
@@ -25,7 +26,6 @@ app.config['SESSION_TYPE'] = 'filesystem'  # Use the filesystem to store session
 app.config['SESSION_PERMANENT'] = False
 app.config['SESSION_USE_SIGNER'] = True
 app.config['SECRET_KEY'] = 'my_secret_key' #TODO 
-
 
 #db access functions
 def get_db_connection():
@@ -71,13 +71,11 @@ def variantscape_page():
         EXIST_VARIANT_BOOL = check_variant_in_graph(gene_search, variant_search)
         EXIST_CANCER_BOOL = check_cancer_in_graph(disease_search)
 
-
         if not EXIST_VARIANT_BOOL:
             variant_of_interest = (variant_search + "_" + gene_search).lower()
             recommended_variants = [
                 " ".join(reversed(variant.split("_"))) for variant in fuzzy_match_gml(variant_of_interest, G.nodes)
             ]
-            print("recommended variants", recommended_variants)
             return render_template('variantscape.html', recommended_variants=recommended_variants, exist_variant_bool = EXIST_VARIANT_BOOL, \
                                    gene=gene_search, variant=variant_search, disease = disease_search)
 
@@ -86,7 +84,6 @@ def variantscape_page():
             recommended_cancers = [
                 name for name in fuzzy_match_gml(cancer_of_interest, G.nodes)
             ]
-            print("recommended cancers", recommended_cancers)
             return render_template('variantscape.html', recommended_cancers=recommended_cancers, exist_cancer_bool = EXIST_CANCER_BOOL, \
                                    gene=gene_search, variant=variant_search, disease = disease_search)
 
@@ -99,7 +96,6 @@ def variantscape_page():
                                     treatment_min_highlight = TREATMENT_MIN_HIGHLIGHT,
                                     cancer_min_highlight = CANCER_MIN_HIGHLIGHT) #TODO add error handling for empty results
     #TODO pass params more elegantly
-
     if request.method == 'GET':
         return render_template('variantscape.html')
 
@@ -116,21 +112,18 @@ def genomics_page():
         gene_name = form_data["gene_name"][0]
         # Get gene info
         genes = get_items_by_name_fuzzy(gene_name, item_name="genes", db_path="database.db")
-        if genes:
-            gene_data_list = []
-            for gene in genes:
-                gene_data = {
-                    "name": gene["name"],
-                    "description": gene["description"],
-                    "diseases": get_items_from_ids(gene["diseases"], "diseases", db_path="database.db"),
-                    "variants": get_items_from_ids(gene["variants"], "variants", db_path="database.db"),
-                    "molecular_profiles": get_items_from_ids(gene["molecular_profiles"], "molecular_profiles", db_path="database.db")
-                }
-                gene_data_list.append(gene_data)
+        gene_data_list = []
+        for gene in genes:
+            gene_data = {
+                "name": gene["name"],
+                "description": gene["description"],
+                "diseases": get_items_from_ids(gene["diseases"], "diseases", db_path="database.db"),
+                "variants": get_items_from_ids(gene["variants"], "variants", db_path="database.db"),
+                "molecular_profiles": get_items_from_ids(gene["molecular_profiles"], "molecular_profiles", db_path="database.db")
+            }
+            gene_data_list.append(gene_data)
 
-            return render_template('genomics.html', genes=gene_data_list)
-        else:
-            return jsonify({"error": "Gene not found"}), 404 #TODO handle error in frontend
+        return render_template('genomics.html', genes=gene_data_list)
 
     if request.method == 'GET':
         return render_template('genomics.html')
@@ -154,7 +147,6 @@ def molecular_profile_page(mp_name):
     mp = get_item_by_name(mp_name, table_name="molecular_profiles", db_path="database.db")
 
     #get mp info
-    print("variants", mp["variants"])
     mp_data = {
         "name": mp["name"],
         "description": mp["description"],
@@ -276,10 +268,11 @@ def view_paper(paper_id):
         }
     )
 
+
 # Initialize the database
 print("Initializing database...")
 init_db()
 print("Database initialized.")
 
-if __name__ == "__main__":
+if __name__ == "__main__": #TODO separate app.py into init, cli, and routes
     app.run(host='0.0.0.0')

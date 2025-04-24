@@ -1,5 +1,3 @@
-import networkx as nx
-import pandas as pd
 import numpy as np
 import sys
 import os
@@ -7,9 +5,7 @@ import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from graph_store import G, consensus_dict
 
-
-
-# === Adjustable thresholds ===
+# === Adjustable thresholds === #
 TREATMENT_THRESHOLD_PERCENTILE = 80    # highlight top X% of treatment weights
 CANCER_THRESHOLD_PERCENTILE    = 80    # highlight top X% of cancer–variant weights
 
@@ -27,6 +23,7 @@ EXCLUDED_TREATMENTS = {
 }
 
 
+#TODO create a Graph class that contains the following methods
 def check_variant_in_graph(user_gene_name, user_variant_name):
     """Check if the variant exists in the graph."""
     variant_of_interest = (user_variant_name + "_" + user_gene_name).lower()
@@ -40,9 +37,7 @@ def check_cancer_in_graph(user_cancer_name):
     cancer_of_interest = CANCER_ALIAS_MAP.get(clean_input, clean_input)
     return cancer_of_interest in G.nodes
 
-
-def compute_associations(gene_name, variant_name, cancer_name):
-    
+def compute_associations(gene_name, variant_name, cancer_name):  
     top_sens, top_res, top_var_c, sens_pct, res_pct, cancer_pct = \
         None, None, None, None, None, None
 
@@ -60,10 +55,6 @@ def compute_associations(gene_name, variant_name, cancer_name):
         if G.nodes[n]['category']=='Treatment'
         and n.lower() not in EXCLUDED_TREATMENTS
     ]
-    """t_weights = {t: G[cancer_of_interest][t]['weight'] for t in treatments}
-    top_cancer_treats = sorted(t_weights.items(), key=lambda x: x[1], reverse=True)[:6]
-    c_w = list(t_weights.values())
-    treat_pct = np.percentile(c_w, TREATMENT_THRESHOLD_PERCENTILE) if c_w else 0"""
 
     # === Step 2: Variant + cancer associations ===
     sensitive, resistant = [], []
@@ -101,27 +92,6 @@ def compute_associations(gene_name, variant_name, cancer_name):
         top_var_c = sorted(vc_weights.items(), key=lambda x: x[1], reverse=True)[:6]
         vc_w = list(vc_weights.values())
         cancer_pct = np.percentile(vc_w, CANCER_THRESHOLD_PERCENTILE) if vc_w else 0
-
-    # === Assemble & save ===
-    """results = []
-    for t, w in top_sens:
-        results.append({
-            "Cancer": cancer_name, "Variant": variant_of_interest,
-            "Treatment": t, "Association_Type": "Variant-Cancer",
-            "Prediction": "Sensitive", "Combined_Weight": w
-        })
-    for t, w in top_res:
-        results.append({
-            "Cancer": cancer_name, "Variant": variant_of_interest,
-            "Treatment": t, "Association_Type": "Variant-Cancer",
-            "Prediction": "Resistant", "Combined_Weight": w
-        })
-    for c, w in top_var_c:
-        results.append({
-            "Cancer": c, "Variant": variant_of_interest,
-            "Treatment": None, "Association_Type": "Cross-Cancer",
-            "Prediction": "NA", "Combined_Weight": w
-        })"""
 
     # get gene and variant name from the variant of interest
     variant_name, gene_name = variant_of_interest.split("_")
