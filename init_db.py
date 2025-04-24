@@ -1,7 +1,4 @@
 import sqlite3
-import networkx as nx
-import pandas as pd
-
 def init_db():
 
     connection = sqlite3.connect('database.db')
