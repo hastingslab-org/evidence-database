@@ -4,3 +4,4 @@ evidencedb_env/
 __pycache__/
 titles_and_abstracts.csv
 test_api.ipynb
+genomics/create_genomic_db.ipynb

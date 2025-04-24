@@ -1,0 +1,423 @@
+{% extends 'base.html' %}
+
+{% block content %}
+{% set score_tooltip = "Edge weight in the network, calculated as the frequency of co‑mentions across publications, weighted by the tiered evidence level of each study design." %}
+
+<style>
+    .tooltip-container {
+        position: relative;
+        display: inline-block;
+        cursor: help;
+    }
+
+    .tooltip-text {
+        visibility: hidden;
+        width: 220px;
+        background-color: #333;
+        color: #fff;
+        text-align: justify;
+        border-radius: 6px;
+        padding: 8px;
+        font-size: 12px;
+        position: absolute;
+        z-index: 1;
+        bottom: 125%; /* Show above the icon */
+        left: 50%;
+        transform: translateX(-50%);
+        opacity: 0;
+        transition: opacity 0.3s;
+    }
+
+    .tooltip-container:hover .tooltip-text {
+        visibility: visible;
+        opacity: 1;
+    }
+
+    .tooltip-icon {
+        font-size: 10px;
+        color: #888;
+        vertical-align: super;
+        cursor: help;
+        margin-right: 0;
+    }
+
+    /* Custom styling for the list as described previously */
+    .my-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    .my-list li {
+        display: inline-block;
+        background-color: #e0e0e0;
+        color: #333;
+        padding: 6px 10px;
+        margin: 4px 4px 4px 0;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+    .my-list li.hidden-item {
+        display: none;
+    }
+    .description-preview.clamped {
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 5;
+        line-clamp: 5;
+        -webkit-box-orient: vertical;
+    }
+
+    /* --- legend card --- */
+    .legend-card{
+    max-width:1000px;                 /* nice, compact width on large screens   */
+    margin:0 auto 3rem;              /* centred + breathing room below         */
+    padding:1.25rem 1.5rem;
+    background:#fafafa;              /* soft neutral surface                   */
+    border:1px solid #e5e5e5;
+    border-radius:8px;
+    box-shadow:0 2px 4px rgba(0,0,0,.04);
+    font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;
+    font-size:14px;
+    }
+    
+    .legend-card h4{
+        margin:0 0 .75rem;
+        font-size:16px;
+        color:#333;
+        font-weight:600;
+        text-align:center;
+        letter-spacing:.15px;
+    }
+    .legend-list{
+        list-style:none;
+        padding:0;
+        margin:0;
+        display:grid;
+        grid-template-columns:1fr 1fr;     /* always two columns          */
+        gap:.75rem 1.5rem;                 /* row / column spacing        */
+    }
+    .legend-item{
+        display:flex;
+        align-items:center;
+        line-height:1.35;
+    }
+    /* --- coloured bullets --- */
+    .legend-dot{
+        flex:0 0 12px;
+        height:12px;
+        border-radius:50%;
+        margin-right:.5rem;
+        border:1px solid #cfcfcf;        /* subtle edge for better contrast        */
+    }
+    .legend-dot.sens{background:#2e7d32;}
+    .legend-dot.res {background:#a94442;}
+    .legend-dot.cross{background:#1565c0;}
+    .legend-dot.low {background:#b0b0b0;}
+
+    /* fine-print */
+    .legend-item small{
+        font-size:12px;
+        color:#777;
+        margin-left:.25rem;
+    }
+
+    /* stack on phones narrower than 420 px                      */
+    @media (max-width:420px){
+        .legend-list{grid-template-columns:1fr;}
+    }
+
+    /* —–– citation / GitHub footer —–– */
+    .cite-footer{
+        max-width:1000px;
+        margin:80px auto 40px;        /* plenty of breathing room              */
+        padding:20px 24px;
+        background:#fafafa;           /* subtle contrast with page background  */
+        border-top:1px solid #e5e5e5; /* visual break from tool content        */
+        box-shadow:0 -1px 3px rgba(0,0,0,.03);
+        text-align:center;
+        font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;
+        font-size:12px;
+        color:#666;
+    }
+
+    .cite-footer p{margin:0 0 10px;}
+
+    .cite-footer em{font-style:italic;}
+
+    .cite-footer a{
+        color:#1565c0;
+        text-decoration:none;
+        font-weight:500;
+    }
+    .cite-footer a:hover,
+    .cite-footer a:focus{ text-decoration:underline; }
+
+    /* tiny GitHub mark */
+    .cite-footer svg{
+        width:14px;
+        height:14px;
+        vertical-align:-2px;          /* lines up with the text                */
+        margin-right:4px;
+        fill:#444;
+    }
+
+
+</style>
+
+<header style="text-align: center; margin-top: 20px; margin-bottom: 30px;">
+    <h1 style="font-size: 32px; margin-bottom: 10px;">Variantscape</h1>
+    <p style="font-size: 16px; color: #555; margin: 0 0 5px;">
+        Search literature-derived associations between variants, cancer types, and treatments
+    </p>
+    <a href="/variantscape/networkgraph" target="_blank" style="font-size: 13px; color: #1565c0; text-decoration: none; margin-bottom: 10px;">
+        View Variantscape graph →
+    </a>
+    <p style="font-size: 12px; color: #999; margin-top: 15px;">
+        For research purposes only
+    </p>
+</header>
+
+
+<form action="/variantscape" method="post" style="text-align: center; margin-top: 20px; display: flex; justify-content: center; gap: 20px; flex-wrap: wrap;">
+    <div class="form-group" style="flex: 1; min-width: 250px; max-width: 300px;">
+        <label for="gene-search" style="display: block; font-size: 14px; margin-bottom: 5px;">Enter gene</label>
+        <input id="gene-search" name="gene" type="text" placeholder="search gene" value="{{ gene }}" style="padding: 10px; width: 100%; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;" required>
+    </div>
+    <div class="form-group" style="flex: 1; min-width: 250px; max-width: 300px;">
+        <label for="variant-search" style="display: block; font-size: 14px; margin-bottom: 5px;">Enter variant</label>
+        <input id="variant-search" name="variant" type="text" placeholder="search variant" value="{{ variant }}" style="padding: 10px; width: 100%; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;" required>
+    </div>
+    <div class="form-group" style="flex: 1; min-width: 250px; max-width: 300px;">
+        <label for="disease-search" style="display: block; font-size: 14px; margin-bottom: 5px;">Enter cancer type</label>
+        <input id="disease-search" name="disease" type="text" placeholder="search cancer type" value="{{ disease }}" style="padding: 10px; width: 100%; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;" required>
+    </div>
+    <button type="submit" style="margin-top: 20px; padding: 10px 20px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; font-size: 14px; cursor: pointer;">
+        Search
+    </button>
+</form>
+
+
+<!-- Display Variant recommandations -->
+{% if exist_variant_bool is defined and not exist_variant_bool %}
+<div style="margin: 40px auto; max-width: 600px; background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; padding: 20px 25px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.03); font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
+    <p style="margin: 0 0 10px;">
+        <strong>Variant "{{ variant }}" for gene "{{ gene }}" not found.</strong><br>
+        Did you mean:
+    </p>
+    <ul style="list-style: none; padding-left: 0; margin: 0;">
+        {% for variant in recommended_variants %}
+        <li style="background-color: #fff; border: 1px solid #e0e0e0; padding: 8px 12px; margin-bottom: 6px; border-radius: 4px; font-size: 14px; cursor: pointer;" 
+            onmouseover="this.style.backgroundColor='#f0f0f0'; this.style.transform='scale(1.02)';" 
+            onmouseout="this.style.backgroundColor='#fff'; this.style.transform='scale(1)';" 
+            onclick="populateFields('{{ variant }}')">
+            {{ variant }}
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+<script>
+    function populateFields(variant) {
+        const [gene, variantName] = variant.split(' ');
+        document.getElementById('gene-search').value = gene;
+        document.getElementById('variant-search').value = variantName;
+    }
+</script>
+{% endif %}
+
+<!-- Display cancer types recommandations -->
+{% if exist_cancer_bool is defined and not exist_cancer_bool %}
+<div style="margin: 40px auto; max-width: 600px; background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; padding: 20px 25px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.03); font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
+    <p style="margin: 0 0 10px;">
+        <strong>Cancer type "{{ disease }}" not found.</strong><br>
+        Did you mean:
+    </p>
+    <ul style="list-style: none; padding-left: 0; margin: 0;">
+        {% for cancer in recommended_cancers %}
+        <li style="background-color: #fff; border: 1px solid #e0e0e0; padding: 8px 12px; margin-bottom: 6px; border-radius: 4px; font-size: 14px; cursor: pointer; transition: background-color 0.3s, transform 0.2s;" 
+            onmouseover="this.style.backgroundColor='#f0f0f0'; this.style.transform='scale(1.02)';" 
+            onmouseout="this.style.backgroundColor='#fff'; this.style.transform='scale(1)';" 
+            onclick="populateCancerField('{{ cancer }}')">
+            {{ cancer }}
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+<script>
+    function populateCancerField(cancer) {
+        document.getElementById('disease-search').value = cancer;
+    }
+</script>
+{% endif %}
+
+{% if top_sens or top_res or top_var_c %}
+<!-- Display results -->
+<div class="container" style="margin: 40px auto; background-color: #fff; padding: 30px; border: 1px solid #e0e0e0; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); max-width: 1000px; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
+
+    <h2 style="color: #2c3e50; margin-bottom: 70px;">Associations for <strong><em>{{ gene }}</em> <span style="font-variant: small-caps;">{{ variant }}</span></strong> and <strong>{{ disease }}</strong></h2>
+    
+    <!-- Color Legend -->
+    <div class="legend-card">
+        <h4>Color legend</h4>
+        <ul class="legend-list">
+            <li class="legend-item">
+                <span class="legend-dot sens"></span>
+                Strong sensitivity co-associations
+                <small>(score ≥ 80th percentile)</small>
+            </li>
+            <li class="legend-item">
+                <span class="legend-dot res"></span>
+                Strong resistance co-associations
+                <small>(score ≥ 80th percentile)</small>
+            </li>
+            <li class="legend-item">
+                <span class="legend-dot cross"></span>
+                Cross-cancer co-associations
+                <small>(score ≥ 80th percentile)</small>
+            </li>
+            <li class="legend-item">
+                <span class="legend-dot low"></span>
+                Co‑associations below the confidence cutoff (not deemed relevant)
+            </li>
+        </ul>
+    </div>
+
+    <div style="margin-bottom: 50px;">
+        <h3 style="color: #2c3e50; font-size: 18px; font-weight: bold; margin-bottom: 15px;">Sensitive Treatments</h3>
+        <div style="display: flex; justify-content: space-between; font-weight: bold; color: #666; font-size: 14px;">
+            <span>Treatment</span>
+            <span>
+                Score
+                <span class="tooltip-container">
+                    <sup class="tooltip-icon">ⓘ</sup>
+                    <span class="tooltip-text">{{ score_tooltip }}</span>
+                </span>
+            </span>     
+        </div>        
+        <hr style="border: none; border-top: 1px solid #e0e0e0;  margin: 0 0;">
+        {%if top_sens%}
+        <div style="font-family: 'Courier New', monospace; font-size: 15px; margin-top: 10px;">
+            {% for treatment, score in top_sens %}
+            <div style="display: flex; justify-content: space-between; padding: 4px 0;">
+                <span style="color: {{ '#2e7d32' if score >= sens_pct and score >= treatment_min_highlight else '#b0b0b0' if score < treatment_min_highlight else 'black' }}; font-weight: {{ '600' if score >= sens_pct and score >= treatment_min_highlight else 'normal' }};">
+                    {{ treatment }}
+                </span>
+                <span style="color: {{ '#2e7d32' if score >= sens_pct and score >= treatment_min_highlight else '#b0b0b0' if score < treatment_min_highlight else 'black' }}; font-weight: {{ '600' if score >= sens_pct and score >= treatment_min_highlight else 'normal' }};">
+                    {{ score|round|int }}
+                </span>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div style="text-align: center; margin-top: 20px; color: #888; font-size: 14px;">
+            No association found.
+        </div>
+        {% endif %}
+    </div>
+
+    <div style="margin-bottom: 50px;">
+        <h3 style="color: #2c3e50; font-size: 18px; font-weight: bold; margin-bottom: 15px;">Resistant Treatments</h3>
+        <div style="display: flex; justify-content: space-between; font-weight: bold; color: #666; font-size: 14px; margin-top: 10px;">
+            <span>Treatment</span>
+            <span>
+                Score
+                <span class="tooltip-container">
+                    <sup class="tooltip-icon">ⓘ</sup>
+                    <span class="tooltip-text">{{ score_tooltip }}</span>
+                </span>
+            </span>    
+        </div>        
+        <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 0 0;">
+        {%if top_res%}
+        <div style="font-family: 'Courier New', monospace; font-size: 15px; margin-top: 10px;">
+            {% for treatment, score in top_res %}
+            <div style="display: flex; justify-content: space-between; padding: 4px 0;">
+                <span style="color:  {{ '#a94442' if score >= res_pct and score >= treatment_min_highlight else '#b0b0b0' if score < treatment_min_highlight else 'black' }}; font-weight: {{ '600' if score >= res_pct and score >= treatment_min_highlight else 'normal' }};">
+                    {{ treatment }}
+                </span>
+                <span style="color:  {{ '#a94442' if score >= res_pct and score >= treatment_min_highlight else '#b0b0b0' if score < treatment_min_highlight else 'black' }}; font-weight: {{ '600' if score >= res_pct and score >= treatment_min_highlight else 'normal' }};">
+                    {{ score|round|int }}
+                </span>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div style="text-align: center; margin-top: 20px; color: #888; font-size: 14px;">
+            No association found.
+        </div>
+        {% endif %}
+    </div>
+
+    <div>
+        <h3 style="color: #2c3e50; font-size: 18px; font-weight: bold; margin-bottom: 4px;">Other cancer types</h3>
+        <p style="color: #888; font-size: 13px; margin-top: 4px; margin-bottom: 20px; text-align: center;">
+            Associated with <em>{{ gene }}</em> <span style="font-variant: small-caps;">{{ variant }}</span>
+        </p>
+        <div style="display: flex; justify-content: space-between; font-weight: bold; color: #666; font-size: 14px;">
+            <span>Cancer type</span>
+            <span>
+                Score
+                <span class="tooltip-container">
+                    <sup class="tooltip-icon">ⓘ</sup>
+                    <span class="tooltip-text">{{ score_tooltip }}</span>
+                </span>
+            </span>    
+        </div>
+        <hr style="border: none; border-top: 1px solid #e0e0e0;  margin: 0 0;">
+        {%if top_var_c%}
+        <div style="font-family: 'Courier New', monospace; font-size: 15px; margin-top: 10px;">
+            {% for cancer, score in top_var_c %}
+            <div style="display: flex; justify-content: space-between; padding: 4px 0;">
+                <span style="color:  {{ '#1565c0' if score >= cancer_pct and score >= cancer_min_highlight else '#b0b0b0' if score < cancer_min_highlight else 'black' }}; font-weight: {{ '600' if score >= cancer_pct and score >= cancer_min_highlight else 'normal' }};">
+                    {{ cancer }}
+                </span>
+                <span style="color:  {{ '#1565c0' if score >= cancer_pct and score >= cancer_min_highlight else '#b0b0b0' if score < cancer_min_highlight else 'black' }}; font-weight: {{ '600' if score >= cancer_pct and score >= cancer_min_highlight else 'normal' }};">
+                    {{ score|round|int }}
+                </span>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div style="text-align: center; margin-top: 20px; color: #888; font-size: 14px;">
+            No association found.
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+
+<!-- Citation and GitHub link -->
+<footer class="cite-footer">
+    <p>If you use <strong>Variantscape</strong> in your work, please cite:</p>
+
+    <p>
+        <em>Wosny&nbsp;M., Boesch M., Peres T., Niederhauser T., Früh M., Rothermundt C., Hastings J. (2025)<br>
+        “Variantscape: Using large language models to build a comprehensive landscape of cancer variants”</em>
+        (Preprint)
+    </p>
+
+    <p>
+        <!-- GitHub icon (pure SVG) -->
+        <svg viewBox="0 0 16 16" aria-hidden="true">
+            <path d="M8 .198a8 8 0 0 0-2.53 15.59c.4.075.547-.173.547-.385
+                     0-.19-.007-.693-.01-1.36-2.226.485-2.695-1.073-2.695-1.073
+                     -.364-.924-.89-1.17-.89-1.17-.728-.497.055-.487.055-.487
+                     .805.056 1.23.827 1.23.827.716 1.226 1.878.872 2.335.667
+                     .073-.519.28-.873.507-1.073-1.777-.202-3.644-.888-3.644-3.953
+                     0-.873.31-1.585.824-2.144-.083-.203-.357-1.017.078-2.12 0 0
+                     .672-.215 2.2.82a7.657 7.657 0 0 1 4.004 0c1.527-1.035
+                     2.198-.82 2.198-.82.437 1.103.163 1.917.08 2.12.514.56.823
+                     1.271.823 2.144 0 3.073-1.87 3.748-3.65 3.947.287.248.543
+                     .738.543 1.487 0 1.074-.01 1.94-.01 2.203 0 .214.145.464.55
+                     .385A8.001 8.001 0 0 0 8 .197z"/>
+        </svg>
+
+        <a href="https://github.com/hastingslab-org/Variantscape" target="_blank">
+            hastingslab-org/Variantscape
+        </a>
+    </p>
+</footer>
+
+
+{% endblock %}
+
