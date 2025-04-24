@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <div style="max-width: 800px; margin: 40px auto; padding: 20px; background: #fff; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+        <h1 style="text-align: center;">Molecular Profile: {{ mp_data.name }}</h1>
+        <p><strong>Description:</strong> {{ mp_data.description }}</p>
+        <p><strong>Variants:</strong></p>
+        {% if mp_data.variants %}
+        <ul>
+            {% for variant in mp_data.variants %}
+            <li>{{ variant }}</li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p>None</p>
+        {% endif %}
+        <p><strong>Diseases:</strong></p>
+        {% if mp_data.diseases %}
+        <ul>
+            {% for disease in mp_data.diseases %}
+            <li>{{ disease }}</li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p>None</p>
+        {% endif %}
+    </div>
+{% endblock %}

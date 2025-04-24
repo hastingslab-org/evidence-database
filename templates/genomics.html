@@ -1,0 +1,205 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    /* Custom styling for the list as described previously */
+    .my-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    .my-list li {
+        display: inline-block;
+        background-color: #e0e0e0;
+        color: #333;
+        padding: 6px 10px;
+        margin: 4px 4px 4px 0;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+    .my-list li.hidden-item {
+        display: none;
+    }
+    .description-preview.clamped {
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 5;
+        line-clamp: 5;
+        -webkit-box-orient: vertical;
+    }
+</style>
+
+<body style="background-color: #f4f6f8;">
+
+    <header style="text-align: center; margin-bottom: 40px; margin-top: 20px">
+        <h1>GenomicsDB</h1>
+        <p>Enter a gene to uncover linked molecular profiles, cancer types, and therapeutic insights. Data is sourced from CIViC, a community-curated knowledgebase of clinically relevant variants in cancer.</p>
+        <p style="font-size: 12px; color: #999; margin-top: 15px;">
+            For research purposes only
+        </p>
+    </header>
+
+
+        
+    <form action="/genomics" method="POST" id="mp-form" style="max-width: 600px; margin: 0 auto 40px; background: #fff; padding: 30px 40px; border: 1px solid #e0e0e0; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);">
+        <label style="display: block; text-align: center; font-size: 18px; margin-bottom: 10px;">Search for Genes</label>
+        <div class="form-group" style="display: flex; align-items: center; margin-bottom: 20px;">
+            <input type="text" id="gene_name" name="gene_name" placeholder="Enter gene name" required style="flex: 1; padding: 12px; border: 1px solid #e0e0e0; border-radius: 4px; font-size: 16px; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
+        </div>
+        <button type="submit" style="width: 100%; background-color: #4CAF50; color: #fff; padding: 12px; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; transition: background-color 0.3s ease;">Search</button>
+    </form>
+    
+    {% if genes %}
+    <div class="container" style="max-width: 1000px; margin: 0 auto 60px; background-color: #fff; padding: 30px; border: 1px solid #e0e0e0; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);">
+        <h3 style="text-align: center; color: #2c3e50; margin-bottom: 20px;">Gene Information</h3>
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr>
+                    <th style="padding: 15px; text-align: left; font-weight: normal; color: #2c3e50; border-bottom: 2px solid #e0e0e0;">Gene Name</th>
+                    <th style="padding: 15px; text-align: left; font-weight: normal; color: #2c3e50; border-bottom: 2px solid #e0e0e0;">Description</th>
+                    <th style="padding: 15px; text-align: left; font-weight: normal; color: #2c3e50; border-bottom: 2px solid #e0e0e0;">Variants</th>
+                    <th style="padding: 15px; text-align: left; font-weight: normal; color: #2c3e50; border-bottom: 2px solid #e0e0e0;">Diseases</th>
+                    <th style="padding: 15px; text-align: left; font-weight: normal; color: #2c3e50; border-bottom: 2px solid #e0e0e0;">Molecular Profiles</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for gene in genes %}
+                <tr style="transition: background-color 0.3s ease;">
+                    <td style="padding: 15px; border-bottom: 1px solid #f0f0f0; vertical-align: top;">
+                        <ul class="my-list">
+                            <li>{{ gene.name }}</li>
+                        </ul>
+                    </td></ul></td>
+                    
+                    <td style="padding: 15px; border-bottom: 1px solid #f0f0f0; vertical-align: top;">
+                        <div class="description-preview clamped" style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
+                            {{ gene.description }}
+                        </div>
+                        <button class="toggle-description-btn" onclick="toggleDescription(this)" style="background: none; border: none; cursor: pointer; color: #007BFF; padding: 0; font-size: 14px;">[more]</button>
+                    </td>
+                    
+                    <!-- Variants: Wrap each variant in an anchor tag -->
+                    <td style="padding: 15px; border-bottom: 1px solid #f0f0f0; vertical-align: top;">
+                        {% if gene.variants %}
+                        <ul class="my-list">
+                            {% for variant in gene.variants %}
+                                {% if loop.index <= 5 %}
+                                    <li>
+                                      <a href="/genomics/variant/{{ variant|urlencode }}" target="_blank" style="text-decoration: none; color: inherit;">
+                                          {{ variant }}
+                                      </a>
+                                    </li>
+                                {% else %}
+                                    <li class="hidden-item">
+                                      <a href="/genomics/variant/{{ variant|urlencode }}" target="_blank" style="text-decoration: none; color: inherit;">
+                                          {{ variant }}
+                                      </a>
+                                    </li>
+                                {% endif %}
+                            {% endfor %}
+                        </ul>
+                        {% if gene.variants|length > 5 %}
+                            <button class="toggle-list-btn" onclick="toggleList(this)" style="background: none; border: none; color: #007BFF; cursor: pointer; padding: 0; font-size: 14px;">[more]</button>
+                        {% endif %}
+                        {% endif %}
+                    </td>
+                    
+                    <!-- Diseases: Same custom list styling as before -->
+                    <td style="padding: 15px; border-bottom: 1px solid #f0f0f0; vertical-align: top;">
+                        {% if gene.diseases %}
+                        <ul class="my-list">
+                            {% for disease in gene.diseases %}
+                                {% if loop.index <= 5 %}
+                                    <li>{{ disease }}</li>
+                                {% else %}
+                                    <li class="hidden-item">{{ disease }}</li>
+                                {% endif %}
+                            {% endfor %}
+                        </ul>
+                        {% if gene.diseases|length > 5 %}
+                            <button class="toggle-list-btn" onclick="toggleList(this)" style="background: none; border: none; color: #007BFF; cursor: pointer; padding: 0; font-size: 14px;">[more]</button>
+                        {% endif %}
+                        {% endif %}
+                    </td>
+                    
+                    <!-- Molecular Profiles: Same custom list styling as before -->
+                    <td style="padding: 15px; border-bottom: 1px solid #f0f0f0; vertical-align: top;">
+                        {% if gene.molecular_profiles %}
+                        <ul class="my-list">
+                            {% for mp in gene.molecular_profiles %}
+                                {% if loop.index <= 5 %}
+                                <li>
+                                    <a href="/genomics/molecular-profile/{{ mp|urlencode }}" target="_blank" style="text-decoration: none; color: inherit;">
+                                        {{ mp }}
+                                    </a>
+                                </li>
+                                {% else %}
+                                    <li class="hidden-item">
+                                        <a href="/genomics/molecular-profile/{{mp|urlencode }}" target="_blank" style="text-decoration: none; color: inherit;">
+                                            {{ mp }}
+                                        </a>
+                                    </li>
+                                {% endif %}
+                            {% endfor %}
+                        </ul>
+                        {% if gene.molecular_profiles|length > 5 %}
+                            <button class="toggle-list-btn" onclick="toggleList(this)" style="background: none; border: none; color: #007BFF; cursor: pointer; padding: 0; font-size: 14px;">[more]</button>
+                        {% endif %}
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {%elif genes is defined and not gene %}
+    <div style="margin: 40px auto; max-width: 600px; background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; padding: 20px 25px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.03); font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
+        <p style="margin: 0 0 10px;">
+            <strong>Gene not found.</strong><br>
+        </p>
+    </div>
+    <script>
+        function populateCancerField(cancer) {
+            document.getElementById('disease-search').value = cancer;
+        }
+    </script>
+
+    {% endif %}
+    
+    <script>
+        function toggleList(button) {
+            const list = button.previousElementSibling;
+            const hiddenItems = list.querySelectorAll('.hidden-item');
+            const isHidden = window.getComputedStyle(hiddenItems[0]).display === 'none';
+            if (isHidden) {
+                hiddenItems.forEach(item => item.style.display = 'inline-block');
+                button.textContent = '[less]';
+            } else {
+                hiddenItems.forEach(item => item.style.display = 'none');
+                button.textContent = '[more]';
+            }
+        }
+
+        function toggleDescription(button) {
+            const descriptionDiv = button.previousElementSibling;
+            if (descriptionDiv.classList.contains('clamped')) {
+                descriptionDiv.classList.remove('clamped');
+                button.textContent = '[less]';
+            } else {
+                descriptionDiv.classList.add('clamped');
+                button.textContent = '[more]';
+            }
+        }
+
+        window.addEventListener('load', function () {
+            const toggleButtons = document.querySelectorAll('.toggle-description-btn');
+            toggleButtons.forEach(button => {
+                const description = button.previousElementSibling;
+                if (description.scrollHeight <= description.offsetHeight + 1) {
+                    button.style.display = 'none';
+                }
+            });
+        });
+    </script>
+</body>
+{% endblock %}
