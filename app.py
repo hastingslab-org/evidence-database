@@ -55,7 +55,11 @@ def handle_large_request(error):
     return "The request is too large!", 413
 
 ########################### app routes ###########################
-@app.route('/')
+@app.route('/', methods=['GET'])
+def home_page():
+    return render_template('home.html')
+
+@app.route('/literature', methods=['GET'])
 def search_query_page():
     return render_template('search_query_page.html')
 
