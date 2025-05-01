@@ -1,6 +1,7 @@
 import numpy as np
 import sys
 import os
+from .graph_store import metadata_mapping
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from graph_store import G, consensus_dict
@@ -97,3 +98,21 @@ def compute_associations(gene_name, variant_name, cancer_name):
     variant_name, gene_name = variant_of_interest.split("_")
 
     return top_sens, top_res, top_var_c, sens_pct, res_pct, cancer_pct, gene_name, variant_name
+
+
+def autosuggest_item(user_input: str, item_type: str) -> list:
+    """
+    Simple contains-filter.
+    - Case-insensitive
+    - Suggestions whose *start* matches rank higher
+    - Return unique, presorted list
+    """
+    q = user_input.strip().lower()
+    entities = metadata_mapping[metadata_mapping['Category'] == item_type]['Entity']
+
+    # two-pass ranking
+    starts = entities[entities.str.lower().str.startswith(q)]
+    contains = entities[entities.str.lower().str.contains(q) & ~entities.isin(starts)]
+
+    suggestions = list(starts) + list(contains)
+    return suggestions
