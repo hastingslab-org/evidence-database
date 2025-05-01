@@ -1,6 +1,6 @@
 import json
 import uuid
-from flask import Flask, render_template, send_from_directory, request, Response, session, jsonify
+from flask import Flask, render_template, send_from_directory, request, Response, session, jsonify, abort
 from werkzeug.exceptions import RequestEntityTooLarge
 from llm import call_llm_stream, get_relevant_papers
 from init_db import init_db
@@ -107,9 +107,16 @@ def variantscape_page():
     if request.method == 'GET':
         return render_template('variantscape.html')
 
+
+VALID_TYPES = {"gene", "variant", "cancer"}
 @app.get("/item-suggestions/<item_type>")
 def item_suggestions(item_type):
+    
+    if item_type.lower() not in VALID_TYPES:
+        abort(404)
+
     q = request.args.get("q", "", type=str)
+    gene  = request.args.get("gene", "").strip()
     # make sure we don’t hammer the db for empty strings
     if not q.strip():
         return jsonify([])
@@ -124,11 +131,13 @@ def item_suggestions(item_type):
         new_suggestions = []
         for s in suggestions:
             if "_" in s:
-                part1, part2 = s.split("_", 1)
-                if item_type.lower() == "variant":
-                    new_suggestions.append(part1)
-                else:  # assume gene
-                    new_suggestions.append(part2)
+                var, g = s.split("_", 1)
+                if item_type.lower() == "gene":
+                    new_suggestions.append(g)  
+                else:  # assume variant
+                    if gene and g.lower() != gene.lower():
+                        continue
+                    new_suggestions.append(var)
             else:
                 new_suggestions.append(s)
         suggestions = list(dict.fromkeys(new_suggestions))
@@ -301,7 +310,6 @@ def view_paper(paper_id):
             "journal": paper_journal
         }
     )
-
 
 # Initialize the database
 print("Initializing database...")
