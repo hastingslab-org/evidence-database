@@ -116,9 +116,9 @@ def item_suggestions(item_type):
 
     # reuse your helper; cap list length client-side or here
     if item_type.lower() == "gene":  
-        suggestions = autosuggest_item(q, "Variant")[:5] #TODO quick fix
+        suggestions = autosuggest_item(q, "Variant") #TODO quick fix
     else:
-        suggestions = autosuggest_item(q, item_type)[:5]
+        suggestions = autosuggest_item(q, item_type)
     
     if item_type.lower() in ["variant", "gene"]:
         new_suggestions = []
@@ -131,9 +131,9 @@ def item_suggestions(item_type):
                     new_suggestions.append(part2)
             else:
                 new_suggestions.append(s)
-        suggestions = new_suggestions
-        
-    return jsonify(suggestions)
+        suggestions = list(dict.fromkeys(new_suggestions))
+
+    return jsonify(suggestions[:5])
 
 @app.route('/variantscape/networkgraph', methods=['GET'])
 def networkgraph_page():

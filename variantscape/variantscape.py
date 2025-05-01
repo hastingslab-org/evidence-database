@@ -110,9 +110,9 @@ def autosuggest_item(user_input: str, item_type: str) -> list:
     q = user_input.strip().lower()
     entities = metadata_mapping[metadata_mapping['Category'] == item_type]['Entity']
 
-    # two-pass ranking
+    # two-pass ranking with duplicates removed
     starts = entities[entities.str.lower().str.startswith(q)]
     contains = entities[entities.str.lower().str.contains(q) & ~entities.isin(starts)]
+    suggestions = list(dict.fromkeys(list(starts) + list(contains)))
 
-    suggestions = list(starts) + list(contains)
     return suggestions
