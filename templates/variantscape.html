@@ -230,34 +230,42 @@
     (() => {
     
       /**
-       * Connect an <input> element to the unified /item-suggestions/<item_type> API.
+       * Generic autosuggest connector.
        *
-       * @param {string} inputId   id of the text box
-       * @param {string} listId    id of the paired <datalist>
-       * @param {string} itemType  "gene" | "variant" | "cancer"
+       * @param {string} inputId     id of the text field we autocomplete
+       * @param {string} listId      id of the paired <datalist>
+       * @param {string} itemType    "gene" | "variant" | "cancer"
+       * @param {string?} ctxId      id of another field (e.g. gene) whose value
+       *                             should be sent along; null if none
        */
-      function attachSuggest(inputId, listId, itemType) {
+      function attachSuggest(inputId, listId, itemType, ctxId = null) {
         const input = document.getElementById(inputId);
         const list  = document.getElementById(listId);
-        if (!input || !list) return;                       // safety guard
+        const ctx   = ctxId ? document.getElementById(ctxId) : null;
+        if (!input || !list) return;
     
-        let timer;                                        // debounce handle
-        input.addEventListener('input', () => {
-          clearTimeout(timer);
-          timer = setTimeout(loadSuggestions, 200);       // 200 ms debounce
-        });
+        /* refresh when this field or the context field changes */
+        const debounced = (() => {
+          let t; return () => { clearTimeout(t); t = setTimeout(load, 200); };
+        })();
+        input.addEventListener('input', debounced);
+        if (ctx) ctx.addEventListener('input', debounced);          // NEW
     
-        async function loadSuggestions() {
+        async function load() {
           const q = input.value.trim();
           if (!q) { list.innerHTML = ''; return; }
     
-          const url = `/item-suggestions/${itemType}?q=${encodeURIComponent(q)}`;
+          /* build the URL ----------------------------------------------------*/
+          let url = `/item-suggestions/${itemType}?q=${encodeURIComponent(q)}`;
+          if (ctx) {
+            const geneVal = ctx.value.trim();
+            url += `&gene=${encodeURIComponent(geneVal)}`;          // NEW
+          }
     
           try {
-            const resp  = await fetch(url);
-            if (!resp.ok) throw new Error(resp.statusText);
-            const items = await resp.json();
-    
+            const r = await fetch(url);
+            if (!r.ok) throw new Error(r.statusText);
+            const items = await r.json();
             list.innerHTML = items.map(v => `<option value="${v}">`).join('');
           } catch (err) {
             console.error(`Autosuggest error for ${itemType}`, err);
@@ -266,9 +274,9 @@
       }
     
       /* Attach to the three fields ----------------------------------------- */
-      attachSuggest('gene-search',    'gene-options',    'Gene');
-      attachSuggest('variant-search', 'variant-options', 'Variant');
-      attachSuggest('disease-search', 'cancer-options',  'Cancer');
+      attachSuggest('gene-search',    'gene-options',    'Gene');             // unchanged
+      attachSuggest('variant-search', 'variant-options', 'Variant', 'gene-search'); // NEW ctx
+      attachSuggest('disease-search', 'cancer-options',  'Cancer');           // unchanged
     
     })();
 </script>
