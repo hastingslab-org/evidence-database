@@ -1,6 +1,6 @@
 import json
 import uuid
-from flask import Flask, render_template, request, Response, session, jsonify
+from flask import Flask, render_template, send_from_directory, request, Response, session, jsonify
 from werkzeug.exceptions import RequestEntityTooLarge
 from llm import call_llm_stream, get_relevant_papers
 from init_db import init_db
@@ -22,6 +22,9 @@ CANCER_MIN_HIGHLIGHT           = 80    # and require ≥X total weight
 
 #app config
 app = Flask(__name__)
+
+app.jinja_options = app.jinja_options.copy()
+
 app.config['SESSION_TYPE'] = 'filesystem'  # Use the filesystem to store session data
 app.config['SESSION_PERMANENT'] = False
 app.config['SESSION_USE_SIGNER'] = True
@@ -106,8 +109,7 @@ def variantscape_page():
 
 @app.route('/variantscape/networkgraph', methods=['GET'])
 def networkgraph_page():
-    return render_template('downsampled_network_visualization_with_custom_colors_and_nodes.html')
-
+    return send_from_directory('static', 'variantscape_network_graph.html')
 
 @app.route('/genomics', methods=['GET', 'POST'])
 def genomics_page():
