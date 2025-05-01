@@ -181,20 +181,100 @@
 <form action="/variantscape" method="post" style="text-align: center; margin-top: 20px; display: flex; justify-content: center; gap: 20px; flex-wrap: wrap;">
     <div class="form-group" style="flex: 1; min-width: 250px; max-width: 300px;">
         <label for="gene-search" style="display: block; font-size: 14px; margin-bottom: 5px;">Enter gene</label>
-        <input id="gene-search" name="gene" type="text" placeholder="search gene" value="{{ gene }}" style="padding: 10px; width: 100%; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;" required>
+        <input  id="gene-search"
+            name="gene"
+            type="text"
+            placeholder="search gene"
+            list="gene-options"         
+            value="{{ gene }}"
+            autocomplete="off"   
+            >
+        <!-- browser reads <datalist> automatically -->
+        <datalist id="gene-options"></datalist>
     </div>
     <div class="form-group" style="flex: 1; min-width: 250px; max-width: 300px;">
         <label for="variant-search" style="display: block; font-size: 14px; margin-bottom: 5px;">Enter variant</label>
-        <input id="variant-search" name="variant" type="text" placeholder="search variant" value="{{ variant }}" style="padding: 10px; width: 100%; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;" required>
+        <input  id="variant-search"
+            name="variant"
+            type="text"
+            placeholder="search variant"
+            list="variant-options"         
+            value="{{ variant }}"
+            autocomplete="off"   
+            >
+        <!-- browser reads <datalist> automatically -->
+        <datalist id="variant-options"></datalist>
     </div>
     <div class="form-group" style="flex: 1; min-width: 250px; max-width: 300px;">
         <label for="disease-search" style="display: block; font-size: 14px; margin-bottom: 5px;">Enter cancer type</label>
-        <input id="disease-search" name="disease" type="text" placeholder="search cancer type" value="{{ disease }}" style="padding: 10px; width: 100%; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;" required>
+        <input  id="disease-search"
+            name="disease"
+            type="text"
+            placeholder="search cancer type"
+            list="cancer-options"         
+            value="{{ disease }}"
+            autocomplete="off"   
+            >
+        <!-- browser reads <datalist> automatically -->
+        <datalist id="cancer-options"></datalist>
     </div>
+    
+    
     <button type="submit" style="margin-top: 20px; padding: 10px 20px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; font-size: 14px; cursor: pointer;">
         Search
     </button>
 </form>
+
+<!-- Autosuggest for gene, variant and cancer type ----------------------->
+<script>
+    (() => {
+    
+      /**
+       * Connect an <input> element to the unified /item-suggestions/<item_type> API.
+       *
+       * @param {string} inputId   id of the text box
+       * @param {string} listId    id of the paired <datalist>
+       * @param {string} itemType  "gene" | "variant" | "cancer"
+       */
+      function attachSuggest(inputId, listId, itemType) {
+        const input = document.getElementById(inputId);
+        const list  = document.getElementById(listId);
+        if (!input || !list) return;                       // safety guard
+    
+        let timer;                                        // debounce handle
+        input.addEventListener('input', () => {
+          clearTimeout(timer);
+          timer = setTimeout(loadSuggestions, 200);       // 200 ms debounce
+        });
+    
+        async function loadSuggestions() {
+          const q = input.value.trim();
+          if (!q) { list.innerHTML = ''; return; }
+    
+          const url = `/item-suggestions/${itemType}?q=${encodeURIComponent(q)}`;
+    
+          try {
+            const resp  = await fetch(url);
+            if (!resp.ok) throw new Error(resp.statusText);
+            const items = await resp.json();
+    
+            list.innerHTML = items.map(v => `<option value="${v}">`).join('');
+          } catch (err) {
+            console.error(`Autosuggest error for ${itemType}`, err);
+          }
+        }
+      }
+    
+      /* Attach to the three fields ----------------------------------------- */
+      attachSuggest('gene-search',    'gene-options',    'Gene');
+      attachSuggest('variant-search', 'variant-options', 'Variant');
+      attachSuggest('disease-search', 'cancer-options',  'Cancer');
+    
+    })();
+</script>
+    
+    
+    
 
 
 <!-- Display Variant recommandations -->

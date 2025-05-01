@@ -11,6 +11,7 @@ from chromadb.utils import embedding_functions
 from genomics.genomics_data import fuzzy_match_gml, get_items_by_name_fuzzy, get_items_from_ids, get_item_by_name, get_item_from_single_id
 from variantscape.variantscape import compute_associations, check_variant_in_graph, check_cancer_in_graph
 from variantscape.graph_store import G
+from variantscape.variantscape import autosuggest_item
 
 # Get db directory path
 DB_PATH = 'chroma_data2'
@@ -106,6 +107,33 @@ def variantscape_page():
     if request.method == 'GET':
         return render_template('variantscape.html')
 
+@app.get("/item-suggestions/<item_type>")
+def item_suggestions(item_type):
+    q = request.args.get("q", "", type=str)
+    # make sure we don’t hammer the db for empty strings
+    if not q.strip():
+        return jsonify([])
+
+    # reuse your helper; cap list length client-side or here
+    if item_type.lower() == "gene":  
+        suggestions = autosuggest_item(q, "Variant")[:5] #TODO quick fix
+    else:
+        suggestions = autosuggest_item(q, item_type)[:5]
+    
+    if item_type.lower() in ["variant", "gene"]:
+        new_suggestions = []
+        for s in suggestions:
+            if "_" in s:
+                part1, part2 = s.split("_", 1)
+                if item_type.lower() == "variant":
+                    new_suggestions.append(part1)
+                else:  # assume gene
+                    new_suggestions.append(part2)
+            else:
+                new_suggestions.append(s)
+        suggestions = new_suggestions
+        
+    return jsonify(suggestions)
 
 @app.route('/variantscape/networkgraph', methods=['GET'])
 def networkgraph_page():
