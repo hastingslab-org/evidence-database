@@ -91,7 +91,7 @@ def compute_associations(gene_name, variant_name, cancer_name):
         w_c = G[cancer_of_interest][c]['weight'] if G.has_edge(cancer_of_interest, c) else 0
         vc_weights[c] = w_v + w_c
 
-        top_var_c = sorted(vc_weights.items(), key=lambda x: x[1], reverse=True)[:6]
+        top_var_c = [(c.title(), w) for c, w in sorted(vc_weights.items(), key=lambda x: x[1], reverse=True)[:6]] #TODO maybe deal with capitalization in teh front end
         vc_w = list(vc_weights.values())
         cancer_pct = np.percentile(vc_w, CANCER_THRESHOLD_PERCENTILE) if vc_w else 0
 
