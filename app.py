@@ -136,7 +136,6 @@ def item_suggestions(item_type):
 
     q = request.args.get("q", "", type=str)
     gene = request.args.get("gene", "").strip()
-    print("gene", gene)
     # make sure we don’t hammer the db for empty strings
     if not q.strip():
         return jsonify([])
