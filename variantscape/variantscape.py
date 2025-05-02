@@ -1,6 +1,7 @@
 import numpy as np
 import sys
 import os
+import pandas as pd
 from .graph_store import metadata_mapping
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -100,19 +101,40 @@ def compute_associations(gene_name, variant_name, cancer_name):
     return top_sens, top_res, top_var_c, sens_pct, res_pct, cancer_pct, gene_name, variant_name
 
 
-def autosuggest_item(user_input: str, item_type: str) -> list:
+def autosuggest_item(user_input: str, item_type: str, corresponding_gene = None) -> list:
     """
     Simple contains-filter.
     - Case-insensitive
     - Suggestions whose *start* matches rank higher
     - Return unique, presorted list
     """
+
+    out = []
     q = user_input.strip().lower()
-    entities = metadata_mapping[metadata_mapping['Category'] == item_type]['Entity']
+
+    if item_type == 'Gene':
+            entities = metadata_mapping[metadata_mapping['Category'] == "Variant"]['Entity'] #no genes in the mapping, but only concatenated varinates and genes
+    else:
+        entities = metadata_mapping[metadata_mapping['Category'] == item_type]['Entity']
+
+    if item_type in ['Variant', 'Gene']:
+        parsed = [ent.split("_", 1) for ent in entities if "_" in ent]
+        if item_type == 'Variant':
+            print("Corresponding gene:", corresponding_gene)  # Debugging line
+            if any(g.lower() == corresponding_gene.lower() for _, g in parsed):
+                print("HEEEEEREEEE")
+                filtered = [(var, g) for var, g in parsed if g.lower() == corresponding_gene.lower()]
+            else:
+                filtered = parsed
+            out = pd.Series([var for var, _ in filtered])
+        else:
+            out = pd.Series([g for _, g in parsed])
+    else:
+        out = entities
 
     # two-pass ranking with duplicates removed
-    starts = entities[entities.str.lower().str.startswith(q)]
-    contains = entities[entities.str.lower().str.contains(q) & ~entities.isin(starts)]
+    starts = out[out.str.lower().str.startswith(q)]
+    contains = out[out.str.lower().str.contains(q) & ~out.isin(starts)]
     suggestions = list(dict.fromkeys(list(starts) + list(contains)))
-
+    
     return suggestions
