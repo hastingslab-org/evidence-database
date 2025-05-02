@@ -101,10 +101,10 @@ def variantscape_page():
         if not EXIST_VARIANT_BOOL:
             variant_of_interest = (variant_search + "_" + gene_search).lower()
             recommended_variants = [
-                " ".join(reversed(variant.split("_"))) for variant in fuzzy_match_gml(variant_of_interest, G.nodes)
+                " ".join(reversed(variant.split("_"))).upper() for variant in fuzzy_match_gml(variant_of_interest, G.nodes)
             ]
             return render_template('variantscape.html', recommended_variants=recommended_variants, exist_variant_bool = EXIST_VARIANT_BOOL, \
-                                   gene=gene_search, variant=variant_search, disease = disease_search)
+                                   gene=gene_search, variant=variant_search.upper(), disease = disease_search)
 
         if not EXIST_CANCER_BOOL:
             cancer_of_interest = disease_search.strip().lower()
@@ -112,14 +112,14 @@ def variantscape_page():
                 name for name in fuzzy_match_gml(cancer_of_interest, G.nodes)
             ]
             return render_template('variantscape.html', recommended_cancers=recommended_cancers, exist_cancer_bool = EXIST_CANCER_BOOL, \
-                                   gene=gene_search, variant=variant_search, disease = disease_search)
+                                   gene=gene_search, variant=variant_search.upper(), disease = disease_search)
 
         top_sens, top_res, top_var_c, sens_pct, res_pct, cancer_pct, \
             gene_name, variant_name = compute_associations(gene_search, variant_search, disease_search)
         
         return render_template('variantscape.html', top_sens=top_sens, top_res=top_res, top_var_c=top_var_c, \
                                sens_pct=sens_pct, res_pct=res_pct, cancer_pct=cancer_pct, gene=gene_name, \
-                                variant=variant_name, disease = disease_search, \
+                                variant=variant_name.upper(), disease = disease_search, \
                                     treatment_min_highlight = TREATMENT_MIN_HIGHLIGHT,
                                     cancer_min_highlight = CANCER_MIN_HIGHLIGHT) #TODO add error handling for empty results
     #TODO pass params more elegantly

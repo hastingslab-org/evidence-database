@@ -120,13 +120,11 @@ def autosuggest_item(user_input: str, item_type: str, corresponding_gene = None)
     if item_type in ['Variant', 'Gene']:
         parsed = [ent.split("_", 1) for ent in entities if "_" in ent]
         if item_type == 'Variant':
-            print("Corresponding gene:", corresponding_gene)  # Debugging line
             if any(g.lower() == corresponding_gene.lower() for _, g in parsed):
-                print("HEEEEEREEEE")
                 filtered = [(var, g) for var, g in parsed if g.lower() == corresponding_gene.lower()]
             else:
                 filtered = parsed
-            out = pd.Series([var for var, _ in filtered])
+            out = pd.Series([var.upper() for var, _ in filtered])
         else:
             out = pd.Series([g for _, g in parsed])
     else:

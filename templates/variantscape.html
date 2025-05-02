@@ -193,7 +193,7 @@
         <datalist id="gene-options"></datalist>
     </div>
     <div class="form-group" style="flex: 1; min-width: 250px; max-width: 300px;">
-        <label for="variant-search" style="display: block; font-size: 14px; margin-bottom: 5px;">Enter variant</label>
+        <label for="variant-search" style="display: block; font-size: 14px; margin-bottom: 5px;">Enter gene-specific variant</label>
         <input style="font-size: 14px;" id="variant-search"
             name="variant"
             type="text"
@@ -342,7 +342,7 @@
 <!-- Display results -->
 <div class="container" style="margin: 40px auto; background-color: #fff; padding: 30px; border: 1px solid #e0e0e0; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); max-width: 1000px; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
 
-    <h2 style="color: #2c3e50; margin-bottom: 70px;">Co-associations for <strong><em>{{ gene }}</em> <span style="font-variant: small-caps;">{{ variant }}</span></strong> and <strong>{{ disease }}</strong></h2>
+    <h2 style="color: #2c3e50; margin-bottom: 70px;">Co-associations for <strong><em>{{ gene }}</em> <span style="text-transform: uppercase;">{{ variant }}</span></strong> and <strong>{{ disease }}</strong></h2>
     
     <!-- Color Legend -->
     <div class="legend-card">
@@ -439,7 +439,7 @@
     <div>
         <h3 style="color: #2c3e50; font-size: 18px; font-weight: bold; margin-bottom: 4px;">Other cancer types</h3>
         <p style="color: #888; font-size: 13px; margin-top: 4px; margin-bottom: 20px; text-align: center;">
-            Co-associated with <em>{{ gene }}</em> <span style="font-variant: small-caps;">{{ variant }}</span>
+            Co-associated with <em>{{ gene }}</em> <span style="text-transform: uppercase;">{{ variant }}</span>
         </p>
         <div style="display: flex; justify-content: space-between; font-weight: bold; color: #666; font-size: 14px;">
             <span>Cancer type</span>
