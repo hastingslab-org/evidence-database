@@ -1,16 +1,19 @@
 import json
+import os
 import uuid
-from flask import Flask, render_template, request, Response, session, jsonify
+from flask import Flask, render_template, send_from_directory, request, Response, session, jsonify, abort, current_app
 from werkzeug.exceptions import RequestEntityTooLarge
 from llm import call_llm_stream, get_relevant_papers
 from init_db import init_db
 import sqlite3 
+from functools import lru_cache
 import chromadb
 from chromadb.utils import embedding_functions
 
 from genomics.genomics_data import fuzzy_match_gml, get_items_by_name_fuzzy, get_items_from_ids, get_item_by_name, get_item_from_single_id
 from variantscape.variantscape import compute_associations, check_variant_in_graph, check_cancer_in_graph
 from variantscape.graph_store import G
+from variantscape.variantscape import autosuggest_item
 
 # Get db directory path
 DB_PATH = 'chroma_data2'
@@ -21,11 +24,19 @@ CANCER_MIN_HIGHLIGHT           = 80    # and require ≥X total weight
 #TODO add percentile and fuzzy ratio (currently in other files). Move to a config file ? 
 
 #app config
-app = Flask(__name__)
-app.config['SESSION_TYPE'] = 'filesystem'  # Use the filesystem to store session data
-app.config['SESSION_PERMANENT'] = False
-app.config['SESSION_USE_SIGNER'] = True
-app.config['SECRET_KEY'] = 'my_secret_key' #TODO 
+def create_app():
+    app = Flask(__name__, static_folder='static', static_url_path='/static')
+    app.config['SESSION_TYPE'] = 'filesystem'  # Use the filesystem to store session data
+    app.config['SESSION_PERMANENT'] = False
+    app.config['SESSION_USE_SIGNER'] = True
+    app.config['SECRET_KEY'] = 'my_secret_key' #TODO 
+
+    @app.context_processor
+    def inject_partner_logos():
+        # The returned dict is merged into the Jinja context globally
+        return {"partner_logos": get_partner_logos()}
+
+    return app
 
 #db access functions
 def get_db_connection():
@@ -49,10 +60,22 @@ def get_qa_item(item_name, item_id, json_load=False):
     else:
         return jsonify({"error": "Response not found"}), 404
 
-#large request handling
-@app.errorhandler(RequestEntityTooLarge)
-def handle_large_request(error):
-    return "The request is too large!", 413
+#for bottom banner logos
+@lru_cache(maxsize=1)            
+def get_partner_logos():
+    """Return a sorted list of image filenames in /static/img/partners/."""
+    partner_dir = os.path.join(current_app.static_folder, "bottom_banner")
+    if not os.path.isdir(partner_dir):
+        return []
+
+    files = [
+        f for f in os.listdir(partner_dir)
+        if f.lower().endswith((".png", ".jpg", ".jpeg", ".svg"))
+    ]
+    return sorted(files)
+
+
+app = create_app()
 
 ########################### app routes ###########################
 @app.route('/', methods=['GET'])
@@ -78,10 +101,10 @@ def variantscape_page():
         if not EXIST_VARIANT_BOOL:
             variant_of_interest = (variant_search + "_" + gene_search).lower()
             recommended_variants = [
-                " ".join(reversed(variant.split("_"))) for variant in fuzzy_match_gml(variant_of_interest, G.nodes)
+                " ".join(reversed(variant.split("_"))).upper() for variant in fuzzy_match_gml(variant_of_interest, G.nodes)
             ]
             return render_template('variantscape.html', recommended_variants=recommended_variants, exist_variant_bool = EXIST_VARIANT_BOOL, \
-                                   gene=gene_search, variant=variant_search, disease = disease_search)
+                                   gene=gene_search, variant=variant_search.upper(), disease = disease_search)
 
         if not EXIST_CANCER_BOOL:
             cancer_of_interest = disease_search.strip().lower()
@@ -89,14 +112,14 @@ def variantscape_page():
                 name for name in fuzzy_match_gml(cancer_of_interest, G.nodes)
             ]
             return render_template('variantscape.html', recommended_cancers=recommended_cancers, exist_cancer_bool = EXIST_CANCER_BOOL, \
-                                   gene=gene_search, variant=variant_search, disease = disease_search)
+                                   gene=gene_search, variant=variant_search.upper(), disease = disease_search)
 
         top_sens, top_res, top_var_c, sens_pct, res_pct, cancer_pct, \
             gene_name, variant_name = compute_associations(gene_search, variant_search, disease_search)
         
         return render_template('variantscape.html', top_sens=top_sens, top_res=top_res, top_var_c=top_var_c, \
                                sens_pct=sens_pct, res_pct=res_pct, cancer_pct=cancer_pct, gene=gene_name, \
-                                variant=variant_name, disease = disease_search, \
+                                variant=variant_name.upper(), disease = disease_search, \
                                     treatment_min_highlight = TREATMENT_MIN_HIGHLIGHT,
                                     cancer_min_highlight = CANCER_MIN_HIGHLIGHT) #TODO add error handling for empty results
     #TODO pass params more elegantly
@@ -104,10 +127,41 @@ def variantscape_page():
         return render_template('variantscape.html')
 
 
+VALID_TYPES = {"gene", "variant", "cancer"}
+@app.get("/item-suggestions/<item_type>")
+def item_suggestions(item_type):
+    
+    if item_type.lower() not in VALID_TYPES:
+        abort(404)
+
+    q = request.args.get("q", "", type=str)
+    gene = request.args.get("gene", "").strip()
+    # make sure we don’t hammer the db for empty strings
+    if not q.strip():
+        return jsonify([])
+
+    suggestions = autosuggest_item(q, item_type, corresponding_gene=gene)
+    
+    if item_type.lower() == "variant":
+        new_suggestions = []
+        for s in suggestions:
+            if "_" in s:
+                var, g = s.split("_", 1)
+                if item_type.lower() == "gene":
+                    new_suggestions.append(g)  
+                else:  # assume variant
+                    if gene and g.lower() != gene.lower():
+                        continue
+                    new_suggestions.append(var)
+            else:
+                new_suggestions.append(s)
+        suggestions = list(dict.fromkeys(new_suggestions))
+
+    return jsonify(suggestions[:5])
+
 @app.route('/variantscape/networkgraph', methods=['GET'])
 def networkgraph_page():
-    return render_template('downsampled_network_visualization_with_custom_colors_and_nodes.html')
-
+    return send_from_directory('static', 'variantscape_network_graph.html')
 
 @app.route('/genomics', methods=['GET', 'POST'])
 def genomics_page():
@@ -272,11 +326,15 @@ def view_paper(paper_id):
         }
     )
 
+#large request handling
+@app.errorhandler(RequestEntityTooLarge)
+def handle_large_request(error):
+    return "The request is too large!", 413
 
 # Initialize the database
 print("Initializing database...")
 init_db()
 print("Database initialized.")
 
-if __name__ == "__main__": #TODO separate app.py into init, cli, and routes
+if __name__ == "__main__": #TODO separate app.py into init, cli, helpers, and routes
     app.run(host='0.0.0.0')
