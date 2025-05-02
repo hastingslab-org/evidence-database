@@ -15,3 +15,4 @@ df_consensus["Variant_Treatment_Pair"]
 consensus_dict = dict(
     zip(df_consensus["Variant_Treatment_Pair"], df_consensus["Resolved_Prediction"])
 )
+metadata_mapping = pd.read_csv("./variantscape/metadata_mapping_transposed.csv", low_memory=False)

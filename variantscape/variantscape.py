@@ -1,6 +1,8 @@
 import numpy as np
 import sys
 import os
+import pandas as pd
+from .graph_store import metadata_mapping
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from graph_store import G, consensus_dict
@@ -89,7 +91,7 @@ def compute_associations(gene_name, variant_name, cancer_name):
         w_c = G[cancer_of_interest][c]['weight'] if G.has_edge(cancer_of_interest, c) else 0
         vc_weights[c] = w_v + w_c
 
-        top_var_c = sorted(vc_weights.items(), key=lambda x: x[1], reverse=True)[:6]
+        top_var_c = [(c.title(), w) for c, w in sorted(vc_weights.items(), key=lambda x: x[1], reverse=True)[:6]] #TODO maybe deal with capitalization in teh front end
         vc_w = list(vc_weights.values())
         cancer_pct = np.percentile(vc_w, CANCER_THRESHOLD_PERCENTILE) if vc_w else 0
 
@@ -97,3 +99,40 @@ def compute_associations(gene_name, variant_name, cancer_name):
     variant_name, gene_name = variant_of_interest.split("_")
 
     return top_sens, top_res, top_var_c, sens_pct, res_pct, cancer_pct, gene_name, variant_name
+
+
+def autosuggest_item(user_input: str, item_type: str, corresponding_gene = None) -> list:
+    """
+    Simple contains-filter.
+    - Case-insensitive
+    - Suggestions whose *start* matches rank higher
+    - Return unique, presorted list
+    """
+
+    out = []
+    q = user_input.strip().lower()
+
+    if item_type == 'Gene':
+            entities = metadata_mapping[metadata_mapping['Category'] == "Variant"]['Entity'] #no genes in the mapping, but only concatenated varinates and genes
+    else:
+        entities = metadata_mapping[metadata_mapping['Category'] == item_type]['Entity']
+
+    if item_type in ['Variant', 'Gene']:
+        parsed = [ent.split("_", 1) for ent in entities if "_" in ent]
+        if item_type == 'Variant':
+            if any(g.lower() == corresponding_gene.lower() for _, g in parsed):
+                filtered = [(var, g) for var, g in parsed if g.lower() == corresponding_gene.lower()]
+            else:
+                filtered = parsed
+            out = pd.Series([var.upper() for var, _ in filtered])
+        else:
+            out = pd.Series([g for _, g in parsed])
+    else:
+        out = entities
+
+    # two-pass ranking with duplicates removed
+    starts = out[out.str.lower().str.startswith(q)]
+    contains = out[out.str.lower().str.contains(q) & ~out.isin(starts)]
+    suggestions = list(dict.fromkeys(list(starts) + list(contains)))
+    
+    return suggestions

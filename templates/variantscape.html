@@ -167,7 +167,7 @@
 <header style="text-align: center; margin-top: 20px; margin-bottom: 30px;">
     <h1 style="font-size: 32px; margin-bottom: 10px;">Variantscape</h1>
     <p style="font-size: 16px; color: #555; margin: 0 0 5px;">
-        Search literature-derived associations between variants, cancer types, and treatments
+        Search literature-derived co-associations between variants, cancer types, and treatments
     </p>
     <a href="/variantscape/networkgraph" target="_blank" style="font-size: 13px; color: #1565c0; text-decoration: none; margin-bottom: 10px;">
         View Variantscape graph →
@@ -181,20 +181,109 @@
 <form action="/variantscape" method="post" style="text-align: center; margin-top: 20px; display: flex; justify-content: center; gap: 20px; flex-wrap: wrap;">
     <div class="form-group" style="flex: 1; min-width: 250px; max-width: 300px;">
         <label for="gene-search" style="display: block; font-size: 14px; margin-bottom: 5px;">Enter gene</label>
-        <input id="gene-search" name="gene" type="text" placeholder="search gene" value="{{ gene }}" style="padding: 10px; width: 100%; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;" required>
+        <input style="font-size: 14px;" id="gene-search"
+            name="gene"
+            type="text"
+            placeholder="e.g. BRAF, BRCA1, BRCA2"
+            list="gene-options"         
+            value="{{ gene }}"
+            autocomplete="off"   
+            >
+        <!-- browser reads <datalist> automatically -->
+        <datalist id="gene-options"></datalist>
     </div>
     <div class="form-group" style="flex: 1; min-width: 250px; max-width: 300px;">
-        <label for="variant-search" style="display: block; font-size: 14px; margin-bottom: 5px;">Enter variant</label>
-        <input id="variant-search" name="variant" type="text" placeholder="search variant" value="{{ variant }}" style="padding: 10px; width: 100%; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;" required>
+        <label for="variant-search" style="display: block; font-size: 14px; margin-bottom: 5px;">Enter gene-specific variant</label>
+        <input style="font-size: 14px;" id="variant-search"
+            name="variant"
+            type="text"
+            placeholder="e.g. V600E, L816Q"
+            list="variant-options"         
+            value="{{ variant }}"
+            autocomplete="off"   
+            >
+        <!-- browser reads <datalist> automatically -->
+        <datalist id="variant-options"></datalist>
     </div>
     <div class="form-group" style="flex: 1; min-width: 250px; max-width: 300px;">
         <label for="disease-search" style="display: block; font-size: 14px; margin-bottom: 5px;">Enter cancer type</label>
-        <input id="disease-search" name="disease" type="text" placeholder="search cancer type" value="{{ disease }}" style="padding: 10px; width: 100%; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;" required>
+        <input style="font-size: 14px;" id="disease-search"
+            name="disease"
+            type="text"
+            placeholder="e.g. breast cancer, colon cancer"
+            list="cancer-options"         
+            value="{{ disease }}"
+            autocomplete="off"   
+            >
+        <!-- browser reads <datalist> automatically -->
+        <datalist id="cancer-options"></datalist>
     </div>
+    
+    
     <button type="submit" style="margin-top: 20px; padding: 10px 20px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; font-size: 14px; cursor: pointer;">
         Search
     </button>
 </form>
+
+<!-- Autosuggest for gene, variant and cancer type ----------------------->
+<script>
+    (() => {
+    
+      /**
+       * Generic autosuggest connector.
+       *
+       * @param {string} inputId     id of the text field we autocomplete
+       * @param {string} listId      id of the paired <datalist>
+       * @param {string} itemType    "gene" | "variant" | "cancer"
+       * @param {string?} ctxId      id of another field (e.g. gene) whose value
+       *                             should be sent along; null if none
+       */
+      function attachSuggest(inputId, listId, itemType, ctxId = null) {
+        const input = document.getElementById(inputId);
+        const list  = document.getElementById(listId);
+        const ctx   = ctxId ? document.getElementById(ctxId) : null;
+        if (!input || !list) return;
+    
+        /* refresh when this field or the context field changes */
+        const debounced = (() => {
+          let t; return () => { clearTimeout(t); t = setTimeout(load, 200); };
+        })();
+        input.addEventListener('input', debounced);
+        if (ctx) ctx.addEventListener('input', debounced);          // NEW
+    
+        async function load() {
+          const q = input.value.trim();
+          if (!q) { list.innerHTML = ''; return; }
+    
+          /* build the URL ----------------------------------------------------*/
+          let geneVal = document.getElementById('gene-search').value.trim();
+          let url = `/item-suggestions/${itemType}?q=${encodeURIComponent(q)}&gene=${encodeURIComponent(geneVal)}`;
+          if (ctx) {
+            const geneVal = ctx.value.trim();
+            url += `&gene=${encodeURIComponent(geneVal)}`;          // NEW
+          }
+    
+          try {
+            const r = await fetch(url);
+            if (!r.ok) throw new Error(r.statusText);
+            const items = await r.json();
+            list.innerHTML = items.map(v => `<option value="${v}">`).join('');
+          } catch (err) {
+            console.error(`Autosuggest error for ${itemType}`, err);
+          }
+        }
+      }
+    
+      /* Attach to the three fields ----------------------------------------- */
+      attachSuggest('gene-search',    'gene-options',    'Gene');             
+      attachSuggest('variant-search', 'variant-options', 'Variant');
+      attachSuggest('disease-search', 'cancer-options',  'Cancer');           
+    
+    })();
+</script>
+    
+    
+    
 
 
 <!-- Display Variant recommandations -->
@@ -253,7 +342,7 @@
 <!-- Display results -->
 <div class="container" style="margin: 40px auto; background-color: #fff; padding: 30px; border: 1px solid #e0e0e0; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); max-width: 1000px; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
 
-    <h2 style="color: #2c3e50; margin-bottom: 70px;">Associations for <strong><em>{{ gene }}</em> <span style="font-variant: small-caps;">{{ variant }}</span></strong> and <strong>{{ disease }}</strong></h2>
+    <h2 style="color: #2c3e50; margin-bottom: 70px;">Co-associations for <strong><em>{{ gene }}</em> <span style="text-transform: uppercase;">{{ variant }}</span></strong> and <strong>{{ disease }}</strong></h2>
     
     <!-- Color Legend -->
     <div class="legend-card">
@@ -309,7 +398,7 @@
         </div>
         {% else %}
         <div style="text-align: center; margin-top: 20px; color: #888; font-size: 14px;">
-            No association found.
+            No co-association found.
         </div>
         {% endif %}
     </div>
@@ -342,7 +431,7 @@
         </div>
         {% else %}
         <div style="text-align: center; margin-top: 20px; color: #888; font-size: 14px;">
-            No association found.
+            No co-association found.
         </div>
         {% endif %}
     </div>
@@ -350,7 +439,7 @@
     <div>
         <h3 style="color: #2c3e50; font-size: 18px; font-weight: bold; margin-bottom: 4px;">Other cancer types</h3>
         <p style="color: #888; font-size: 13px; margin-top: 4px; margin-bottom: 20px; text-align: center;">
-            Associated with <em>{{ gene }}</em> <span style="font-variant: small-caps;">{{ variant }}</span>
+            Co-associated with <em>{{ gene }}</em> <span style="text-transform: uppercase;">{{ variant }}</span>
         </p>
         <div style="display: flex; justify-content: space-between; font-weight: bold; color: #666; font-size: 14px;">
             <span>Cancer type</span>
@@ -378,7 +467,7 @@
         </div>
         {% else %}
         <div style="text-align: center; margin-top: 20px; color: #888; font-size: 14px;">
-            No association found.
+            No co-association found.
         </div>
         {% endif %}
     </div>
