@@ -116,18 +116,15 @@ def item_suggestions(item_type):
         abort(404)
 
     q = request.args.get("q", "", type=str)
-    gene  = request.args.get("gene", "").strip()
+    gene = request.args.get("gene", "").strip()
+    print("gene", gene)
     # make sure we don’t hammer the db for empty strings
     if not q.strip():
         return jsonify([])
 
-    # reuse your helper; cap list length client-side or here
-    if item_type.lower() == "gene":  
-        suggestions = autosuggest_item(q, "Variant") #TODO quick fix
-    else:
-        suggestions = autosuggest_item(q, item_type)
+    suggestions = autosuggest_item(q, item_type, corresponding_gene=gene)
     
-    if item_type.lower() in ["variant", "gene"]:
+    if item_type.lower() == "variant":
         new_suggestions = []
         for s in suggestions:
             if "_" in s:

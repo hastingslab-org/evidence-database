@@ -256,7 +256,8 @@
           if (!q) { list.innerHTML = ''; return; }
     
           /* build the URL ----------------------------------------------------*/
-          let url = `/item-suggestions/${itemType}?q=${encodeURIComponent(q)}`;
+          let geneVal = document.getElementById('gene-search').value.trim();
+          let url = `/item-suggestions/${itemType}?q=${encodeURIComponent(q)}&gene=${encodeURIComponent(geneVal)}`;
           if (ctx) {
             const geneVal = ctx.value.trim();
             url += `&gene=${encodeURIComponent(geneVal)}`;          // NEW
@@ -274,9 +275,9 @@
       }
     
       /* Attach to the three fields ----------------------------------------- */
-      attachSuggest('gene-search',    'gene-options',    'Gene');             // unchanged
-      attachSuggest('variant-search', 'variant-options', 'Variant', 'gene-search'); // NEW ctx
-      attachSuggest('disease-search', 'cancer-options',  'Cancer');           // unchanged
+      attachSuggest('gene-search',    'gene-options',    'Gene');             
+      attachSuggest('variant-search', 'variant-options', 'Variant');
+      attachSuggest('disease-search', 'cancer-options',  'Cancer');           
     
     })();
 </script>
