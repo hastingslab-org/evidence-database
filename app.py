@@ -1,10 +1,12 @@
 import json
+import os
 import uuid
-from flask import Flask, render_template, send_from_directory, request, Response, session, jsonify, abort
+from flask import Flask, render_template, send_from_directory, request, Response, session, jsonify, abort, current_app
 from werkzeug.exceptions import RequestEntityTooLarge
 from llm import call_llm_stream, get_relevant_papers
 from init_db import init_db
 import sqlite3 
+from functools import lru_cache
 import chromadb
 from chromadb.utils import embedding_functions
 
@@ -22,14 +24,19 @@ CANCER_MIN_HIGHLIGHT           = 80    # and require ≥X total weight
 #TODO add percentile and fuzzy ratio (currently in other files). Move to a config file ? 
 
 #app config
-app = Flask(__name__)
+def create_app():
+    app = Flask(__name__, static_folder='static', static_url_path='/static')
+    app.config['SESSION_TYPE'] = 'filesystem'  # Use the filesystem to store session data
+    app.config['SESSION_PERMANENT'] = False
+    app.config['SESSION_USE_SIGNER'] = True
+    app.config['SECRET_KEY'] = 'my_secret_key' #TODO 
 
-app.jinja_options = app.jinja_options.copy()
+    @app.context_processor
+    def inject_partner_logos():
+        # The returned dict is merged into the Jinja context globally
+        return {"partner_logos": get_partner_logos()}
 
-app.config['SESSION_TYPE'] = 'filesystem'  # Use the filesystem to store session data
-app.config['SESSION_PERMANENT'] = False
-app.config['SESSION_USE_SIGNER'] = True
-app.config['SECRET_KEY'] = 'my_secret_key' #TODO 
+    return app
 
 #db access functions
 def get_db_connection():
@@ -53,10 +60,22 @@ def get_qa_item(item_name, item_id, json_load=False):
     else:
         return jsonify({"error": "Response not found"}), 404
 
-#large request handling
-@app.errorhandler(RequestEntityTooLarge)
-def handle_large_request(error):
-    return "The request is too large!", 413
+#for bottom banner logos
+@lru_cache(maxsize=1)            
+def get_partner_logos():
+    """Return a sorted list of image filenames in /static/img/partners/."""
+    partner_dir = os.path.join(current_app.static_folder, "bottom_banner")
+    if not os.path.isdir(partner_dir):
+        return []
+
+    files = [
+        f for f in os.listdir(partner_dir)
+        if f.lower().endswith((".png", ".jpg", ".jpeg", ".svg"))
+    ]
+    return sorted(files)
+
+
+app = create_app()
 
 ########################### app routes ###########################
 @app.route('/', methods=['GET'])
@@ -308,10 +327,15 @@ def view_paper(paper_id):
         }
     )
 
+#large request handling
+@app.errorhandler(RequestEntityTooLarge)
+def handle_large_request(error):
+    return "The request is too large!", 413
+
 # Initialize the database
 print("Initializing database...")
 init_db()
 print("Database initialized.")
 
-if __name__ == "__main__": #TODO separate app.py into init, cli, and routes
+if __name__ == "__main__": #TODO separate app.py into init, cli, helpers, and routes
     app.run(host='0.0.0.0')
