@@ -163,6 +163,11 @@ def item_suggestions(item_type):
 def networkgraph_page():
     return send_from_directory('static', 'variantscape_network_graph.html')
 
+@app.route('/variantscape/studydesignclustermap', methods=['GET'])
+def clustermap_page():
+    return send_from_directory('static', 'Interactive_cluster_map_study_design_type_plot_final.html')
+
+
 @app.route('/genomics', methods=['GET', 'POST'])
 def genomics_page():
     if request.method == 'POST':
