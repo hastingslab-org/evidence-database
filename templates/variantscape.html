@@ -172,6 +172,11 @@
     <a href="/variantscape/networkgraph" target="_blank" style="font-size: 13px; color: #1565c0; text-decoration: none; margin-bottom: 10px;">
         View Variantscape graph →
     </a>
+    <br>
+    <a href="/variantscape/studydesignclustermap" target="_blank" style="font-size: 13px; color: #1565c0; text-decoration: none; margin-bottom: 10px;">
+        Explore study design cluster map →
+    </a>
+
     <p style="font-size: 12px; color: #999; margin-top: 15px;">
         For research purposes only
     </p>
@@ -184,7 +189,7 @@
         <input style="font-size: 14px;" id="gene-search"
             name="gene"
             type="text"
-            placeholder="e.g. BRAF, BRCA1, BRCA2"
+            placeholder="e.g., BRAF, BRCA1, BRCA2"
             list="gene-options"         
             value="{{ gene }}"
             autocomplete="off"   
@@ -197,7 +202,7 @@
         <input style="font-size: 14px;" id="variant-search"
             name="variant"
             type="text"
-            placeholder="e.g. V600E, L816Q"
+            placeholder="e.g., V600E, L816Q"
             list="variant-options"         
             value="{{ variant }}"
             autocomplete="off"   
@@ -210,7 +215,7 @@
         <input style="font-size: 14px;" id="disease-search"
             name="disease"
             type="text"
-            placeholder="e.g. breast cancer, colon cancer"
+            placeholder="e.g., breast cancer, colon cancer"
             list="cancer-options"         
             value="{{ disease }}"
             autocomplete="off"   
@@ -282,10 +287,6 @@
     })();
 </script>
     
-    
-    
-
-
 <!-- Display Variant recommandations -->
 {% if exist_variant_bool is defined and not exist_variant_bool %}
 <div style="margin: 40px auto; max-width: 600px; background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; padding: 20px 25px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.03); font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
@@ -481,7 +482,7 @@
 
     <p>
         <em>Wosny&nbsp;M., Boesch M., Peres T., Niederhauser T., Früh M., Rothermundt C., Hastings J. (2025)<br>
-        “Variantscape: Using large language models to build a comprehensive landscape of cancer variants”</em>
+        “Variantscape: Using Large Language Models to Build a Comprehensive Landscape of Cancer Variants for Precision Oncology”</em>
         (Preprint)
     </p>
 
