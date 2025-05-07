@@ -15,6 +15,7 @@ from variantscape.variantscape import compute_associations, check_variant_in_gra
 from variantscape.graph_store import G
 from variantscape.variantscape import autosuggest_item
 
+
 # Get db directory path
 DB_PATH = 'chroma_data2'
 
@@ -101,16 +102,14 @@ def variantscape_page():
         if not EXIST_VARIANT_BOOL:
             variant_of_interest = (variant_search + "_" + gene_search).lower()
             recommended_variants = [
-                " ".join(reversed(variant.split("_"))).upper() for variant in fuzzy_match_gml(variant_of_interest, G.nodes)
+                " ".join(reversed(variant.split("_"))).upper() for variant in fuzzy_match_gml(variant_of_interest, G.nodes) #TODO integrate fuzzy match fct with autosuggets fcts.
             ]
             return render_template('variantscape.html', recommended_variants=recommended_variants, exist_variant_bool = EXIST_VARIANT_BOOL, \
                                    gene=gene_search, variant=variant_search.upper(), disease = disease_search)
 
         if not EXIST_CANCER_BOOL:
             cancer_of_interest = disease_search.strip().lower()
-            recommended_cancers = [
-                name for name in fuzzy_match_gml(cancer_of_interest, G.nodes)
-            ]
+            recommended_cancers = autosuggest_item(cancer_of_interest, item_type="Cancer")
             return render_template('variantscape.html', recommended_cancers=recommended_cancers, exist_cancer_bool = EXIST_CANCER_BOOL, \
                                    gene=gene_search, variant=variant_search.upper(), disease = disease_search)
 

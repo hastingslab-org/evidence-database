@@ -101,7 +101,7 @@ def compute_associations(gene_name, variant_name, cancer_name):
     return top_sens, top_res, top_var_c, sens_pct, res_pct, cancer_pct, gene_name, variant_name
 
 
-def autosuggest_item(user_input: str, item_type: str, corresponding_gene = None) -> list:
+def autosuggest_item(user_input: str, item_type: str, corresponding_gene = None, FUZZY_MATCH = False) -> list:
     """
     Simple contains-filter.
     - Case-insensitive
