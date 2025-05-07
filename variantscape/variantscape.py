@@ -3,6 +3,8 @@ import sys
 import os
 import pandas as pd
 from .graph_store import metadata_mapping
+from rapidfuzz import fuzz
+
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from graph_store import G, consensus_dict
@@ -10,6 +12,8 @@ from graph_store import G, consensus_dict
 # === Adjustable thresholds === #
 TREATMENT_THRESHOLD_PERCENTILE = 80    # highlight top X% of treatment weights
 CANCER_THRESHOLD_PERCENTILE    = 80    # highlight top X% of cancer–variant weights
+
+MATCHING_RATIO_THRESH = 0.8 # threshold for fuzzy matching TODO in config/common file
 
 CANCER_ALIAS_MAP = {
     "nsclc": "lung cancer",
@@ -130,9 +134,16 @@ def autosuggest_item(user_input: str, item_type: str, corresponding_gene = None,
     else:
         out = entities
 
+    matching_names = []
+    if FUZZY_MATCH:
+        for name in entities:
+            fuzz_ratio = fuzz.ratio(user_input.lower(), name.lower())
+            if fuzz_ratio > MATCHING_RATIO_THRESH * 100 and name.lower() not in out.str.lower():
+                matching_names.append(name)
+
     # two-pass ranking with duplicates removed
     starts = out[out.str.lower().str.startswith(q)]
     contains = out[out.str.lower().str.contains(q) & ~out.isin(starts)]
-    suggestions = list(dict.fromkeys(list(starts) + list(contains)))
+    suggestions = list(dict.fromkeys(list(starts) + list(contains) + matching_names)) 
     
     return suggestions
