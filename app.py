@@ -109,7 +109,7 @@ def variantscape_page():
 
         if not EXIST_CANCER_BOOL:
             cancer_of_interest = disease_search.strip().lower()
-            recommended_cancers = autosuggest_item(cancer_of_interest, item_type="Cancer")
+            recommended_cancers = autosuggest_item(cancer_of_interest, item_type="Cancer", FUZZY_MATCH = True)
             return render_template('variantscape.html', recommended_cancers=recommended_cancers, exist_cancer_bool = EXIST_CANCER_BOOL, \
                                    gene=gene_search, variant=variant_search.upper(), disease = disease_search)
 
