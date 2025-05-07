@@ -164,8 +164,10 @@
 
 </style>
 
-<header style="text-align: center; margin-top: 20px; margin-bottom: 30px;">
-    <h1 style="font-size: 32px; margin-bottom: 10px;">Variantscape</h1>
+<header style="text-align: center; margin-top: 0; margin-bottom: 30px;">
+    <img src="/static/logos/Varinatscape_logo_new_small_edge.svg" alt="Variantscape Logo" style="max-width: 130px; display: block; margin: 0 auto 0;">
+    <h1 style="margin-top: 5px">
+          Variantscape</h1>
     <p style="font-size: 16px; color: #555; margin: 0 0 5px;">
         Search literature-derived co-associations between variants, cancer types, and treatments
     </p>
@@ -176,7 +178,6 @@
     <a href="/variantscape/studydesignclustermap" target="_blank" style="font-size: 13px; color: #1565c0; text-decoration: none; margin-bottom: 10px;">
         Explore study design cluster map →
     </a>
-
     <p style="font-size: 12px; color: #999; margin-top: 15px;">
         For research purposes only
     </p>
@@ -314,7 +315,32 @@
 </script>
 {% endif %}
 
-<!-- Display cancer types recommandations -->
+<!-- Display cancer types recommandations when no cancer type entered by user, but variant exists-->
+{% if exist_variant_bool is defined and exist_variant_bool and not disease%}
+<div style="margin: 40px auto; max-width: 600px; background-color: #e7f4fb; color: #0d47a1; border: 1px solid #b3d4fc; padding: 20px 25px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.03); font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
+    <p style="margin: 0 0 10px;">
+        <strong>It looks like you didn't enter a cancer type.</strong><br>
+        The following cancer types are co-associated with <strong><em>{{ gene }}</em></strong> <strong><em>{{ variant }}</em></strong>
+    </p>
+    <ul style="list-style: none; padding-left: 0; margin: 0;">
+        {% for cancer in recommended_cancers %}
+        <li style="background-color: #fff; border: 1px solid #cce4fb; padding: 8px 12px; margin-bottom: 6px; border-radius: 4px; font-size: 14px; cursor: pointer; transition: background-color 0.3s, transform 0.2s;" 
+            onmouseover="this.style.backgroundColor='#f1faff'; this.style.transform='scale(1.02)';" 
+            onmouseout="this.style.backgroundColor='#fff'; this.style.transform='scale(1)';" 
+            onclick="populateCancerField('{{ cancer }}')">
+            {{ cancer }}
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+<script>
+    function populateCancerField(cancer) {
+        document.getElementById('disease-search').value = cancer;
+    }
+</script>
+{% endif %}
+
+<!-- Display cancer types recommandations when non-existant cancer type entered by user-->
 {% if exist_cancer_bool is defined and not exist_cancer_bool %}
 <div style="margin: 40px auto; max-width: 600px; background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; padding: 20px 25px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.03); font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
     <p style="margin: 0 0 10px;">
@@ -339,7 +365,7 @@
 </script>
 {% endif %}
 
-{% if top_sens or top_res or top_var_c %}
+{% if exist_cancer_bool is defined and exist_cancer_bool and exist_variant_bool is defined and exist_variant_bool%}
 <!-- Display results -->
 <div class="container" style="margin: 40px auto; background-color: #fff; padding: 30px; border: 1px solid #e0e0e0; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); max-width: 1000px; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
 

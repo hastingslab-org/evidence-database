@@ -43,6 +43,29 @@ def check_cancer_in_graph(user_cancer_name):
     cancer_of_interest = CANCER_ALIAS_MAP.get(clean_input, clean_input)
     return cancer_of_interest in G.nodes
 
+
+
+def get_associated_cancer_types_from_variant(gene_name, variant_name):
+    """Get associated cancer types from the variant."""
+    variant_of_interest = (variant_name + "_" + gene_name).lower()
+    lowercase_mapping = {key.lower(): key for key in G.nodes}  # Create a temporary mapping of lowercase keys to original keys
+    variant_of_interest = lowercase_mapping.get(variant_of_interest) #TODO do this block only once in app.py ?
+
+    var_nei = set(G.neighbors(variant_of_interest))
+    var_cancers = [
+        n for n in var_nei
+        if G.nodes[n]['category']=='Cancer'
+        and n != variant_of_interest
+    ]
+
+    vc_weights = {}
+    for c in var_cancers:
+        w_v = G[variant_of_interest][c]['weight']
+        vc_weights[c] = w_v
+        sorted_var_c = [key.capitalize() for key, _ in sorted(vc_weights.items(), key=lambda x: x[1], reverse=True)]
+    return sorted_var_c
+
+
 def compute_associations(gene_name, variant_name, cancer_name):  
     top_sens, top_res, top_var_c, sens_pct, res_pct, cancer_pct = \
         None, None, None, None, None, None

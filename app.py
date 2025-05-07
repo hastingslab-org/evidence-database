@@ -11,7 +11,7 @@ import chromadb
 from chromadb.utils import embedding_functions
 
 from genomics.genomics_data import fuzzy_match_gml, get_items_by_name_fuzzy, get_items_from_ids, get_item_by_name, get_item_from_single_id
-from variantscape.variantscape import compute_associations, check_variant_in_graph, check_cancer_in_graph
+from variantscape.variantscape import compute_associations, check_variant_in_graph, check_cancer_in_graph, get_associated_cancer_types_from_variant
 from variantscape.graph_store import G
 from variantscape.variantscape import autosuggest_item
 
@@ -99,6 +99,14 @@ def variantscape_page():
         EXIST_VARIANT_BOOL = check_variant_in_graph(gene_search, variant_search)
         EXIST_CANCER_BOOL = check_cancer_in_graph(disease_search)
 
+        if EXIST_VARIANT_BOOL and disease_search.strip() == "":
+            recommended_cancers = get_associated_cancer_types_from_variant(gene_search, variant_search)
+            recommended_cancers = [c.capitalize() for c in recommended_cancers] #cap first letter
+
+            return render_template('variantscape.html', recommended_cancers=recommended_cancers, exist_variant_bool = EXIST_VARIANT_BOOL, \
+                                   gene=gene_search.upper(), variant=variant_search.upper())
+
+        
         if not EXIST_VARIANT_BOOL:
             variant_of_interest = (variant_search + "_" + gene_search).lower()
             recommended_variants = [
@@ -107,6 +115,7 @@ def variantscape_page():
             return render_template('variantscape.html', recommended_variants=recommended_variants, exist_variant_bool = EXIST_VARIANT_BOOL, \
                                    gene=gene_search, variant=variant_search.upper(), disease = disease_search)
 
+      
         if not EXIST_CANCER_BOOL:
             cancer_of_interest = disease_search.strip().lower()
             recommended_cancers = autosuggest_item(cancer_of_interest, item_type="Cancer", FUZZY_MATCH = True)
@@ -121,7 +130,7 @@ def variantscape_page():
                                sens_pct=sens_pct, res_pct=res_pct, cancer_pct=cancer_pct, gene=gene_name, \
                                 variant=variant_name.upper(), disease = disease_search, \
                                     treatment_min_highlight = TREATMENT_MIN_HIGHLIGHT,
-                                    cancer_min_highlight = CANCER_MIN_HIGHLIGHT) #TODO add error handling for empty results
+                                    cancer_min_highlight = CANCER_MIN_HIGHLIGHT, exist_cancer_bool = EXIST_CANCER_BOOL, exist_variant_bool = EXIST_VARIANT_BOOL) #TODO add error handling for empty results
     #TODO pass params more elegantly
     if request.method == 'GET':
         return render_template('variantscape.html')
