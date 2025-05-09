@@ -140,7 +140,7 @@ def autosuggest_item(user_input: str, item_type: str, corresponding_gene = None,
     q = user_input.strip().lower()
 
     if item_type == 'Gene':
-            entities = metadata_mapping[metadata_mapping['Category'] == "Variant"]['Entity'] #no genes in the mapping, but only concatenated varinates and genes
+        entities = metadata_mapping[metadata_mapping['Category'] == "Variant"]['Entity'] #no genes in the mapping, but only concatenated varinates and genes
     else:
         entities = metadata_mapping[metadata_mapping['Category'] == item_type]['Entity']
 
@@ -167,6 +167,6 @@ def autosuggest_item(user_input: str, item_type: str, corresponding_gene = None,
     # two-pass ranking with duplicates removed
     starts = out[out.str.lower().str.startswith(q)]
     contains = out[out.str.lower().str.contains(q) & ~out.isin(starts)]
-    suggestions = list(dict.fromkeys(list(starts) + list(contains) + matching_names)) 
+    suggestions = list(dict.fromkeys(list(starts) + list(contains) + list(matching_names))) 
     
     return suggestions

@@ -149,7 +149,7 @@ def item_suggestions(item_type):
     if not q.strip():
         return jsonify([])
 
-    suggestions = autosuggest_item(q, item_type, corresponding_gene=gene)
+    suggestions = autosuggest_item(q, item_type, corresponding_gene=gene, FUZZY_MATCH = True)
     
     if item_type.lower() == "variant":
         new_suggestions = []
@@ -165,7 +165,6 @@ def item_suggestions(item_type):
             else:
                 new_suggestions.append(s)
         suggestions = list(dict.fromkeys(new_suggestions))
-
     return jsonify(suggestions[:5])
 
 @app.route('/variantscape/networkgraph', methods=['GET'])
