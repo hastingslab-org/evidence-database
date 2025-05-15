@@ -306,13 +306,6 @@
         {% endfor %}
     </ul>
 </div>
-<script>
-    function populateFields(variant) {
-        const [gene, variantName] = variant.split(' ');
-        document.getElementById('gene-search').value = gene;
-        document.getElementById('variant-search').value = variantName;
-    }
-</script>
 {% endif %}
 
 <!-- Display cancer types recommandations when no cancer type entered by user, but variant exists-->
@@ -339,6 +332,27 @@
     }
 </script>
 {% endif %}
+
+<!-- Display variants recommandations when no variant entered by user, but cancer type exists-->
+{% if exist_cancer_bool is defined and exist_cancer_bool and not variant%}
+<div style="margin: 40px auto; max-width: 600px; background-color: #e7f4fb; color: #0d47a1; border: 1px solid #b3d4fc; padding: 20px 25px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.03); font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
+    <p style="margin: 0 0 10px;">
+        <strong>It looks like you didn't enter a variant.</strong><br>
+        The following variants are co-associated with <strong>{{ disease }}</strong>
+    <ul style="list-style: none; padding-left: 0; margin: 0;">
+        {% for variant in recommended_variants %}
+        <li style="background-color: #fff; border: 1px solid #cce4fb; padding: 8px 12px; margin-bottom: 6px; border-radius: 4px; font-size: 14px; cursor: pointer; transition: background-color 0.3s, transform 0.2s;" 
+            onmouseover="this.style.backgroundColor='#f1faff'; this.style.transform='scale(1.02)';" 
+            onmouseout="this.style.backgroundColor='#fff'; this.style.transform='scale(1)';" 
+            onclick="populateFields('{{ variant }}')">
+            {{ variant }}
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+
 
 <!-- Display cancer types recommandations when non-existant cancer type entered by user-->
 {% if exist_cancer_bool is defined and not exist_cancer_bool %}
@@ -501,6 +515,15 @@
     </div>
 </div>
 {% endif %}
+
+<!-- JavaScript to populate fields with recommended variants -->
+<script>
+    function populateFields(variant) {
+        const [gene, variantName] = variant.split(' ');
+        document.getElementById('gene-search').value = gene;
+        document.getElementById('variant-search').value = variantName;
+    }
+</script>
 
 
 <!-- Citation and GitHub link -->
