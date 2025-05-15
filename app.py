@@ -11,7 +11,7 @@ import chromadb
 from chromadb.utils import embedding_functions
 
 from genomics.genomics_data import fuzzy_match_gml, get_items_by_name_fuzzy, get_items_from_ids, get_item_by_name, get_item_from_single_id
-from variantscape.variantscape import compute_associations, check_variant_in_graph, check_cancer_in_graph, get_associated_cancer_types_from_variant
+from variantscape.variantscape import compute_associations, check_variant_in_graph, check_cancer_in_graph, get_associated_cancer_types_from_variant, get_associated_variants_from_cancer_type
 from variantscape.graph_store import G
 from variantscape.variantscape import autosuggest_item
 
@@ -99,12 +99,25 @@ def variantscape_page():
         EXIST_VARIANT_BOOL = check_variant_in_graph(gene_search, variant_search)
         EXIST_CANCER_BOOL = check_cancer_in_graph(disease_search)
 
+        #variant but no cancer type entered
         if EXIST_VARIANT_BOOL and disease_search.strip() == "":
             recommended_cancers = get_associated_cancer_types_from_variant(gene_search, variant_search)
             recommended_cancers = [c.capitalize() for c in recommended_cancers] #cap first letter
 
             return render_template('variantscape.html', recommended_cancers=recommended_cancers, exist_variant_bool = EXIST_VARIANT_BOOL, \
                                    gene=gene_search.upper(), variant=variant_search.upper())
+
+        #cancer type but no variant entered
+        if EXIST_CANCER_BOOL and variant_search.strip() == "" and gene_search.strip() == "":
+            recommended_variants = get_associated_variants_from_cancer_type(disease_search)
+            recommended_variants = [v.capitalize() for v in recommended_variants][:10]
+            recommended_variants = [
+                " ".join(reversed(variant.split("_"))).upper() for variant in recommended_variants
+            ] #reformat to gene-space-variant format
+
+            return render_template('variantscape.html', recommended_variants=recommended_variants, exist_cancer_bool = EXIST_CANCER_BOOL, \
+                                   disease=disease_search.capitalize())
+
 
         
         if not EXIST_VARIANT_BOOL:

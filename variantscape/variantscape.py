@@ -44,7 +44,6 @@ def check_cancer_in_graph(user_cancer_name):
     return cancer_of_interest in G.nodes
 
 
-
 def get_associated_cancer_types_from_variant(gene_name, variant_name):
     """Get associated cancer types from the variant."""
     variant_of_interest = (variant_name + "_" + gene_name).lower()
@@ -62,9 +61,24 @@ def get_associated_cancer_types_from_variant(gene_name, variant_name):
     for c in var_cancers:
         w_v = G[variant_of_interest][c]['weight']
         vc_weights[c] = w_v
-        sorted_var_c = [key.capitalize() for key, _ in sorted(vc_weights.items(), key=lambda x: x[1], reverse=True)]
+    sorted_var_c = [key.capitalize() for key, _ in sorted(vc_weights.items(), key=lambda x: x[1], reverse=True)]
     return sorted_var_c
 
+def get_associated_variants_from_cancer_type(cancer_name):
+    """Get associated variants from cancer type."""
+    cancer_of_interest = cancer_name.lower()
+    cancer_nei = set(G.neighbors(cancer_of_interest))
+    associated_variants = [
+        n for n in cancer_nei
+        if G.nodes[n]['category']=='Variant'
+    ]
+
+    vc_weights = {}
+    for v in associated_variants:
+        w = G[cancer_of_interest][v]['weight']
+        vc_weights[v] = w
+    sorted_var = [key.capitalize() for key, _ in sorted(vc_weights.items(), key=lambda x: x[1], reverse=True)]
+    return sorted_var
 
 def compute_associations(gene_name, variant_name, cancer_name):  
     top_sens, top_res, top_var_c, sens_pct, res_pct, cancer_pct = \
