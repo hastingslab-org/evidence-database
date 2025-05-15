@@ -69,15 +69,23 @@
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
   </body>
 
-  <footer class="logo-banner mt-5">
-    <div class="container-fluid d-flex flex-wrap
-                justify-content-between align-items-center">
-      {% for file in partner_logos %}
-        <img src="{{ url_for('static', filename='bottom_banner/' ~ file) }}"
+<footer class="logo-banner mt-5">
+  <div class="container-fluid d-flex flex-wrap
+              justify-content-between align-items-center">
+
+    {% for file, link in partner_logos %}
+      <a href="{{ link }}"           
+         target="_blank"            
+         rel="noopener noreferrer"> 
+        <img src="{{ url_for('static',
+                             filename='bottom_banner/' ~ file) }}"
              alt="{{ file.rsplit('.', 1)[0]|replace('-', ' ') }}"
              class="partner-logo">
-      {% endfor %}
-    </div>
-  </footer>
+      </a>
+    {% endfor %}
+
+  </div>
+</footer>
+
   
 </html>

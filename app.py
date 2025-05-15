@@ -24,6 +24,13 @@ TREATMENT_MIN_HIGHLIGHT        = 300   # and require ≥X total weight
 CANCER_MIN_HIGHLIGHT           = 80    # and require ≥X total weight
 #TODO add percentile and fuzzy ratio (currently in other files). Move to a config file ? 
 
+PARTNER_LINKS = {
+    "Hoch KSSG logo.png": "https://www.h-och.ch/",
+    "MED-HSG_Logo_EN_RGB.svg": "https://med.unisg.ch/en/",
+    "sib_logo2023.png": "https://www.sib.swiss/",
+    "uzh_logo_d_pos.svg": "https://www.uzh.ch/en.html",
+} #TODO put in a file - partners.json and import it here?
+
 #app config
 def create_app():
     app = Flask(__name__, static_folder='static', static_url_path='/static')
@@ -61,22 +68,29 @@ def get_qa_item(item_name, item_id, json_load=False):
     else:
         return jsonify({"error": "Response not found"}), 404
 
-#for bottom banner logos
-@lru_cache(maxsize=1)            
-def get_partner_logos():
-    """Return a sorted list of image filenames in /static/img/partners/."""
+@lru_cache(maxsize=1) #TODO put in a seperate file and import ?
+def get_partner_logos() -> list[tuple[str, str]]:
+    """
+    Return a sorted list of (filename, url) tuples for the bottom banner.
+    """
     partner_dir = os.path.join(current_app.static_folder, "bottom_banner")
     if not os.path.isdir(partner_dir):
         return []
 
-    files = [
+    files = sorted(
         f for f in os.listdir(partner_dir)
         if f.lower().endswith((".png", ".jpg", ".jpeg", ".svg"))
-    ]
-    return sorted(files)
+    )
 
+    # pair each file with its link (or "#" as a benign fallback)
+    return [(f, PARTNER_LINKS.get(f, "#")) for f in files]
 
 app = create_app()
+
+@app.context_processor
+def inject_partner_logos():
+    """Automatically inject `partner_logos` into all templates."""
+    return dict(partner_logos=get_partner_logos())
 
 ########################### app routes ###########################
 @app.route('/', methods=['GET'])
@@ -119,7 +133,6 @@ def variantscape_page():
                                    disease=disease_search.capitalize())
 
 
-        
         if not EXIST_VARIANT_BOOL:
             variant_of_interest = (variant_search + "_" + gene_search).lower()
             recommended_variants = [
