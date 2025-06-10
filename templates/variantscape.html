@@ -161,6 +161,62 @@
         fill:#444;
     }
 
+    .search-wrapper {
+        position: relative;
+        margin-bottom: 1.5rem;
+    }
+
+    .search-wrapper input {
+        width: 100%;
+        font-size: 14px;
+        padding: 8px 2rem 8px 8px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+    }
+
+    .dict-toggle {
+        position: absolute;
+        top: 50%;
+        right: 0.5rem;
+        transform: translateY(-50%);
+        background: transparent;
+        border: none;
+        font-size: 16px;
+        color: #888;
+        cursor: pointer;
+    }
+
+    .dict-toggle:hover {
+        color: #1565c0;
+    }
+
+    .dict-dropdown {
+        list-style: none;
+        padding: 0;
+        position: absolute;
+        z-index: 1000;
+        top: calc(100% + .25rem);
+        left: 0;
+        width: 100%;
+        max-height: 240px;
+        overflow-y: auto;
+        background: #fff;
+        border: 1px solid #d0d0d0;
+        border-radius: 4px;
+        box-shadow: 0 3px 8px rgba(0, 0, 0, .08);
+        font-size: 14px;
+        text-align: left
+    }
+
+    .dict-dropdown li {
+        padding: 6px 10px;
+        cursor: pointer;
+        text-align: left
+    }
+
+    .dict-dropdown li:hover {
+        background: #f5faff;
+    }
 
 </style>
 
@@ -187,57 +243,34 @@
 <form action="/variantscape" method="post" style="text-align: center; margin-top: 20px; display: flex; justify-content: center; gap: 20px; flex-wrap: wrap;">
     <div class="form-group" style="flex: 1; min-width: 250px; max-width: 300px;">
         <label for="gene-search" style="display: block; font-size: 14px; margin-bottom: 5px;">Enter gene</label>
-        <input style="font-size: 14px;" id="gene-search"
-            name="gene"
-            type="text"
-            placeholder="e.g., BRAF, BRCA1, BRCA2"
-            list="gene-options"         
-            value="{{ gene }}"
-            autocomplete="off"   
-            >
-        <!-- browser reads <datalist> automatically -->
-        <datalist id="gene-options"></datalist>
+        <div class="search-wrapper">
+            <input id="gene-search" name="gene" type="text" placeholder="e.g., BRAF, BRCA1, BRCA2" list="gene-options" value="{{ gene }}" autocomplete="off">
+            <button type="button" class="dict-toggle" aria-label="Browse all genes" data-target="gene-dropdown">▾</button>
+            <ul id="gene-dropdown" class="dict-dropdown"></ul>
+            <datalist id="gene-options"></datalist>
+        </div>
     </div>
+
     <div class="form-group" style="flex: 1; min-width: 250px; max-width: 300px;">
-        <label for="variant-search" style="display: block; font-size: 14px; margin-bottom: 5px;">Enter gene-specific variant</label>
-        <input style="font-size: 14px;" id="variant-search"
-            name="variant"
-            type="text"
-            placeholder="e.g., V600E, L816Q"
-            list="variant-options"         
-            value="{{ variant }}"
-            autocomplete="off"   
-            >
-        <!-- browser reads <datalist> automatically -->
-        <datalist id="variant-options"></datalist>
+        <label for="variant-search" style="display: block; font-size: 14px; margin-bottom: 5px;">Enter variant</label>
+        <div class="search-wrapper">
+            <input id="variant-search" name="variant" type="text" placeholder="e.g., V600E, L816Q" list="variant-options" value="{{ variant }}" autocomplete="off">
+            <button type="button" class="dict-toggle" aria-label="Browse all variants" data-target="variant-dropdown">▾</button>
+            <ul id="variant-dropdown" class="dict-dropdown" hidden></ul>
+            <datalist id="variant-options"></datalist>
+        </div>
     </div>
+
     <div class="form-group" style="flex: 1; min-width: 250px; max-width: 300px;">
         <label for="disease-search" style="display: block; font-size: 14px; margin-bottom: 5px;">Enter cancer type</label>
-        <input style="font-size: 14px;" id="disease-search"
-            name="disease"
-            type="text"
-            placeholder="e.g., breast cancer, colon cancer"
-            list="cancer-options"         
-            value="{{ disease }}"
-            autocomplete="off"   
-            >
-        <!-- browser reads <datalist> automatically -->
-        <datalist id="cancer-options"></datalist>
+        <div class="search-wrapper">
+            <input id="cancer-search" name="cancer" type="text" placeholder="e.g., breast cancer, colon cancer" list="cancer-options" value="{{ disease }}" autocomplete="off">
+            <button type="button" class="dict-toggle" aria-label="Browse all cancer types" data-target="cancer-dropdown">▾</button>
+            <ul id="cancer-dropdown" class="dict-dropdown" hidden></ul>
+            <datalist id="cancer-options"></datalist>
+        </div>
     </div>
-    
-    <div style="flex-basis:100%; text-align:center; margin-top:4px;">
-        <a href="http://127.0.0.1:5000/variantscape/variant-dictionary"
-           target="_blank"
-           style="font-size:13px; color:#1565c0; text-decoration:none; margin-right:14px;">
-            See variant dictionary →
-        </a>
-        <a href="http://127.0.0.1:5000/variantscape/cancer-dictionary"
-           target="_blank"
-           style="font-size:13px; color:#1565c0; text-decoration:none;">
-            See cancer&nbsp;type dictionary →
-        </a>
-    </div>
-    
+
     <button type="submit" style="margin-top: 20px; padding: 10px 20px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; font-size: 14px; cursor: pointer;">
         Search
     </button>
@@ -363,7 +396,6 @@
     </ul>
 </div>
 {% endif %}
-
 
 <!-- Display cancer types recommandations when non-existant cancer type entered by user-->
 {% if exist_cancer_bool is defined and not exist_cancer_bool %}
@@ -535,6 +567,46 @@
         document.getElementById('variant-search').value = variantName;
     }
 </script>
+
+<script>
+    (() => {
+      /* Attach to every arrow ≙ .dict-toggle ------------------------------- */
+      document.querySelectorAll('.dict-toggle').forEach(btn => {
+        const targetId = btn.dataset.target;
+        const dropdown = document.getElementById(targetId);
+        const input    = btn.closest('.search-wrapper').querySelector('input');
+    
+        /* lazy-load dictionary only once – on first click ------------------- */
+        let loaded = false;
+        btn.addEventListener('click', async () => {
+          dropdown.hidden = !dropdown.hidden;         // toggle visibility
+          if (loaded || !dropdown.hidden) return;     // skip if already filled
+    
+          /* build API URL the same way autosuggest does, but with q="" to get all */
+          const itemType = input.id.split('-')[0];    // "gene" | "variant" | "cancer"
+          const url = `/item-dictionary/${itemType.charAt(0).toUpperCase()+itemType.slice(1)}`;
+          try {
+            const r = await fetch(url);
+            if (!r.ok) throw new Error(r.statusText);
+            const items = await r.json();
+            dropdown.innerHTML = items.map(v => `<li>${v}</li>`).join('');
+            loaded = true;
+          } catch (err) {
+            dropdown.innerHTML = `<li style="color:#a00;padding:6px 10px;">Error loading list</li>`;
+            console.error(err);
+          }
+        });
+    
+        /* click on a list item → paste into the input ----------------------- */
+        dropdown.addEventListener('click', e => {
+          if (e.target.tagName !== 'LI') return;
+          input.value = e.target.textContent;
+          dropdown.hidden = true;
+          input.dispatchEvent(new Event('input'));    // trigger autosuggest logic
+        });
+      });
+    })();
+</script>    
 
 
 <!-- Citation and GitHub link -->
