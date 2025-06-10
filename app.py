@@ -108,7 +108,7 @@ def variantscape_page():
         form_data = request.form.to_dict(flat=False)  
         gene_search = form_data["gene"][0]
         variant_search = form_data["variant"][0]
-        disease_search = form_data["disease"][0]
+        disease_search = form_data["cancer"][0]
 
         EXIST_VARIANT_BOOL = check_variant_in_graph(gene_search, variant_search)
         EXIST_CANCER_BOOL = check_cancer_in_graph(disease_search)
@@ -132,7 +132,6 @@ def variantscape_page():
             return render_template('variantscape.html', recommended_variants=recommended_variants, exist_cancer_bool = EXIST_CANCER_BOOL, \
                                    disease=disease_search.capitalize())
 
-
         if not EXIST_VARIANT_BOOL:
             variant_of_interest = (variant_search + "_" + gene_search).lower()
             recommended_variants = [
@@ -141,7 +140,6 @@ def variantscape_page():
             return render_template('variantscape.html', recommended_variants=recommended_variants, exist_variant_bool = EXIST_VARIANT_BOOL, \
                                    gene=gene_search, variant=variant_search.upper(), disease = disease_search)
 
-      
         if not EXIST_CANCER_BOOL:
             cancer_of_interest = disease_search.strip().lower()
             recommended_cancers = autosuggest_item(cancer_of_interest, item_type="Cancer", FUZZY_MATCH = True)
@@ -163,6 +161,43 @@ def variantscape_page():
 
 
 VALID_TYPES = {"gene", "variant", "cancer"}
+@app.get("/item-dictionary/<item_type>")
+def item_dictionary(item_type):
+    print(f"Item dictionary requested for type: {item_type}")
+    if item_type.lower() not in VALID_TYPES:
+        if item_type.lower() not in VALID_TYPES:
+            abort(404)
+    nodes = [n for n in G.nodes if G.nodes[n]['category'] == item_type.capitalize()]
+    if item_type.lower() == "gene":
+        nodes = [n for n in G.nodes if G.nodes[n]['category'] == "Variant"]
+    else:
+        nodes = [n for n in G.nodes if G.nodes[n]['category'] == item_type.capitalize()]
+
+    gene = request.args.get("gene", "").strip()
+
+    print("Nodes found:", nodes)
+    if item_type.lower() == "variant" or item_type.lower() == "gene":
+        item_dict = []
+        print("HERE")
+        for n in nodes:
+            print(n)
+            if "_" in n:
+                var, g = n.split("_", 1)
+                print("G", g)
+                if item_type.lower() == "gene":
+                    item_dict.append(g)
+                else:  # assume variant
+                    if gene and g.lower() != gene.lower():
+                        continue
+                    item_dict.append(var)
+            else:
+                item_dict.append(n)
+        final_dict = list(dict.fromkeys(item_dict))  # remove duplicates while preserving order
+
+    elif item_type.lower() == "cancer":
+        final_dict = list(dict.fromkeys(nodes))
+    return jsonify(final_dict)
+
 @app.get("/item-suggestions/<item_type>")
 def item_suggestions(item_type):
     
@@ -290,6 +325,16 @@ def answer_page():
         return render_template('answer.html', query=query, query_results=query_results, \
                                patient_data=json_patient_data, llm_answer=llm_answer)
 
+#Routre for dictionaries
+@app.route('/http://127.0.0.1:5000/variantscape/variant-dictionary', methods=['GET'])
+def variant_dictionary():
+    variants =  [
+        n for n in G.nodes
+        if G.nodes[n]['category']=='Variant'
+    ]
+
+    print(variants)
+    return render_template('variant_dictionary.html', variants=variants)
 
 # Route for streaming the LLM response
 @app.route('/stream_response', methods=['POST'])
