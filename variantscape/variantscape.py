@@ -149,7 +149,6 @@ def autosuggest_item(user_input: str, item_type: str, corresponding_gene = None,
     - Suggestions whose *start* matches rank higher
     - Return unique, presorted list
     """
-
     out = []
     q = user_input.strip().lower()
 
