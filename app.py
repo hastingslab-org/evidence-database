@@ -2,6 +2,7 @@ import json
 import os
 import uuid
 from flask import Flask, render_template, send_from_directory, request, Response, session, jsonify, abort, current_app
+from flask_cors import CORS
 from werkzeug.exceptions import RequestEntityTooLarge
 from llm import call_llm_stream, get_relevant_papers
 from init_db import init_db
@@ -17,7 +18,7 @@ from variantscape.variantscape import autosuggest_item
 
 
 # Get db directory path
-DB_PATH = 'chroma_data2'
+DB_PATH = 'chroma_data_20250603'
 
 #Variantscape config
 TREATMENT_MIN_HIGHLIGHT        = 300   # and require ≥X total weight
@@ -34,10 +35,13 @@ PARTNER_LINKS = {
 #app config
 def create_app():
     app = Flask(__name__, static_folder='static', static_url_path='/static')
+    CORS(app)  # Enable CORS for all routes
     app.config['SESSION_TYPE'] = 'filesystem'  # Use the filesystem to store session data
     app.config['SESSION_PERMANENT'] = False
     app.config['SESSION_USE_SIGNER'] = True
     app.config['SECRET_KEY'] = 'my_secret_key' #TODO 
+
+    
 
     @app.context_processor
     def inject_partner_logos():
@@ -45,6 +49,8 @@ def create_app():
         return {"partner_logos": get_partner_logos()}
 
     return app
+
+
 
 #db access functions
 def get_db_connection():
@@ -86,6 +92,7 @@ def get_partner_logos() -> list[tuple[str, str]]:
     return [(f, PARTNER_LINKS.get(f, "#")) for f in files]
 
 app = create_app()
+ANGULAR_APP_DIST_DIR = os.path.join(app.static_folder, 'evidence-db-angular')
 
 @app.context_processor
 def inject_partner_logos():
@@ -97,9 +104,9 @@ def inject_partner_logos():
 def home_page():
     return render_template('home.html')
 
-@app.route('/literature', methods=['GET'])
-def search_query_page():
-    return render_template('search_query_page.html')
+# @app.route('/literature', methods=['GET'])
+# def search_query_page():
+#     return render_template('search_query_page.html')
 
 @app.route('/variantscape', methods=['GET', 'POST'])
 def variantscape_page():
@@ -367,13 +374,10 @@ def stream_response():
                     "INSERT INTO qa_data (id, query, patient_data, papers, response) VALUES (?, ?, ?, ?, ?)",
                     (response_id, query, patient_data_json, papers_json, full_response)
                 )
-
                 conn.commit()  # Commit the transaction
-
             except Exception as e:
                 conn.rollback()  # Rollback on error to prevent partial updates
                 print("Database error:", e)
-
             finally:
                 cursor.close()  # Close cursor
                 conn.close()  # Close connection         
@@ -382,6 +386,7 @@ def stream_response():
     
     except Exception as e:
         print(f"Error: {e}")
+        print("8")
         return Response("An error occurred while streaming the response.", status=500)
 
     
@@ -409,7 +414,182 @@ def view_paper(paper_id):
 def handle_large_request(error):
     return "The request is too large!", 413
 
-# Initialize the database
+
+# @app.route('/my-angular-app/')  # Main route for your Angular app
+# @app.route('/my-angular-app/<path:path>')  # Catch-all for Angular client-side routing
+# def serve_angular_page(path=None):
+#     """
+#     Serves the host HTML page (angular_host.html) that will bootstrap the Angular app.
+#     The 'path' variable captures subpaths for Angular's router but isn't used directly here.
+#     """
+#     return render_template('angular_host.html')
+
+# @app.route('/my-angular-app-assets/<path:filename>')
+# def serve_angular_assets(filename):
+#     """
+#     Serves static files (JS, CSS, images, etc.) for the Angular application
+#     from the ANGULAR_APP_DIST_DIR.
+#     """
+#     return send_from_directory(ANGULAR_APP_DIST_DIR, filename)
+# # Initialize the database
+
+
+
+@app.route('/literature/')  # Main route for your Angular app
+@app.route('/literature/<path:filename>')  # Catch-all for Angular client-side routing
+def serve_angular(filename='index.html'):
+    if '.' not in filename:
+        return send_from_directory(ANGULAR_APP_DIST_DIR, 'index.html')
+    return send_from_directory(ANGULAR_APP_DIST_DIR, filename)
+ 
+
+
+
+
+# API version of the view database endpoint for Angular
+@app.route('/api/view_database', methods=['GET'])
+def api_view_database():
+    try:
+        print("Received request to /api/view_database")
+        
+        # Connect to the database
+        print("Connecting to ChromaDB...")
+        chroma_client = chromadb.PersistentClient(path=DB_PATH)
+        
+        embedding_func = embedding_functions.SentenceTransformerEmbeddingFunction(
+            model_name="all-MiniLM-L6-v2"
+        )
+        
+        print("Getting collection...")
+        collection = chroma_client.get_collection(
+            name="searchable_db_collection_fd",
+            embedding_function=embedding_func
+        )
+        
+        print("Getting items from collection...")
+        # Get all items in the collection
+        results = collection.get()
+        
+        print(f"Found {len(results['ids'])} items")
+        
+        # Format the data for display
+        formatted_data = []
+        for i in range(len(results["ids"])):
+            item = {
+                "id": results["ids"][i],
+                "document": results["documents"][i]
+            }
+            
+            # Add metadata if available
+            if "metadatas" in results and results["metadatas"] and i < len(results["metadatas"]):
+                item["metadata"] = results["metadatas"][i]
+            
+            formatted_data.append(item)
+        
+        print("Returning JSON response")
+        return jsonify({"data": formatted_data})
+    
+    except Exception as e:
+        print(f"Error in /api/view_database: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+
+# API version of the answer endpoint for Angular frontend
+@app.route("/api/answer", methods=['POST'])
+def api_answer():
+    try:
+        # Get data from Angular form
+        data = request.get_json()
+        query = data.get('query', '')
+        patient_data = {k: v for k, v in data.items() if k != 'query'}
+        
+        # Generate query results
+        chroma_client = chromadb.PersistentClient(path=DB_PATH)
+        embedding_func = embedding_functions.SentenceTransformerEmbeddingFunction(model_name="all-MiniLM-L6-v2")
+        collection = chroma_client.get_collection(name="searchable_db_collection_fd",embedding_function=embedding_func)
+
+        # --- Start Debug Prints ---
+        print(f"--- DEBUG: Attempting to access collection at DB_PATH: {DB_PATH}")
+        print(f"--- DEBUG: Collection Name from client: {collection.name}")
+        collection_count = collection.count()
+        print(f"--- DEBUG: Number of items in collection: {collection_count}")
+        if collection_count > 0:
+            peeked_item = collection.peek(limit=1)
+           
+
+            # --- New Debug: Get item by ID and check its embedding ---
+          
+        else:
+            print(f"--- DEBUG: Collection appears to be empty or could not be loaded correctly.")
+        # --- End Debug Prints ---
+
+        query_results = get_relevant_papers(query, collection, patient_data)
+        
+        # Generate response ID
+        response_id = str(uuid.uuid4())
+        
+        # Store session variables
+        session['response_id'] = None
+        session['response_id'] = response_id
+        session.modified = True
+
+        print("Query:",query)
+        print("Query results:",query_results)
+
+        return jsonify({
+            "success": True,
+            "query": query,
+            "queryResults": query_results,
+            "patientData": patient_data,
+            "responseId": response_id
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+# Route for streaming the LLM response for Angular frontend
+@app.route('/api/stream_response', methods=['POST'])
+def api_stream_response():  
+    try: 
+        #get data
+        data = request.get_json()
+        print("Data:",data)
+        query = data.get('query', '')
+        papers = data.get('papers', {})
+        papers_json = json.dumps(papers)
+        patient_data = data.get('patient_data', {})
+        patient_data_json = json.dumps(patient_data)
+        response_id = data.get('response_id', '')
+
+       
+        def generate_response():
+            # Stream LLM response live
+            title_and_abst = ",".join(papers["documents"][0])
+            
+            chunks = []
+            for chunk in call_llm_stream(query, title_and_abst, patient_data):
+                if chunk:
+                    chunks.append(chunk) #collecting chunks
+                    yield chunk.encode('utf-8')
+            full_response = "".join(chunks)
+
+            #store response in db
+            conn = get_db_connectio()
+            cursor = conn.cursor()
+            cursor.execute("INSERT INTO qa_data (id, query, patient_data, papers, response) VALUES (?, ?, ?, ?, ?)",
+                           (response_id, query, patient_data_json, papers_json, full_response))
+            conn.commit()
+            conn.close()            
+
+        return Response(generate_response(), content_type='text/event-stream',  headers={"Response-ID": response_id})
+    
+    except Exception as e:
+        print(f"Error: {e}")
+        return Response("An error occurred while streaming the response.", status=500)
+
+
+
 print("Initializing database...")
 init_db()
 print("Database initialized.")

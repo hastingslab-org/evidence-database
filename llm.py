@@ -1,5 +1,6 @@
 from openai import OpenAI
 import json
+from environment import deepInfraKey
 
 #paths
 CHROMA_DATA_PATH = "./chroma_data2/"
@@ -35,6 +36,7 @@ def call_llm_stream(user_query, title_and_abst, patient_data):
     #LLM
     openai_client = OpenAI(
             base_url="https://api.deepinfra.com/v1/openai",
+            api_key=deepInfraKey
         )
     messages=[
     {"role": "system", "content": SYSTEM_MSG},
