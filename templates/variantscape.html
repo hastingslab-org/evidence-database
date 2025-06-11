@@ -262,7 +262,7 @@
     </div>
 
     <div class="form-group" style="flex: 1; min-width: 250px; max-width: 300px;">
-        <label for="disease-search" style="display: block; font-size: 14px; margin-bottom: 5px;">Enter cancer type</label>
+        <label for="cancer-search" style="display: block; font-size: 14px; margin-bottom: 5px;">Enter cancer type</label>
         <div class="search-wrapper">
             <input id="cancer-search" name="cancer" type="text" placeholder="e.g., breast cancer, colon cancer" list="cancer-options" value="{{ disease }}" autocomplete="off">
             <button type="button" class="dict-toggle" aria-label="Browse all cancer types" data-target="cancer-dropdown">▾</button>
@@ -328,7 +328,7 @@
       /* Attach to the three fields ----------------------------------------- */
       attachSuggest('gene-search',    'gene-options',    'Gene');             
       attachSuggest('variant-search', 'variant-options', 'Variant');
-      attachSuggest('disease-search', 'cancer-options',  'Cancer');           
+      attachSuggest('cancer-search', 'cancer-options',  'Cancer');           
     
     })();
 </script>
@@ -373,7 +373,7 @@
 </div>
 <script>
     function populateCancerField(cancer) {
-        document.getElementById('disease-search').value = cancer;
+        document.getElementById('cancer-search').value = cancer;
     }
 </script>
 {% endif %}
@@ -417,7 +417,7 @@
 </div>
 <script>
     function populateCancerField(cancer) {
-        document.getElementById('disease-search').value = cancer;
+        document.getElementById('cancer-search').value = cancer;
     }
 </script>
 {% endif %}

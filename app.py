@@ -163,7 +163,6 @@ def variantscape_page():
 VALID_TYPES = {"gene", "variant", "cancer"}
 @app.get("/item-dictionary/<item_type>")
 def item_dictionary(item_type):
-    print(f"Item dictionary requested for type: {item_type}")
     if item_type.lower() not in VALID_TYPES:
         if item_type.lower() not in VALID_TYPES:
             abort(404)
@@ -175,15 +174,11 @@ def item_dictionary(item_type):
 
     gene = request.args.get("gene", "").strip()
 
-    print("Nodes found:", nodes)
     if item_type.lower() == "variant" or item_type.lower() == "gene":
         item_dict = []
-        print("HERE")
         for n in nodes:
-            print(n)
             if "_" in n:
                 var, g = n.split("_", 1)
-                print("G", g)
                 if item_type.lower() == "gene":
                     item_dict.append(g)
                 else:  # assume variant
@@ -333,7 +328,6 @@ def variant_dictionary():
         if G.nodes[n]['category']=='Variant'
     ]
 
-    print(variants)
     return render_template('variant_dictionary.html', variants=variants)
 
 # Route for streaming the LLM response
