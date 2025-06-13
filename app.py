@@ -441,9 +441,6 @@ def serve_angular(filename='index.html'):
     if '.' not in filename:
         return send_from_directory(ANGULAR_APP_DIST_DIR, 'index.html')
     return send_from_directory(ANGULAR_APP_DIST_DIR, filename)
- 
-
-
 
 
 # API version of the view database endpoint for Angular
