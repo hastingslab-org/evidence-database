@@ -4,6 +4,7 @@ import os
 import pandas as pd
 from .graph_store import metadata_mapping
 from rapidfuzz import fuzz
+import ast
 
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -15,13 +16,6 @@ CANCER_THRESHOLD_PERCENTILE    = 80    # highlight top X% of cancer–variant we
 
 MATCHING_RATIO_THRESH = 0.8 # threshold for fuzzy matching TODO in config/common file
 
-CANCER_ALIAS_MAP = {
-    "nsclc": "lung cancer",
-    "non-small cell lung cancer": "lung cancer",
-    "tnbc": "breast cancer",
-    "her2+ breast cancer": "breast cancer"
-}
-
 EXCLUDED_TREATMENTS = {
     'chemotherapy', 'tyrosine kinase inhibitor', 'radiotherapy', 'hormone therapy',
     'adjuvant chemotherapy', 'immunotherapy', 'immune checkpoint inhibitor',
@@ -29,6 +23,35 @@ EXCLUDED_TREATMENTS = {
 }
 
 
+def compute_cancer_alias_map():
+    # Load and normalize the synonym dataframe
+    CIVIC_cancer_synonyms_df = pd.read_csv("static/Network_cancer_synonyms.csv")
+    df_syn = CIVIC_cancer_synonyms_df.copy()
+    df_syn["name"] = df_syn["name"].str.strip().str.lower()
+
+    def safe_parse_synonyms(x):
+        if isinstance(x, str):
+            try:
+                parsed = ast.literal_eval(x)
+                if isinstance(parsed, list):
+                    return [s.strip().lower() for s in parsed if isinstance(s, str)]
+            except Exception as e:
+                print(f"Warning: could not parse synonym entry '{x}': {e}")
+        return []
+
+    df_syn["synonyms"] = df_syn["synonyms"].apply(safe_parse_synonyms)
+
+    # Build the alias map: synonym → canonical cancer name
+    cancer_alias_map = {}
+    for _, row in df_syn.iterrows():
+        canonical = row["name"]
+        for synonym in row["synonyms"]:
+            cancer_alias_map[synonym] = canonical
+
+    return cancer_alias_map
+
+#TODO define as object with methods
+CANCER_ALIAS_MAP = compute_cancer_alias_map()
 #TODO create a Graph class that contains the following methods
 def check_variant_in_graph(user_gene_name, user_variant_name):
     """Check if the variant exists in the graph."""
@@ -89,6 +112,8 @@ def compute_associations(gene_name, variant_name, cancer_name):
     variant_of_interest = lowercase_mapping.get(variant_of_interest) #TODO do this block only once in app.py ?
     
     clean_input = cancer_name.strip().lower()
+    print("CANCER_ALIAS_MAP:", CANCER_ALIAS_MAP.get(clean_input, clean_input))  # Debugging output
+
     cancer_of_interest = CANCER_ALIAS_MAP.get(clean_input, clean_input)
 
     # === Step 1: Cancer‐only treatments ===
