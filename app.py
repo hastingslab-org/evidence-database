@@ -154,12 +154,12 @@ def variantscape_page():
             return render_template('variantscape.html', recommended_cancers=recommended_cancers, exist_cancer_bool = EXIST_CANCER_BOOL, \
                                    gene=gene_search, variant=variant_search.upper(), disease = disease_search)
 
-        top_sens, top_res, top_var_c, sens_pct, res_pct, cancer_pct, \
+        cancer_of_interest, top_sens, top_res, top_var_c, sens_pct, res_pct, cancer_pct, \
             gene_name, variant_name = compute_associations(gene_search, variant_search, disease_search)
         
         return render_template('variantscape.html', top_sens=top_sens, top_res=top_res, top_var_c=top_var_c, \
                                sens_pct=sens_pct, res_pct=res_pct, cancer_pct=cancer_pct, gene=gene_name, \
-                                variant=variant_name.upper(), disease = disease_search, \
+                                variant=variant_name.upper(), disease = cancer_of_interest, \
                                     treatment_min_highlight = TREATMENT_MIN_HIGHLIGHT,
                                     cancer_min_highlight = CANCER_MIN_HIGHLIGHT, exist_cancer_bool = EXIST_CANCER_BOOL, exist_variant_bool = EXIST_VARIANT_BOOL) #TODO add error handling for empty results
     #TODO pass params more elegantly

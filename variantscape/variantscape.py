@@ -164,7 +164,7 @@ def compute_associations(gene_name, variant_name, cancer_name):
     # get gene and variant name from the variant of interest
     variant_name, gene_name = variant_of_interest.split("_")
 
-    return top_sens, top_res, top_var_c, sens_pct, res_pct, cancer_pct, gene_name, variant_name
+    return cancer_of_interest, top_sens, top_res, top_var_c, sens_pct, res_pct, cancer_pct, gene_name, variant_name
 
 
 def autosuggest_item(user_input: str, item_type: str, corresponding_gene = None, FUZZY_MATCH = False) -> list:
