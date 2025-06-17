@@ -386,7 +386,6 @@ def stream_response():
     
     except Exception as e:
         print(f"Error: {e}")
-        print("8")
         return Response("An error occurred while streaming the response.", status=500)
 
     
@@ -508,7 +507,7 @@ def api_answer():
         collection = chroma_client.get_collection(name="searchable_db_collection_fd",embedding_function=embedding_func)
 
         # --- Start Debug Prints ---
-        print(f"--- DEBUG: Attempting to access collection at DB_PATH: {DB_PATH}")
+        """print(f"--- DEBUG: Attempting to access collection at DB_PATH: {DB_PATH}")
         print(f"--- DEBUG: Collection Name from client: {collection.name}")
         collection_count = collection.count()
         print(f"--- DEBUG: Number of items in collection: {collection_count}")
@@ -520,7 +519,7 @@ def api_answer():
           
         else:
             print(f"--- DEBUG: Collection appears to be empty or could not be loaded correctly.")
-        # --- End Debug Prints ---
+        # --- End Debug Prints ---"""
 
         query_results = get_relevant_papers(query, collection, patient_data)
         
@@ -531,9 +530,6 @@ def api_answer():
         session['response_id'] = None
         session['response_id'] = response_id
         session.modified = True
-
-        print("Query:",query)
-        print("Query results:",query_results)
 
         return jsonify({
             "success": True,
@@ -551,7 +547,6 @@ def api_stream_response():
     try: 
         #get data
         data = request.get_json()
-        print("Data:",data)
         query = data.get('query', '')
         papers = data.get('papers', {})
         papers_json = json.dumps(papers)
