@@ -104,9 +104,6 @@ def inject_partner_logos():
 def home_page():
     return render_template('home.html')
 
-# @app.route('/literature', methods=['GET'])
-# def search_query_page():
-#     return render_template('search_query_page.html')
 
 @app.route('/variantscape', methods=['GET', 'POST'])
 def variantscape_page():
@@ -430,10 +427,8 @@ def handle_large_request(error):
 #     from the ANGULAR_APP_DIST_DIR.
 #     """
 #     return send_from_directory(ANGULAR_APP_DIST_DIR, filename)
+
 # # Initialize the database
-
-
-
 @app.route('/literature/')  # Main route for your Angular app
 @app.route('/literature/<path:filename>')  # Catch-all for Angular client-side routing
 def serve_angular(filename='index.html'):
