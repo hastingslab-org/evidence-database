@@ -6,9 +6,4 @@ titles_and_abstracts.csv
 test_api.ipynb
 genomics/create_genomic_db.ipynb
 environment.py
-chroma_data_20250603/329ef79e-3168-4099-a288-9b1e0a464412/data_level0.bin
-chroma_data_20250603/329ef79e-3168-4099-a288-9b1e0a464412/header.bin
-chroma_data_20250603/329ef79e-3168-4099-a288-9b1e0a464412/index_metadata.pickle
-chroma_data_20250603/329ef79e-3168-4099-a288-9b1e0a464412/length.bin
-chroma_data_20250603/329ef79e-3168-4099-a288-9b1e0a464412/link_lists.bin
-chroma_data_20250603/chroma.sqlite3
+chroma_data_20250603/

@@ -304,7 +304,7 @@ def answer_page():
         # Get papers
         chroma_client = chromadb.PersistentClient(path=DB_PATH)
         embedding_func = embedding_functions.SentenceTransformerEmbeddingFunction(model_name="mixedbread-ai/mxbai-embed-large-v1") #TODO move somewhere else
-        collection = chroma_client.get_collection(name="searchable_db_collection",embedding_function=embedding_func)
+        collection = chroma_client.get_collection(name="searchable_db_collection_fd",embedding_function=embedding_func)
         query_results = get_relevant_papers(query, collection, patient_data)
 
         response_id = str(uuid.uuid4())
