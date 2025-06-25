@@ -152,6 +152,25 @@ def get_items_from_ids(ids, item_name, db_path):
 
     return items
 
+def check_variant_in_database(gene_name, variant_name, db_path = "../database.db"):
+    """Check if the variant exists in the database."""
+
+    sql = f"""
+        SELECT 1
+        FROM   variants  AS v
+        JOIN   genes     AS g
+               ON g.id = CAST(v.gene_id AS INTEGER)   -- gene_id is TEXT
+        WHERE  g.name{" COLLATE NOCASE"} = ?
+          AND  v.name{" COLLATE NOCASE"} = ?
+        LIMIT 1;
+    """
+
+    with sqlite3.connect(db_path) as conn:
+        cursor = conn.execute(sql, (gene_name, variant_name))
+        return cursor.fetchone() is not None
+
+
+
 
 """ ***** Class to interact with cloud databases through API (CIVIC, ClinVar) *****"""
 class GenomicsData:

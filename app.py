@@ -41,7 +41,6 @@ def create_app():
     app.config['SESSION_USE_SIGNER'] = True
     app.config['SECRET_KEY'] = 'my_secret_key' #TODO 
 
-    
 
     @app.context_processor
     def inject_partner_logos():
@@ -49,8 +48,6 @@ def create_app():
         return {"partner_logos": get_partner_logos()}
 
     return app
-
-
 
 #db access functions
 def get_db_connection():
