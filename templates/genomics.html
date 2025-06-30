@@ -85,13 +85,13 @@
                             {% for variant in gene.variants %}
                                 {% if loop.index <= 5 %}
                                     <li>
-                                      <a href="/genomics/variant/{{ variant|urlencode }}" target="_blank" style="text-decoration: none; color: inherit;">
+                                      <a href="/genomics/variant/{{ gene.name|urlencode }}/{{ variant|urlencode }}" target="_blank" style="text-decoration: none; color: inherit;">
                                           {{ variant }}
                                       </a>
                                     </li>
                                 {% else %}
                                     <li class="hidden-item">
-                                      <a href="/genomics/variant/{{ variant|urlencode }}" target="_blank" style="text-decoration: none; color: inherit;">
+                                      <a href="/genomics/variant/{{ gene.name|urlencode }}/{{ variant|urlencode }}" target="_blank" style="text-decoration: none; color: inherit;">
                                           {{ variant }}
                                       </a>
                                     </li>

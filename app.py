@@ -2,6 +2,7 @@ import json
 import os
 import uuid
 from flask import Flask, render_template, send_from_directory, request, Response, session, jsonify, abort, current_app
+from flask import redirect, url_for
 from flask_cors import CORS
 from werkzeug.exceptions import RequestEntityTooLarge
 from llm import call_llm_stream, get_relevant_papers
@@ -11,10 +12,11 @@ from functools import lru_cache
 import chromadb
 from chromadb.utils import embedding_functions
 
-from genomics.genomics_data import fuzzy_match_gml, get_items_by_name_fuzzy, get_items_from_ids, get_item_by_name, get_item_from_single_id
+from genomics.genomics_data import fuzzy_match_gml, get_items_by_name_fuzzy, get_items_from_ids, get_item_by_name, get_item_from_single_id, check_variant_in_database
 from variantscape.variantscape import compute_associations, check_variant_in_graph, check_cancer_in_graph, get_associated_cancer_types_from_variant, get_associated_variants_from_cancer_type
 from variantscape.graph_store import G
 from variantscape.variantscape import autosuggest_item
+
 
 
 # Get db directory path
@@ -256,19 +258,26 @@ def genomics_page():
     if request.method == 'GET':
         return render_template('genomics.html')
 
-@app.route('/genomics/variant/<string:variant_name>')
-def variant_page(variant_name):
-    variant= get_item_by_name(variant_name, table_name="variants", db_path="database.db")
-    #get variant info
-    variant_data = {
-        "name": variant["name"],
-        "description": variant["description"],
-        "gene": get_item_from_single_id(variant["gene_id"], "genes", db_path="database.db")[0],
-        "molecular_profiles": get_items_from_ids(variant["molecular_profiles"], "molecular_profiles", db_path="database.db"),
-        "diseases": get_items_from_ids(variant["diseases"], "diseases", db_path="database.db"),
-    }
+@app.route('/genomics/variant/<string:gene_name>/<string:variant_name>')
+def variant_page(gene_name, variant_name):
+    print("variant_name:", variant_name)
+    if check_variant_in_database(gene_name, variant_name):
+        variant= get_item_by_name(variant_name, table_name="variants", db_path="database.db")
+        #get variant info
+        variant_data = {
+            "name": variant["name"],
+            "description": variant["description"],
+            "gene": get_item_from_single_id(variant["gene_id"], "genes", db_path="database.db")[0],
+            "molecular_profiles": get_items_from_ids(variant["molecular_profiles"], "molecular_profiles", db_path="database.db"),
+            "diseases": get_items_from_ids(variant["diseases"], "diseases", db_path="database.db"),
+        }
 
-    return render_template('variant.html', variant_data=variant_data)
+        return render_template('variant.html', variant_data=variant_data)
+    
+    else:
+        # If the variant is not found, redirect to the variantscape page with a message
+        return redirect(url_for('variantscape_page', error_message=f"Variant '{variant_name}' not found in the database."))
+
 
 @app.route('/genomics/molecular-profile/<string:mp_name>')
 def molecular_profile_page(mp_name):

@@ -100,6 +100,7 @@ def get_associated_variants_from_cancer_type(cancer_name):
     for v in associated_variants:
         w = G[cancer_of_interest][v]['weight']
         vc_weights[v] = w
+
     sorted_var = [key.capitalize() for key, _ in sorted(vc_weights.items(), key=lambda x: x[1], reverse=True)]
     return sorted_var
 
@@ -112,8 +113,6 @@ def compute_associations(gene_name, variant_name, cancer_name):
     variant_of_interest = lowercase_mapping.get(variant_of_interest) #TODO do this block only once in app.py ?
     
     clean_input = cancer_name.strip().lower()
-    print("CANCER_ALIAS_MAP:", CANCER_ALIAS_MAP.get(clean_input, clean_input))  # Debugging output
-
     cancer_of_interest = CANCER_ALIAS_MAP.get(clean_input, clean_input)
 
     # === Step 1: Cancer‐only treatments ===
