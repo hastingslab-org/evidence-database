@@ -237,26 +237,36 @@ def clustermap_page():
 
 @app.route('/genomics', methods=['GET', 'POST'])
 def genomics_page():
-    if request.method == 'POST':
-        form_data = request.form.to_dict(flat=False)  # Converts form data to a dictionary
-        gene_name = form_data["gene_name"][0]
-        # Get gene info
-        genes = get_items_by_name_fuzzy(gene_name, item_name="genes", db_path="database.db")
-        gene_data_list = []
-        for gene in genes:
-            gene_data = {
-                "name": gene["name"],
-                "description": gene["description"],
-                "diseases": get_items_from_ids(gene["diseases"], "diseases", db_path="database.db"),
-                "variants": get_items_from_ids(gene["variants"], "variants", db_path="database.db"),
-                "molecular_profiles": get_items_from_ids(gene["molecular_profiles"], "molecular_profiles", db_path="database.db")
-            }
-            gene_data_list.append(gene_data)
+    # Accept gene_name from either args or form without branching
+    gene_name = request.values.get("gene_name", "").strip()
 
-        return render_template('genomics.html', genes=gene_data_list)
+    if not gene_name:
+        # empty page or GET with no query
+        return render_template("genomics.html")
 
-    if request.method == 'GET':
-        return render_template('genomics.html')
+    # ----- business logic -----
+    genes = get_items_by_name_fuzzy(gene_name, item_name="genes", db_path="database.db")
+    gene_data_list = [
+        {
+            "name": g["name"],
+            "description": g["description"],
+            "diseases":  get_items_from_ids(g["diseases"],  "diseases",  db_path="database.db"),
+            "variants":  get_items_from_ids(g["variants"],  "variants",  db_path="database.db"),
+            "molecular_profiles":
+                         get_items_from_ids(g["molecular_profiles"], "molecular_profiles",
+                                            db_path="database.db"),
+        }
+        for g in genes
+    ]
+
+    # PRG: if the request was POST, redirect to the GET URL
+    if request.method == "POST":
+        return redirect(url_for("genomics_page", gene_name=gene_name))
+
+    return render_template("genomics.html", genes=gene_data_list)
+
+
+    
     
 @app.route("/genomics/variant/notfound")
 def variant_notfound():
