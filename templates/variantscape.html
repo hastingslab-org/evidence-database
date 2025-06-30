@@ -426,14 +426,20 @@
 <!-- Display results -->
 <div class="container" style="margin: 40px auto; background-color: #fff; padding: 30px; border: 1px solid #e0e0e0; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); max-width: 1000px; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; text-align: center;">
 
-    <h2 style="color: #2c3e50; margin-bottom: 70px;">Co-associations for <strong><em>{{ gene }}</em> <span style="text-transform: uppercase;">{{ variant }}</span></strong> and <strong>{{ disease }}</strong></h2>
-    
-    <a href="{{ url_for('variant_page',
-                    gene_name=gene,
-                    variant_name=variant) }}" 
-                    target="_blank" style="font-size: 14px; color: #1565c0; text-decoration: none; margin-bottom: 40px; display: inline-block;">
-        View variant information →
-    </a>
+   <h2 style="color: #2c3e50; margin-bottom: 70px;">
+    Co-associations for 
+    <strong>
+        <span class="tooltip-container">
+        <a href="{{ url_for('variant_page', gene_name=gene, variant_name=variant) }}" target="_blank"
+            style="color: #1565c0; text-decoration: underline; cursor: pointer;">
+            <em>{{ gene }}</em> <span style="text-transform: uppercase;">{{ variant }}</span>
+        </a>
+        <span class="tooltip-text" style="text-align: center;">View variant information</span>
+        </span>
+    </strong> 
+    and <strong>{{ disease }}</strong>
+    </h2>
+
     <!-- Color Legend -->
     <div class="legend-card">
         <h4>Color legend</h4>
@@ -530,7 +536,15 @@
     <div>
         <h3 style="color: #2c3e50; font-size: 18px; font-weight: bold; margin-bottom: 4px;">Other cancer types</h3>
         <p style="color: #888; font-size: 13px; margin-top: 4px; margin-bottom: 20px; text-align: center;">
-            Co-associated with <em>{{ gene }}</em> <span style="text-transform: uppercase;">{{ variant }}</span> and <em>{{ disease }}</em>
+            Co-associated with 
+            <span class="tooltip-container">
+                <a href="{{ url_for('variant_page', gene_name=gene, variant_name=variant) }}" target="_blank"
+                 style="text-decoration: underline; cursor: pointer;">
+                 <em>{{ gene }}</em> <span style="text-transform: uppercase;">{{ variant }}</span> 
+                </a>
+             <span class="tooltip-text" style="text-align: center;">View variant information</span>
+            </span>
+            and <em>{{ disease }}</em>
         </p>
         <div style="display: flex; justify-content: space-between; font-weight: bold; color: #666; font-size: 14px;">
             <span>Cancer type</span>
