@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}Variant not found{% endblock %}
+
+{% block content %}
+<div class="container" style="
+     max-width: 700px;
+     margin: 60px auto;
+     background: #fff3cd;
+     border: 1px solid #ffeeba;
+     border-radius: 8px;
+     padding: 35px 45px;
+     box-shadow: 0 4px 12px rgba(0,0,0,.05);
+     text-align: center;
+     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
+    
+    <h2 style="color:#856404; margin-bottom:18px;">Variant not found</h2>
+
+    <p style="font-size:16px; color:#856404; line-height:1.5; margin-bottom:30px;">
+        Unfortunately, the variant you requested is not present in the 
+        <strong>CIViC</strong> database.<br>
+        This usually means no curated evidence currently links this variant to
+        a clinical interpretation.
+    </p>
+</div>
+{% endblock %}

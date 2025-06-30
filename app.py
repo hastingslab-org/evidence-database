@@ -257,6 +257,11 @@ def genomics_page():
 
     if request.method == 'GET':
         return render_template('genomics.html')
+    
+@app.route("/genomics/variant/notfound")
+def variant_notfound():
+    """Display a simple 'variant not found' page."""
+    return render_template("variant_notfound.html")
 
 @app.route('/genomics/variant/<string:gene_name>/<string:variant_name>')
 def variant_page(gene_name, variant_name):
@@ -276,8 +281,7 @@ def variant_page(gene_name, variant_name):
     
     else:
         # If the variant is not found, redirect to the variantscape page with a message
-        return redirect(url_for('variantscape_page', error_message=f"Variant '{variant_name}' not found in the database."))
-
+        return redirect(url_for("variant_notfound"))
 
 @app.route('/genomics/molecular-profile/<string:mp_name>')
 def molecular_profile_page(mp_name):
