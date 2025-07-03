@@ -44,7 +44,7 @@
     <form action="/genomics" method="POST" id="mp-form" style="max-width: 600px; margin: 0 auto 40px; background: #fff; padding: 30px 40px; border: 1px solid #e0e0e0; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);">
         <label style="display: block; text-align: center; font-size: 18px; margin-bottom: 10px;">Search for Genes</label>
         <div class="form-group" style="display: flex; align-items: center; margin-bottom: 20px;">
-            <input type="text" id="gene_name" name="gene_name" placeholder="Enter gene name" required style="flex: 1; padding: 12px; border: 1px solid #e0e0e0; border-radius: 4px; font-size: 16px; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
+            <input type="text" id="gene_name" name="gene_name" placeholder="Enter gene name (e.g. BRAF, BRCA1, EGFR)" required style="flex: 1; padding: 12px; border: 1px solid #e0e0e0; border-radius: 4px; font-size: 16px; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
         </div>
         <button type="submit" style="width: 100%; background-color: #4CAF50; color: #fff; padding: 12px; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; transition: background-color 0.3s ease;">Search</button>
     </form>
@@ -202,4 +202,8 @@
         });
     </script>
 </body>
+
+<div class="w-100 text-center mt-3 text-muted" style="font-size:0.8rem;">
+    The data presented here is for research purposes only and is not intended for clinical use. The information is sourced from the <a href="https://civicdb.org/welcome" target="_blank" rel="noopener noreferrer">CIViC database</a>, which is a community-curated knowledgebase of clinically relevant variants in cancer.
+</div> 
 {% endblock %}

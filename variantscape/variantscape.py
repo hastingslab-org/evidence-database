@@ -48,10 +48,25 @@ def compute_cancer_alias_map():
         for synonym in row["synonyms"]:
             cancer_alias_map[synonym] = canonical
 
-    return cancer_alias_map
+        #get cancer synonyms in right format: 
+    synonyms = CIVIC_cancer_synonyms_df["synonyms"].to_numpy()
+    syn_series = pd.Series(synonyms)        
+    syn_series = syn_series.dropna()
+    syn_series = syn_series.map(
+        lambda x:                                            # x is one cell
+            ast.literal_eval(x) if isinstance(x, str) and x.lstrip().startswith('[')
+            else [x]                                         # keep singletons like '0'
+    )
+    synonyms_flat = syn_series.explode().astype(str)         
+    synonyms_array = synonyms_flat.to_numpy()                
+    synonyms_array_unique = pd.unique(synonyms_array)
+
+    return cancer_alias_map, synonyms_array_unique
 
 #TODO define as object with methods
-CANCER_ALIAS_MAP = compute_cancer_alias_map()
+CANCER_ALIAS_MAP, SYNONYM_ARRAY = compute_cancer_alias_map()
+
+
 #TODO create a Graph class that contains the following methods
 def check_variant_in_graph(user_gene_name, user_variant_name):
     """Check if the variant exists in the graph."""
@@ -89,7 +104,8 @@ def get_associated_cancer_types_from_variant(gene_name, variant_name):
 
 def get_associated_variants_from_cancer_type(cancer_name):
     """Get associated variants from cancer type."""
-    cancer_of_interest = cancer_name.lower()
+    cancer_of_interest = CANCER_ALIAS_MAP.get(cancer_name, cancer_name).lower()
+
     cancer_nei = set(G.neighbors(cancer_of_interest))
     associated_variants = [
         n for n in cancer_nei
@@ -180,7 +196,7 @@ def autosuggest_item(user_input: str, item_type: str, corresponding_gene = None,
         entities = metadata_mapping[metadata_mapping['Category'] == "Variant"]['Entity'] #no genes in the mapping, but only concatenated varinates and genes
     else:
         entities = metadata_mapping[metadata_mapping['Category'] == item_type]['Entity']
-
+    
     if item_type in ['Variant', 'Gene']:
         parsed = [ent.split("_", 1) for ent in entities if "_" in ent]
         if item_type == 'Variant':
@@ -192,7 +208,9 @@ def autosuggest_item(user_input: str, item_type: str, corresponding_gene = None,
         else:
             out = pd.Series([g for _, g in parsed])
     else:
-        out = entities
+        out = pd.concat([entities, pd.Series(SYNONYM_ARRAY, index=range(len(entities), len(entities)+len(SYNONYM_ARRAY)))],
+        ignore_index=True       
+        )
 
     matching_names = []
     if FUZZY_MATCH:
