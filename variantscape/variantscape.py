@@ -135,7 +135,7 @@ def get_associated_cancer_types_from_variant(gene_name, variant_name):
 
 def get_associated_variants_from_cancer_type(cancer_name):
     """Get associated variants from cancer type."""
-    cancer_of_interest = CANCER_ALIAS_MAP.get(cancer_name, cancer_name).lower()
+    cancer_of_interest = normalise_cancer_name(cancer_name)
 
     cancer_nei = set(G.neighbors(cancer_of_interest))
     associated_variants = [
