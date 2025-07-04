@@ -5,6 +5,7 @@ import pandas as pd
 from .graph_store import metadata_mapping
 from rapidfuzz import fuzz
 import ast
+import re
 
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -22,6 +23,15 @@ EXCLUDED_TREATMENTS = {
     'mrna vaccine', 'mtor inhibitor', 'radiation ionizing radiotherapy'
 }
 
+CANCER_SYNONYM_MAP = {
+    "carcinoma": "cancer",
+    "sarcoma": "cancer",
+    "tumor": "cancer",
+    "tumour": "cancer",
+    "neoplasm": "cancer",
+    "malignancy": "cancer",
+    "lesion": "cancer"
+}
 
 def compute_cancer_alias_map():
     # Load and normalize the synonym dataframe
@@ -66,6 +76,28 @@ def compute_cancer_alias_map():
 #TODO define as object with methods
 CANCER_ALIAS_MAP, SYNONYM_ARRAY = compute_cancer_alias_map()
 
+def normalise_cancer_name(raw: str) -> str:
+    """
+    → Lower-case, trim, swap synonyms for 'cancer',
+      then apply the alias map if present.
+    """
+    # basic cleanup
+    name = raw.strip().lower()
+
+    direct_alias = CANCER_ALIAS_MAP.get(name)
+    print("DIRECT ALIAS", direct_alias)
+    if direct_alias is not None:
+        return direct_alias
+
+    # synonym-to-'cancer' pass  (word boundaries ⇒ no 'adenocarcinoma' → 'adenocancer')
+    for syn, replacement in CANCER_SYNONYM_MAP.items():
+        pattern = rf"\b{re.escape(syn)}\b"
+        name = re.sub(pattern, replacement, name)
+    name = " ".join(name.split())
+
+    print("NAME", name)
+
+    return CANCER_ALIAS_MAP.get(name, name)
 
 #TODO create a Graph class that contains the following methods
 def check_variant_in_graph(user_gene_name, user_variant_name):
@@ -77,8 +109,7 @@ def check_variant_in_graph(user_gene_name, user_variant_name):
 
 def check_cancer_in_graph(user_cancer_name):
     """Check if the cancer exists in the graph."""
-    clean_input = user_cancer_name.strip().lower()
-    cancer_of_interest = CANCER_ALIAS_MAP.get(clean_input, clean_input)
+    cancer_of_interest = normalise_cancer_name(user_cancer_name)
     return cancer_of_interest in G.nodes
 
 
@@ -128,8 +159,7 @@ def compute_associations(gene_name, variant_name, cancer_name):
     lowercase_mapping = {key.lower(): key for key in G.nodes}  # Create a temporary mapping of lowercase keys to original keys
     variant_of_interest = lowercase_mapping.get(variant_of_interest) #TODO do this block only once in app.py ?
     
-    clean_input = cancer_name.strip().lower()
-    cancer_of_interest = CANCER_ALIAS_MAP.get(clean_input, clean_input)
+    cancer_of_interest = normalise_cancer_name(cancer_name)
 
     # === Step 1: Cancer‐only treatments ===
     canc_nei = set(G.neighbors(cancer_of_interest))
