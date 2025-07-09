@@ -70,6 +70,7 @@ def compute_cancer_alias_map():
     synonyms_flat = syn_series.explode().astype(str)         
     synonyms_array = synonyms_flat.to_numpy()                
     synonyms_array_unique = pd.unique(synonyms_array)
+    print("aliases", cancer_alias_map)
 
     return cancer_alias_map, synonyms_array_unique
 
@@ -239,8 +240,8 @@ def autosuggest_item(user_input: str, item_type: str, corresponding_gene = None,
             out = pd.Series([g for _, g in parsed])
     else:
         out = pd.concat([entities, pd.Series(SYNONYM_ARRAY, index=range(len(entities), len(entities)+len(SYNONYM_ARRAY)))],
-        ignore_index=True       
-        )
+                ignore_index=True
+        ).map(lambda x: str(x).title())
 
     matching_names = []
     if FUZZY_MATCH:

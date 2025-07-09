@@ -246,7 +246,7 @@
         <div class="search-wrapper">
             <input id="gene-search" name="gene" type="text" placeholder="e.g., BRAF, BRCA1, BRCA2" list="gene-options" value="{{ gene }}" autocomplete="off">
             <button type="button" class="dict-toggle" aria-label="Browse all genes" data-target="gene-dropdown">▾</button>
-            <ul id="gene-dropdown" class="dict-dropdown"></ul>
+            <ul id="gene-dropdown" class="dict-dropdown" hidden></ul>
             <datalist id="gene-options"></datalist>
         </div>
     </div>
@@ -445,11 +445,11 @@
         Explore additional genomic information for &nbsp;
          <a href="{{ url_for('genomics_page', gene_name=gene) }}" target="_blank"
             style="color: #1567c0; cursor: pointer;">
-            <em>{{gene}} → </em> &nbsp;
+            <em>{{gene}} </em> &nbsp;
         </a> and &nbsp;
          <a href="{{ url_for('variant_page', gene_name=gene, variant_name=variant) }}" target="_blank"
             style="color: #1565c0; cursor: pointer;">
-            <span style="text-transform: uppercase;">{{variant}} → </span>
+            <span style="text-transform: uppercase;">{{variant}} </span>
         </a>
     </h5>
 
@@ -614,24 +614,31 @@
     
         /* lazy-load dictionary only once – on first click ------------------- */
         let loaded = false;
+
         btn.addEventListener('click', async () => {
-          dropdown.hidden = !dropdown.hidden;         // toggle visibility
-          if (loaded || !dropdown.hidden) return;     // skip if already filled
-    
-          /* build API URL the same way autosuggest does, but with q="" to get all */
-          const itemType = input.id.split('-')[0];    // "gene" | "variant" | "cancer"
-          const url = `/item-dictionary/${itemType.charAt(0).toUpperCase()+itemType.slice(1)}`;
-          try {
+        if (!loaded) {
+            /* build API URL the same way autosuggest does, but with q="" to get all */
+            const itemType = input.id.split('-')[0];           // "gene" | "variant" | "cancer"
+            const url = `/item-dictionary/${itemType.charAt(0).toUpperCase() + itemType.slice(1)}`;
+
+            try {
             const r = await fetch(url);
             if (!r.ok) throw new Error(r.statusText);
+
             const items = await r.json();
             dropdown.innerHTML = items.map(v => `<li>${v}</li>`).join('');
-            loaded = true;
-          } catch (err) {
+            loaded = true;                                   // flag as done *after* success
+            } catch (err) {
             dropdown.innerHTML = `<li style="color:#a00;padding:6px 10px;">Error loading list</li>`;
             console.error(err);
-          }
+            return;                                          // don’t show an empty list
+            }
+        }
+
+        /* finally, show / hide the menu */
+        dropdown.hidden = !dropdown.hidden;
         });
+
     
         /* click on a list item → paste into the input ----------------------- */
         dropdown.addEventListener('click', e => {
