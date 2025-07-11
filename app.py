@@ -173,7 +173,8 @@ def item_dictionary(item_type):
     if item_type.lower() == "gene":
         nodes = [n for n in G.nodes if G.nodes[n]['category'] == "Variant"]
     else:
-        nodes = [n for n in G.nodes if G.nodes[n]['category'] == item_type.capitalize()]
+        nodes = [n for n in G.nodes if G.nodes[n]['category'] == item_type.capitalize() and "_" not in n]
+        print("nodes:", nodes)
 
     gene = request.args.get("gene", "").strip()
 
