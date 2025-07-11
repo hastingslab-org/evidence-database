@@ -168,8 +168,7 @@ VALID_TYPES = {"gene", "variant", "cancer"}
 @app.get("/item-dictionary/<item_type>")
 def item_dictionary(item_type):
     if item_type.lower() not in VALID_TYPES:
-        if item_type.lower() not in VALID_TYPES:
-            abort(404)
+        abort(404)
     nodes = [n for n in G.nodes if G.nodes[n]['category'] == item_type.capitalize()]
     if item_type.lower() == "gene":
         nodes = [n for n in G.nodes if G.nodes[n]['category'] == "Variant"]
@@ -344,16 +343,6 @@ def answer_page():
         query_results = get_qa_item("papers", response_id, json_load=True)
         return render_template('answer.html', query=query, query_results=query_results, \
                                patient_data=json_patient_data, llm_answer=llm_answer)
-
-#Routre for dictionaries
-@app.route('/http://127.0.0.1:5000/variantscape/variant-dictionary', methods=['GET'])
-def variant_dictionary():
-    variants =  [
-        n for n in G.nodes
-        if G.nodes[n]['category']=='Variant'
-    ]
-
-    return render_template('variant_dictionary.html', variants=variants)
 
 # Route for streaming the LLM response
 @app.route('/stream_response', methods=['POST'])
