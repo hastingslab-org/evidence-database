@@ -172,9 +172,10 @@ def item_dictionary(item_type):
     nodes = [n for n in G.nodes if G.nodes[n]['category'] == item_type.capitalize()]
     if item_type.lower() == "gene":
         nodes = [n for n in G.nodes if G.nodes[n]['category'] == "Variant"]
-    else:
+    elif item_type.lower() == "cancer":
         nodes = [n for n in G.nodes if G.nodes[n]['category'] == item_type.capitalize() and "_" not in n]
-        print("nodes:", nodes)
+    else:
+        nodes = [n for n in G.nodes if G.nodes[n]['category'] == item_type.capitalize()]
 
     gene = request.args.get("gene", "").strip()
 
@@ -276,7 +277,6 @@ def variant_notfound():
 
 @app.route('/genomics/variant/<string:gene_name>/<string:variant_name>')
 def variant_page(gene_name, variant_name):
-    print("variant_name:", variant_name)
     if check_variant_in_database(gene_name, variant_name):
         variant= get_item_by_name(variant_name, table_name="variants", db_path="database.db")
         #get variant info
