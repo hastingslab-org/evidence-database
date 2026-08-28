@@ -87,11 +87,22 @@ EMBEDDING_MODEL = os.environ.get(
 
 
 # --------------------------------------------------------------------------- #
-# LLM (used by the missing-but-expected llm.py module)
+# LLM (used by llm.py)
 # --------------------------------------------------------------------------- #
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
-OPENAI_BASE_URL = os.environ.get("OPENAI_BASE_URL", "") or None
-LLM_MODEL = os.environ.get("EVIDENCE_DB_LLM_MODEL", "gpt-4o-mini")
+# The app has historically run against DeepInfra's OpenAI-compatible endpoint.
+# Set OPENAI_BASE_URL to an empty string in the environment to target real OpenAI.
+OPENAI_BASE_URL = os.environ.get(
+    "OPENAI_BASE_URL", "https://api.deepinfra.com/v1/openai"
+) or None
+LLM_MODEL = os.environ.get(
+    "EVIDENCE_DB_LLM_MODEL", "meta-llama/Meta-Llama-3.1-70B-Instruct"
+)
+LLM_SYSTEM_MSG = os.environ.get(
+    "EVIDENCE_DB_LLM_SYSTEM_MSG",
+    "You are a medical expert assisting doctors and clinicians in decision making",
+)
+LLM_NUM_PAPERS = int(os.environ.get("EVIDENCE_DB_LLM_NUM_PAPERS", "5"))
 
 
 # --------------------------------------------------------------------------- #
