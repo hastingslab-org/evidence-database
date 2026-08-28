@@ -5,8 +5,9 @@ chromadb==0.5.20
 ipython==8.12.3
 numpy==2.2.1
 openai==1.59.6
-uwsgi==2.0.28
+#uwsgi==2.0.28
 networkx>=3.1.0
 pandas
 rapidfuzz
 flask-cors
+sentence_transformers

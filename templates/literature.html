@@ -1,0 +1,422 @@
+{% extends 'base.html' %}
+
+{% block title %}LiteratureDB{% endblock %}
+
+{% block head_extra %}
+<script src="{{ url_for('static', filename='evidence-db-angular/assets/plotly-2.14.0.min.js') }}"></script>
+<style>
+    .lit-container { max-width: 1500px; margin: 30px auto; }
+    .lit-panel {
+        background: #fff;
+        border: 1px solid #e0e0e0;
+        border-radius: 10px;
+        padding: 18px 20px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
+    }
+    .lit-panel h4 { text-align: left; cursor: default; display: block; }
+
+    /* Filters */
+    #filterForm details { border-bottom: 1px solid #eee; padding: 6px 0; }
+    #filterForm summary { font-weight: 600; cursor: pointer; font-size: 14px; }
+    #filterForm .opt { display: block; font-size: 13px; margin: 4px 0 4px 8px; font-weight: 400; }
+    #filterForm .opt input { margin-right: 6px; }
+    .filter-actions { margin-top: 14px; display: flex; gap: 10px; }
+    .filter-actions button { padding: 7px 14px; font-size: 14px; }
+
+    /* Overview */
+    .ov-total { font-size: 15px; margin-bottom: 12px; }
+    .ov-total strong { font-size: 22px; }
+    .ov-chart { width: 100%; height: 230px; margin-bottom: 6px; }
+    .ov-chart-label { font-size: 12px; color: #666; margin: 6px 0 0; text-transform: uppercase; letter-spacing: .04em; }
+
+    /* Paper list */
+    #paperList { margin-top: 25px; }
+    #paperList ol { padding-left: 20px; }
+    #paperList li { font-size: 13px; margin-bottom: 8px; line-height: 1.4; }
+    #paperList .meta { color: #777; }
+
+    /* Centre form: keep the ported search form styles */
+    #prostateFields { margin-top: 30px; padding: 20px; background-color: #f1f1f1; border-radius: 10px; }
+    #prostateFields h3 { margin-top: 0; }
+    .tnm-group { display: flex; justify-content: space-between; gap: 15px; }
+    .tnm-group div { flex: 1; margin-bottom: 15px; }
+    #patientForm .form-group { margin-bottom: 14px; }
+    #patientForm textarea { width: 100%; min-height: 90px; padding: 10px; border: 1px solid #ccd0d5; border-radius: 5px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="lit-container">
+    <header style="text-align:center; margin-bottom: 25px;">
+        <h1>LiteratureDB</h1>
+        <h3>Searchable literature database for genitourinary cancer</h3>
+        <p style="font-size:12px; color:#999;">For research purposes only</p>
+    </header>
+
+    <div class="row">
+        <!-- ============ LEFT: filters ============ -->
+        <div class="col-lg-3 col-md-4 mb-4">
+            <div class="lit-panel">
+                <h4>Publication filters</h4>
+                <form id="filterForm">
+                    {% for key, label, options in filter_groups %}
+                    <details>
+                        <summary>{{ label }}</summary>
+                        {% for col, opt_label in options %}
+                        <label class="opt">
+                            <input type="checkbox" name="{{ key }}" value="{{ col }}">{{ opt_label }}
+                        </label>
+                        {% endfor %}
+                    </details>
+                    {% endfor %}
+                    <div class="filter-actions">
+                        <button type="submit" class="btn">Apply</button>
+                        <button type="button" id="clearFilters" class="btn" style="background:#eee; color:#333;">Clear</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- ============ CENTRE: patient + query form ============ -->
+        <div class="col-lg-6 col-md-8 mb-4">
+            <div class="lit-panel">
+                <p>Enter patient details and a clinical question to get an evidence-backed answer and the top supporting papers.</p>
+                <form action="/answer" method="POST" id="patientForm">
+                    <input type="hidden" name="filters" id="filtersField" value="{}">
+                    <h3>Patient's Characteristics</h3>
+
+                    <div class="form-group">
+                        <label>Genitourinary Cancer Type: <span class="required">*</span></label>
+                        <select name="Cancer type" id="cancerTypeSelect" onchange="handleCancerTypeChange(); toggleProstateFields();" required>
+                            <option value="" disabled selected>Select</option>
+                            <option value="Bladder Cancer">Bladder Cancer</option>
+                            <option value="Kidney Cancer">Kidney Cancer</option>
+                            <option value="Penile Cancer">Penile Cancer</option>
+                            <option value="Prostate Cancer">Prostate Cancer</option>
+                            <option value="Renal Cell Cancer">Renal Cell Cancer</option>
+                            <option value="Pelvis Cancer">Pelvis Cancer</option>
+                            <option value="Testicular Cancer">Testicular Cancer</option>
+                            <option value="Urethral Cancer">Urethral Cancer</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Gender:</label>
+                        <select name="Gender" id="genderSelect">
+                            <option value="" disabled selected>Select</option>
+                            <option value="Female">Female</option>
+                            <option value="Male">Male</option>
+                            <option value="Unknown">Unknown</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Age (Years):</label>
+                        <input type="number" name="Age" min="0" max="120" placeholder="Enter age">
+                    </div>
+
+                    <div class="form-group">
+                        <label>ECOG Performance Status (0-5):</label>
+                        <select name="ECOG">
+                            <option value="" disabled selected>Select</option>
+                            <option value="0">0 - Fully active</option>
+                            <option value="1">1 - Restricted physically</option>
+                            <option value="2">2 - Ambulatory, unable to work</option>
+                            <option value="3">3 - Limited self-care</option>
+                            <option value="4">4 - Completely disabled</option>
+                            <option value="5">5 - Deceased</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Ethnicity:</label>
+                        <select name="Ethnicity">
+                            <option value="" disabled selected>Select</option>
+                            <option value="Caucasian">Caucasian</option>
+                            <option value="African American">African American</option>
+                            <option value="Asian">Asian</option>
+                            <option value="Hispanic">Hispanic</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+
+                    <!-- Prostate-cancer-specific fields -->
+                    <div id="prostateFields" style="display:none; margin-bottom:20px;">
+                        <h3>Prostate Cancer Details</h3>
+
+                        <div class="form-group">
+                            <label><h5>Disease Sensitivity</h5></label>
+                            <select name="Disease sensitivity" id="disease_sensitivity">
+                                <option value="" disabled selected>Select disease sensitivity</option>
+                                <option value="Hormone-sensitive">Hormone-sensitive</option>
+                                <option value="Castration-resistant">Castration-resistant</option>
+                                <option value="Unknown">Unknown</option>
+                            </select>
+                        </div>
+
+                        <hr class="section-divider">
+
+                        <div class="form-group">
+                            <label><h5>Disease Stage</h5></label>
+                            <label>TNM Classification:</label>
+                            <div class="tnm-group">
+                                <div>
+                                    <select name="T-stage" id="T-stage">
+                                        <option value="" disabled selected>T (Primary Tumor)</option>
+                                        <option value="TX">TX</option><option value="T0">T0</option>
+                                        <option value="Tis">Tis</option><option value="T1">T1</option>
+                                        <option value="T2">T2</option><option value="T3">T3</option>
+                                        <option value="T4">T4</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <select name="N-stage" id="N-stage">
+                                        <option value="" disabled selected>N (Regional Lymph Nodes)</option>
+                                        <option value="NX">NX</option><option value="N0">N0</option>
+                                        <option value="N1">N1</option><option value="N2">N2</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <select name="M-stage" id="M-stage">
+                                        <option value="" disabled selected>M (Distant Metastasis)</option>
+                                        <option value="MX">MX</option><option value="M0">M0</option>
+                                        <option value="M1">M1</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Staging Group:</label>
+                            <select name="Staging-group" id="Staging-group">
+                                <option value="" disabled selected>Select staging group</option>
+                                <option value="0">0</option><option value="IA">IA</option>
+                                <option value="IB">IB</option><option value="IIA">IIA</option>
+                                <option value="IIB">IIB</option><option value="III">III</option>
+                                <option value="IV">IV</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Metastasis Location:</label>
+                            <select name="Metastasis location" id="metastasisLoc">
+                                <option value="" disabled selected>Select metastasis location</option>
+                                <option value="No metastasis">No metastasis</option>
+                                <option value="Bone metastasis">Bone only</option>
+                                <option value="Lymph metastasis">Lymph only</option>
+                                <option value="Bone and lymph metastasis">Bone and lymph only</option>
+                                <option value="Other metastasis">Other than bone and lymph</option>
+                            </select>
+                        </div>
+
+                        <hr class="section-divider">
+
+                        <label style="display:flex; justify-content:center; width:100%;"><h5>Patient's History</h5></label>
+                        <div class="form-group">
+                            <label>Timepoint of Diagnosis (Date/Year):</label>
+                            <input type="text" name="Timepoint of diagnosis" placeholder="Enter timepoint">
+                        </div>
+                        <div class="form-group">
+                            <label>Treatment History:</label>
+                            <input type="checkbox" name="Treatment history" value="ADT"> ADT (Androgen Deprivation Therapy)<br>
+                            <input type="checkbox" name="Treatment history" value="ARPI"> ARPI (Androgen Receptor Pathway Inhibitor)<br>
+                            <input type="checkbox" name="Treatment history" value="Triple Therapy"> Triple Therapy<br>
+                        </div>
+                        <div class="form-group">
+                            <label>More information:</label>
+                            <input type="text" name="Extra treatment history" placeholder="Other information about treatment history">
+                        </div>
+
+                        <hr class="section-divider">
+
+                        <div class="form-group">
+                            <label style="display:block; text-align:center;"><h5>Genomic Features</h5></label>
+                            <input type="checkbox" name="Genomic features" value="DDR"> DNA Damage Repair (DDR) Deficiency<br>
+                            <label style="margin-top:20px;">Genes Involved:</label>
+                            <input type="text" name="Genes involved" placeholder="e.g., BRCA1, BRCA2, RAD51" style="margin-bottom:20px;">
+                            <label>Variants:</label>
+                            <input type="text" name="Variants" placeholder="e.g., PTEN MED12 p. L1224, c.367C>T">
+                        </div>
+
+                        <hr class="section-divider">
+
+                        <div class="form-group">
+                            <label style="display:block; text-align:center;"><h5>Biomarkers</h5></label>
+                            <label>PSMA Level (PET Scan, ng/mL):</label>
+                            <input type="text" name="PSMA level" placeholder="Enter PSMA level" style="margin-bottom:20px;">
+                            <label>ALP Level (Blood, ng/mL):</label>
+                            <input type="text" name="ALP level" placeholder="Enter ALP level">
+                        </div>
+
+                        <hr class="section-divider">
+
+                        <div class="form-group">
+                            <label style="display:block; text-align:center;"><h5>Histology</h5></label>
+                            <label>Gleason Score:</label>
+                            <input type="number" name="Gleason score" min="2" max="10" placeholder="Enter score (2-10)" style="margin-bottom:20px;">
+                            <label>Histologic Variants:</label>
+                            <input type="text" name="Histologic variants" placeholder="e.g., small cell carcinoma">
+                        </div>
+
+                        <hr class="section-divider">
+
+                        <div class="form-group">
+                            <label style="display:block; text-align:center;"><h5>Trial-Based Classifications</h5></label>
+                            <input type="checkbox" name="Trial-based classifications" value="High Volume"> High Volume<br>
+                            <input type="checkbox" name="Trial-based classifications" value="High Risk"> High Risk<br>
+                        </div>
+                    </div>
+
+                    <h3>Question</h3>
+                    <div class="form-group">
+                        <textarea name="query" id="queryInput" placeholder="Enter your query here..." required></textarea>
+                    </div>
+
+                    <button type="submit" class="btn">Submit</button>
+                </form>
+            </div>
+
+            <div id="paperList" class="lit-panel">
+                <h4>Matching publications (<span id="paperCount">0</span>)</h4>
+                <p id="paperListNote" class="ov-chart-label">Showing the most recent papers in the current selection.</p>
+                <ol id="paperListItems"></ol>
+            </div>
+        </div>
+
+        <!-- ============ RIGHT: overview ============ -->
+        <div class="col-lg-3 col-md-12 mb-4">
+            <div class="lit-panel">
+                <h4>Overview</h4>
+                <div class="ov-total">Publications in selection: <strong id="ovTotal">0</strong></div>
+                <p class="ov-chart-label">Publications by year</p>
+                <div id="chartYear" class="ov-chart"></div>
+                <p class="ov-chart-label">Top journals</p>
+                <div id="chartJournal" class="ov-chart"></div>
+                <p class="ov-chart-label">Geographic distribution</p>
+                <div id="chartCountry" class="ov-chart"></div>
+                <p id="plotlyMissing" style="display:none; color:#b00; font-size:12px;">Charts unavailable (Plotly failed to load).</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts_extra %}
+<script>
+    const INITIAL_OVERVIEW = {{ overview | tojson | safe }};
+    const OVERVIEW_URL = "{{ url_for('api_literature_overview') }}";
+
+    // ---------- filters ----------
+    function collectFilters() {
+        const out = {};
+        document.querySelectorAll('#filterForm input[type="checkbox"]:checked').forEach(cb => {
+            (out[cb.name] = out[cb.name] || []).push(cb.value);
+        });
+        return out;
+    }
+
+    function syncFiltersField() {
+        document.getElementById('filtersField').value = JSON.stringify(collectFilters());
+    }
+
+    function refreshOverview() {
+        syncFiltersField();
+        const qs = encodeURIComponent(document.getElementById('filtersField').value);
+        fetch(`${OVERVIEW_URL}?filters=${qs}`)
+            .then(r => r.json())
+            .then(renderOverview)
+            .catch(err => console.error('overview fetch failed', err));
+    }
+
+    document.getElementById('filterForm').addEventListener('submit', e => {
+        e.preventDefault();
+        refreshOverview();
+    });
+    document.getElementById('clearFilters').addEventListener('click', () => {
+        document.getElementById('filterForm').reset();
+        refreshOverview();
+    });
+    // keep the hidden field on the patient form current at submit time
+    document.getElementById('patientForm').addEventListener('submit', syncFiltersField);
+
+    // ---------- overview rendering ----------
+    const HAS_PLOTLY = typeof Plotly !== 'undefined';
+    if (!HAS_PLOTLY) document.getElementById('plotlyMissing').style.display = 'block';
+
+    const PLOT_CFG = { displayModeBar: false, responsive: true };
+    const PLOT_BASE_LAYOUT = { margin: { t: 8, r: 8, b: 34, l: 40 }, font: { size: 10 }, showlegend: false };
+
+    function renderOverview(data) {
+        document.getElementById('ovTotal').textContent = data.total.toLocaleString();
+
+        // paper list
+        document.getElementById('paperCount').textContent = data.total.toLocaleString();
+        const items = document.getElementById('paperListItems');
+        items.innerHTML = '';
+        data.papers.forEach(p => {
+            const li = document.createElement('li');
+            const meta = [p.first_author, p.year, p.journal].filter(Boolean).join(', ');
+            const title = p.openalex_id
+                ? `<a href="${p.openalex_id}" target="_blank" rel="noopener">${escapeHtml(p.title)}</a>`
+                : escapeHtml(p.title);
+            li.innerHTML = `${title}${meta ? ` <span class="meta">(${escapeHtml(meta)})</span>` : ''}`;
+            items.appendChild(li);
+        });
+        document.getElementById('paperListNote').textContent =
+            data.total > data.paper_limit
+                ? `Showing the ${data.paper_limit} most recent of ${data.total.toLocaleString()} papers.`
+                : 'Showing all papers in the current selection.';
+
+        if (!HAS_PLOTLY) return;
+
+        Plotly.react('chartYear',
+            [{ type: 'bar', x: data.by_year.map(d => d[0]), y: data.by_year.map(d => d[1]),
+               marker: { color: '#1565c0' } }],
+            Object.assign({}, PLOT_BASE_LAYOUT), PLOT_CFG);
+
+        const jr = data.by_journal.slice().reverse();
+        Plotly.react('chartJournal',
+            [{ type: 'bar', orientation: 'h', x: jr.map(d => d[1]), y: jr.map(d => truncate(d[0], 28)),
+               marker: { color: '#1565c0' } }],
+            Object.assign({}, PLOT_BASE_LAYOUT, { margin: { t: 8, r: 8, b: 34, l: 150 } }), PLOT_CFG);
+
+        Plotly.react('chartCountry',
+            [{ type: 'choropleth', locationmode: 'ISO-3',
+               locations: data.by_country.map(d => d[0]), z: data.by_country.map(d => d[1]),
+               colorscale: 'Blues', showscale: false }],
+            { margin: { t: 0, r: 0, b: 0, l: 0 }, font: { size: 10 },
+              geo: { showframe: false, showcoastlines: false, projection: { type: 'natural earth' } } },
+            PLOT_CFG);
+    }
+
+    function truncate(s, n) { return s.length > n ? s.slice(0, n - 1) + '…' : s; }
+    function escapeHtml(s) {
+        return String(s).replace(/[&<>"']/g, c =>
+            ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+
+    // ---------- centre form: prostate-specific fields ----------
+    function toggleProstateFields() {
+        document.getElementById('prostateFields').style.display =
+            document.getElementById('cancerTypeSelect').value === 'Prostate Cancer' ? 'block' : 'none';
+    }
+    function handleCancerTypeChange() {
+        const t = document.getElementById('cancerTypeSelect').value;
+        const g = document.getElementById('genderSelect');
+        const female = g.querySelector('option[value="Female"]');
+        const unknown = g.querySelector('option[value="Unknown"]');
+        const maleOnly = ['Prostate Cancer', 'Penile Cancer', 'Testicular Cancer'].includes(t);
+        if (maleOnly) { g.value = 'Male'; female.disabled = true; unknown.disabled = true; }
+        else { female.disabled = false; unknown.disabled = false; }
+    }
+    // drop empty text/number inputs so they aren't sent as blank patient data
+    document.getElementById('patientForm').addEventListener('submit', function () {
+        this.querySelectorAll('input[type="text"], input[type="number"]').forEach(input => {
+            if (!input.value.trim()) input.disabled = true;
+        });
+    });
+
+    // ---------- init ----------
+    renderOverview(INITIAL_OVERVIEW);
+</script>
+{% endblock %}

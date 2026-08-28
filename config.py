@@ -133,6 +133,21 @@ CANCER_SYNONYMS_PATH = _path(
 
 
 # --------------------------------------------------------------------------- #
+# LiteratureDB
+# --------------------------------------------------------------------------- #
+# One-hot patient-attribute matrix (one row per paper) that backs the
+# left-hand publication filters. Semicolon-delimited.
+LITERATURE_METADATA_CSV = _path(
+    "EVIDENCE_DB_LITERATURE_METADATA_CSV",
+    "static/evidence-db-angular/assets/prostate-metadata.csv",
+)
+# How many papers to show in the browsable "matching publications" list.
+LITERATURE_PAPER_LIST_LIMIT = int(
+    os.environ.get("EVIDENCE_DB_LITERATURE_PAPER_LIST_LIMIT", "100")
+)
+
+
+# --------------------------------------------------------------------------- #
 # Variantscape tuning parameters
 # --------------------------------------------------------------------------- #
 # Absolute total-weight floors for highlighting a result in the UI.

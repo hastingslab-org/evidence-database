@@ -13,6 +13,7 @@ import chromadb
 from chromadb.utils import embedding_functions
 
 import config
+import literature
 from genomics.genomics_data import fuzzy_match_gml, get_items_by_name_fuzzy, get_items_from_ids, get_item_by_name, get_item_from_single_id, check_variant_in_database
 from variantscape.variantscape import compute_associations, check_variant_in_graph, check_cancer_in_graph, get_associated_cancer_types_from_variant, get_associated_variants_from_cancer_type
 from variantscape.graph_store import G
@@ -49,6 +50,25 @@ def get_db_connection():
     conn = sqlite3.connect(str(config.SQLITE_DB_PATH))
     conn.row_factory = sqlite3.Row
     return conn
+
+
+@lru_cache(maxsize=1)
+def get_literature_collection():
+    """Build the ChromaDB collection once per process.
+
+    Loading the sentence-transformer embedding model is expensive, so this is
+    cached rather than rebuilt on every request.
+    """
+    client = chromadb.PersistentClient(
+        path=DB_PATH,
+        settings=chromadb.Settings(anonymized_telemetry=False),
+    )
+    embedding_func = embedding_functions.SentenceTransformerEmbeddingFunction(
+        model_name=config.EMBEDDING_MODEL
+    )
+    return client.get_collection(
+        name=config.CHROMA_COLLECTION, embedding_function=embedding_func
+    )
 
 def get_qa_item(item_name, item_id, json_load=False):
     conn = get_db_connection()
@@ -318,16 +338,16 @@ def answer_page():
     if request.method == 'POST':
         form_data = request.form.to_dict(flat=False)  # Converts form data to a dictionary
 
-        # Separate the query from the patient data
+        # Separate the query and the publication filters from the patient data
         query = (form_data.pop('query', [None])[0]) # Get the query field and remove it from the form data
+        filters_raw = form_data.pop('filters', [None])[0]  # active left-panel filters (JSON)
         patient_data = {key: value[0] if len(value) == 1 else value for key, value in form_data.items()}
         json_patient_data = json.dumps(patient_data, ensure_ascii=False)
-        
-        # Get papers
-        chroma_client = chromadb.PersistentClient(path=DB_PATH)
-        embedding_func = embedding_functions.SentenceTransformerEmbeddingFunction(model_name=config.EMBEDDING_MODEL)
-        collection = chroma_client.get_collection(name=config.CHROMA_COLLECTION, embedding_function=embedding_func)
-        query_results = get_relevant_papers(query, collection, patient_data)
+
+        # Get papers (retrieval is restricted to the filtered subset when filters are active)
+        allowed_ids = literature.matching_ids(filters_raw)
+        collection = get_literature_collection()
+        query_results = get_relevant_papers(query, collection, patient_data, allowed_ids=allowed_ids)
 
         response_id = str(uuid.uuid4())
         session['response_id'] = None  # Clear previous response ID
@@ -443,13 +463,24 @@ def handle_large_request(error):
 #     """
 #     return send_from_directory(ANGULAR_APP_DIST_DIR, filename)
 
-# # Initialize the database
-@app.route('/literature/')  # Main route for your Angular app
-@app.route('/literature/<path:filename>')  # Catch-all for Angular client-side routing
-def serve_angular(filename='index.html'):
-    if '.' not in filename:
-        return send_from_directory(ANGULAR_APP_DIST_DIR, 'index.html')
-    return send_from_directory(ANGULAR_APP_DIST_DIR, filename)
+@app.route('/literature', methods=['GET'])
+def literature_page():
+    """LiteratureDB: filters (left) + patient/query form (centre) + overview (right)."""
+    collection = get_literature_collection()
+    overview = literature.overview_stats(collection, ids=None)
+    return render_template(
+        'literature.html',
+        filter_groups=literature.FILTER_GROUPS,
+        overview=overview,
+    )
+
+
+@app.route('/api/literature/overview', methods=['GET'])
+def api_literature_overview():
+    """Return the overview aggregates + browsable paper list for the active filters."""
+    allowed_ids = literature.matching_ids(request.args.get('filters', ''))
+    collection = get_literature_collection()
+    return jsonify(literature.overview_stats(collection, ids=allowed_ids))
 
 
 # API version of the view database endpoint for Angular

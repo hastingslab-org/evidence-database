@@ -9,19 +9,35 @@ MODEL = config.LLM_MODEL
 NB_PAPERS_LLM = config.LLM_NUM_PAPERS
 
 
-def get_relevant_papers(user_query, collection, patient_data=None):
-    """ Gets the n most relevant papers from a chroma-db collection (where n is NB_PAPERS_LLM)"""
+def get_relevant_papers(user_query, collection, patient_data=None, allowed_ids=None):
+    """ Gets the n most relevant papers from a chroma-db collection (where n is NB_PAPERS_LLM).
+
+    If ``allowed_ids`` is given, retrieval is restricted to that set of document
+    ids: we over-fetch and then keep the top NB_PAPERS_LLM that fall within it.
+    """
 
     query = user_query
     if patient_data is not None:
         query = user_query + json.dumps(patient_data)  # combine query and patient data TODO: investigate other options
 
-    query_results = collection.query(
-    query_texts=[query],
-    n_results=NB_PAPERS_LLM,
-    )
+    if allowed_ids is None:
+        return collection.query(query_texts=[query], n_results=NB_PAPERS_LLM)
 
-    return query_results
+    allowed = set(allowed_ids)
+    try:
+        corpus_size = collection.count()
+    except Exception:
+        corpus_size = 10_000
+    over_fetch = min(corpus_size, max(NB_PAPERS_LLM * 40, 1000))
+    raw = collection.query(query_texts=[query], n_results=over_fetch)
+
+    keep = [i for i, doc_id in enumerate(raw["ids"][0]) if doc_id in allowed][:NB_PAPERS_LLM]
+    keyed = ("ids", "documents", "metadatas", "distances", "embeddings", "uris", "data")
+    return {
+        k: [[raw[k][0][i] for i in keep]]
+        for k in keyed
+        if raw.get(k) is not None and raw.get(k)[0] is not None
+    }
 
 
 def call_llm_stream(user_query, title_and_abst, patient_data):
