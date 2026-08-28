@@ -1,0 +1,144 @@
+"""Centralised configuration for the EvidenceDB app.
+
+All settings are read from environment variables (optionally populated from a
+local ``.env`` file next to this module) with sensible defaults, so the app
+runs out of the box for development but every value can be overridden in
+production without touching code.
+
+Import this module from anywhere in the project::
+
+    import config
+    conn = sqlite3.connect(config.SQLITE_DB_PATH)
+
+Path settings are resolved relative to this file's directory, so they no
+longer depend on the process working directory.
+"""
+
+import os
+from pathlib import Path
+
+try:
+    from dotenv import load_dotenv
+except ImportError:  # dotenv is optional; env vars still work without it
+    def load_dotenv(*_args, **_kwargs):
+        return False
+
+BASE_DIR = Path(__file__).resolve().parent
+
+# Load a local .env if present (does not override already-set env vars).
+load_dotenv(BASE_DIR / ".env")
+
+
+# --------------------------------------------------------------------------- #
+# helpers
+# --------------------------------------------------------------------------- #
+def _path(env_name: str, default: str) -> Path:
+    """Return an absolute Path from ``env_name`` or ``default``.
+
+    Relative values are anchored to :data:`BASE_DIR`.
+    """
+    raw = os.environ.get(env_name, default)
+    p = Path(raw).expanduser()
+    return p if p.is_absolute() else (BASE_DIR / p)
+
+
+def _bool(env_name: str, default: bool = False) -> bool:
+    raw = os.environ.get(env_name)
+    if raw is None:
+        return default
+    return raw.strip().lower() in ("1", "true", "yes", "on")
+
+
+# --------------------------------------------------------------------------- #
+# Flask / web server
+# --------------------------------------------------------------------------- #
+SECRET_KEY = os.environ.get("EVIDENCE_DB_SECRET_KEY", "dev-insecure-change-me")
+HOST = os.environ.get("EVIDENCE_DB_HOST", "127.0.0.1")
+PORT = int(os.environ.get("EVIDENCE_DB_PORT", "5000"))
+DEBUG = _bool("EVIDENCE_DB_DEBUG", False)
+
+# Comma-separated list of allowed CORS origins, or "*" for all.
+_cors = os.environ.get("EVIDENCE_DB_CORS_ORIGINS", "*").strip()
+CORS_ORIGINS = "*" if _cors == "*" else [o.strip() for o in _cors.split(",") if o.strip()]
+
+
+# --------------------------------------------------------------------------- #
+# SQLite (GenomicsDB tables + LiteratureDB qa_data)
+# --------------------------------------------------------------------------- #
+SQLITE_DB_PATH = _path("EVIDENCE_DB_SQLITE_PATH", "database.db")
+RESPONSES_SQL_PATH = _path("EVIDENCE_DB_RESPONSES_SQL", "responses.sql")
+GENOMICS_SQL_PATH = _path("EVIDENCE_DB_GENOMICS_SQL", "genomics.sql")
+
+
+# --------------------------------------------------------------------------- #
+# ChromaDB vector store (LiteratureDB RAG)
+# --------------------------------------------------------------------------- #
+CHROMA_DB_PATH = _path("EVIDENCE_DB_CHROMA_PATH", "chroma_data_20250603")
+CHROMA_COLLECTION = os.environ.get(
+    "EVIDENCE_DB_CHROMA_COLLECTION", "searchable_db_collection_fd"
+)
+# The live `searchable_db_collection_fd` collection was built with
+# all-MiniLM-L6-v2 (see db_initializations/make_chromadb_visualization_v2.ipynb).
+# The embedding model used for queries MUST match the one used to build the
+# collection, so this is a single source of truth for every route.
+EMBEDDING_MODEL = os.environ.get(
+    "EVIDENCE_DB_EMBEDDING_MODEL", "all-MiniLM-L6-v2"
+)
+
+
+# --------------------------------------------------------------------------- #
+# LLM (used by the missing-but-expected llm.py module)
+# --------------------------------------------------------------------------- #
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
+OPENAI_BASE_URL = os.environ.get("OPENAI_BASE_URL", "") or None
+LLM_MODEL = os.environ.get("EVIDENCE_DB_LLM_MODEL", "gpt-4o-mini")
+
+
+# --------------------------------------------------------------------------- #
+# GenomicsDB upstream source (CIViC GraphQL)
+# --------------------------------------------------------------------------- #
+CIVIC_API_URL = os.environ.get(
+    "EVIDENCE_DB_CIVIC_API_URL", "https://civicdb.org/api/graphql"
+)
+
+
+# --------------------------------------------------------------------------- #
+# Variantscape data files
+# --------------------------------------------------------------------------- #
+VARIANTSCAPE_GRAPH_PATH = _path(
+    "EVIDENCE_DB_VARIANTSCAPE_GRAPH", "variantscape/network_graph_weighted.gml"
+)
+VARIANTSCAPE_CONSENSUS_PATH = _path(
+    "EVIDENCE_DB_VARIANTSCAPE_CONSENSUS",
+    "variantscape/final_variant_treatment_consensus.csv",
+)
+VARIANTSCAPE_METADATA_MAPPING_PATH = _path(
+    "EVIDENCE_DB_VARIANTSCAPE_METADATA_MAPPING",
+    "variantscape/metadata_mapping_transposed.csv",
+)
+CANCER_SYNONYMS_PATH = _path(
+    "EVIDENCE_DB_CANCER_SYNONYMS", "static/Network_cancer_synonyms.csv"
+)
+
+
+# --------------------------------------------------------------------------- #
+# Variantscape tuning parameters
+# --------------------------------------------------------------------------- #
+# Absolute total-weight floors for highlighting a result in the UI.
+TREATMENT_MIN_HIGHLIGHT = int(os.environ.get("EVIDENCE_DB_TREATMENT_MIN_HIGHLIGHT", "300"))
+CANCER_MIN_HIGHLIGHT = int(os.environ.get("EVIDENCE_DB_CANCER_MIN_HIGHLIGHT", "80"))
+# Percentile cut-offs for "top" treatment / cancer weights.
+TREATMENT_THRESHOLD_PERCENTILE = int(
+    os.environ.get("EVIDENCE_DB_TREATMENT_THRESHOLD_PERCENTILE", "80")
+)
+CANCER_THRESHOLD_PERCENTILE = int(
+    os.environ.get("EVIDENCE_DB_CANCER_THRESHOLD_PERCENTILE", "80")
+)
+# Fuzzy-match acceptance ratio (0-1) shared by the genomics and variantscape lookups.
+MATCHING_RATIO_THRESH = float(os.environ.get("EVIDENCE_DB_MATCHING_RATIO_THRESH", "0.8"))
+
+
+# --------------------------------------------------------------------------- #
+# Partner logos (bottom banner)
+# --------------------------------------------------------------------------- #
+PARTNERS_FILE = _path("EVIDENCE_DB_PARTNERS_FILE", "partners.json")

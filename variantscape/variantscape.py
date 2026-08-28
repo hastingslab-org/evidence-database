@@ -7,15 +7,18 @@ from rapidfuzz import fuzz
 import ast
 import re
 
+# Make the project root importable regardless of the process working directory.
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import config
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from graph_store import G, consensus_dict
 
-# === Adjustable thresholds === #
-TREATMENT_THRESHOLD_PERCENTILE = 80    # highlight top X% of treatment weights
-CANCER_THRESHOLD_PERCENTILE    = 80    # highlight top X% of cancer–variant weights
+# === Adjustable thresholds (see config.py / .env.example to override) === #
+TREATMENT_THRESHOLD_PERCENTILE = config.TREATMENT_THRESHOLD_PERCENTILE  # highlight top X% of treatment weights
+CANCER_THRESHOLD_PERCENTILE = config.CANCER_THRESHOLD_PERCENTILE        # highlight top X% of cancer–variant weights
 
-MATCHING_RATIO_THRESH = 0.8 # threshold for fuzzy matching TODO in config/common file
+MATCHING_RATIO_THRESH = config.MATCHING_RATIO_THRESH  # fuzzy-match acceptance ratio (0-1)
 
 EXCLUDED_TREATMENTS = {
     'chemotherapy', 'tyrosine kinase inhibitor', 'radiotherapy', 'hormone therapy',
@@ -35,7 +38,7 @@ CANCER_SYNONYM_MAP = {
 
 def compute_cancer_alias_map():
     # Load and normalize the synonym dataframe
-    CIVIC_cancer_synonyms_df = pd.read_csv("static/Network_cancer_synonyms.csv")
+    CIVIC_cancer_synonyms_df = pd.read_csv(config.CANCER_SYNONYMS_PATH)
     df_syn = CIVIC_cancer_synonyms_df.copy()
     df_syn["name"] = df_syn["name"].str.strip().str.lower()
 

@@ -1,11 +1,27 @@
-chroma_data2/
-evidencedb_env/
-.env
+# --- Python ---
 __pycache__/
-titles_and_abstracts.csv
-test_api.ipynb
-genomics/create_genomic_db.ipynb
+evidencedb_env/
+
+# --- Local configuration / secrets ---
+.env
 environment.py
+config.local.py
+
+# --- Local / regenerable databases (kept on disk, not tracked) ---
+# database.db is rebuilt from CIViC via db_initializations/update_genomics_db.py
+database.db
+*.sock
+
+# --- Vector store (LiteratureDB RAG) ---
+chroma_data2/
 chroma_data_20250603/
 saved_variables/
+
+# --- Large local-only assets (kept on disk, not tracked for now) ---
+static/evidence-db-angular/assets/screenshots/
+
+# --- Data dumps / scratch ---
+titles_and_abstracts.csv
 cleaned_df_v4.csv
+test_api.ipynb
+genomics/create_genomic_db.ipynb

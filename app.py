@@ -7,11 +7,12 @@ from flask_cors import CORS
 from werkzeug.exceptions import RequestEntityTooLarge
 from llm import call_llm_stream, get_relevant_papers
 from init_db import init_db
-import sqlite3 
+import sqlite3
 from functools import lru_cache
 import chromadb
 from chromadb.utils import embedding_functions
 
+import config
 from genomics.genomics_data import fuzzy_match_gml, get_items_by_name_fuzzy, get_items_from_ids, get_item_by_name, get_item_from_single_id, check_variant_in_database
 from variantscape.variantscape import compute_associations, check_variant_in_graph, check_cancer_in_graph, get_associated_cancer_types_from_variant, get_associated_variants_from_cancer_type
 from variantscape.graph_store import G
@@ -19,29 +20,21 @@ from variantscape.variantscape import autosuggest_item
 
 
 
-# Get db directory path
-DB_PATH = 'chroma_data_20250603'
+# ChromaDB (LiteratureDB RAG) vector store location
+DB_PATH = str(config.CHROMA_DB_PATH)
 
-#Variantscape config
-TREATMENT_MIN_HIGHLIGHT        = 300   # and require ≥X total weight
-CANCER_MIN_HIGHLIGHT           = 80    # and require ≥X total weight
-#TODO add percentile and fuzzy ratio (currently in other files). Move to a config file ? 
-
-PARTNER_LINKS = {
-    "Hoch KSSG logo.png": "https://www.h-och.ch/",
-    "MED-HSG_Logo_EN_RGB.svg": "https://med.unisg.ch/en/",
-    "sib_logo2023.png": "https://www.sib.swiss/",
-    "uzh_logo_d_pos.svg": "https://www.uzh.ch/en.html",
-} #TODO put in a file - partners.json and import it here?
+# Variantscape highlight thresholds (see config.py / .env.example to override)
+TREATMENT_MIN_HIGHLIGHT = config.TREATMENT_MIN_HIGHLIGHT
+CANCER_MIN_HIGHLIGHT = config.CANCER_MIN_HIGHLIGHT
 
 #app config
 def create_app():
     app = Flask(__name__, static_folder='static', static_url_path='/static')
-    CORS(app)  # Enable CORS for all routes
+    CORS(app, origins=config.CORS_ORIGINS)  # Enable CORS (configurable allow-list)
     app.config['SESSION_TYPE'] = 'filesystem'  # Use the filesystem to store session data
     app.config['SESSION_PERMANENT'] = False
     app.config['SESSION_USE_SIGNER'] = True
-    app.config['SECRET_KEY'] = 'my_secret_key' #TODO 
+    app.config['SECRET_KEY'] = config.SECRET_KEY
 
 
     @app.context_processor
@@ -53,7 +46,7 @@ def create_app():
 
 #db access functions
 def get_db_connection():
-    conn = sqlite3.connect('database.db')
+    conn = sqlite3.connect(str(config.SQLITE_DB_PATH))
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -73,7 +66,17 @@ def get_qa_item(item_name, item_id, json_load=False):
     else:
         return jsonify({"error": "Response not found"}), 404
 
-@lru_cache(maxsize=1) #TODO put in a seperate file and import ?
+@lru_cache(maxsize=1)
+def _partner_links() -> dict:
+    """Load the {logo filename: url} map from the configured partners.json."""
+    try:
+        with open(config.PARTNERS_FILE, encoding="utf-8") as fh:
+            return json.load(fh)
+    except (OSError, ValueError):
+        return {}
+
+
+@lru_cache(maxsize=1)
 def get_partner_logos() -> list[tuple[str, str]]:
     """
     Return a sorted list of (filename, url) tuples for the bottom banner.
@@ -88,7 +91,8 @@ def get_partner_logos() -> list[tuple[str, str]]:
     )
 
     # pair each file with its link (or "#" as a benign fallback)
-    return [(f, PARTNER_LINKS.get(f, "#")) for f in files]
+    links = _partner_links()
+    return [(f, links.get(f, "#")) for f in files]
 
 app = create_app()
 ANGULAR_APP_DIST_DIR = os.path.join(app.static_folder, 'evidence-db-angular')
@@ -321,8 +325,8 @@ def answer_page():
         
         # Get papers
         chroma_client = chromadb.PersistentClient(path=DB_PATH)
-        embedding_func = embedding_functions.SentenceTransformerEmbeddingFunction(model_name="mixedbread-ai/mxbai-embed-large-v1") #TODO move somewhere else
-        collection = chroma_client.get_collection(name="searchable_db_collection_fd",embedding_function=embedding_func)
+        embedding_func = embedding_functions.SentenceTransformerEmbeddingFunction(model_name=config.EMBEDDING_MODEL)
+        collection = chroma_client.get_collection(name=config.CHROMA_COLLECTION, embedding_function=embedding_func)
         query_results = get_relevant_papers(query, collection, patient_data)
 
         response_id = str(uuid.uuid4())
@@ -459,12 +463,12 @@ def api_view_database():
         chroma_client = chromadb.PersistentClient(path=DB_PATH)
         
         embedding_func = embedding_functions.SentenceTransformerEmbeddingFunction(
-            model_name="all-MiniLM-L6-v2"
+            model_name=config.EMBEDDING_MODEL
         )
-        
+
         print("Getting collection...")
         collection = chroma_client.get_collection(
-            name="searchable_db_collection_fd",
+            name=config.CHROMA_COLLECTION,
             embedding_function=embedding_func
         )
         
@@ -509,8 +513,8 @@ def api_answer():
         
         # Generate query results
         chroma_client = chromadb.PersistentClient(path=DB_PATH)
-        embedding_func = embedding_functions.SentenceTransformerEmbeddingFunction(model_name="all-MiniLM-L6-v2")
-        collection = chroma_client.get_collection(name="searchable_db_collection_fd",embedding_function=embedding_func)
+        embedding_func = embedding_functions.SentenceTransformerEmbeddingFunction(model_name=config.EMBEDDING_MODEL)
+        collection = chroma_client.get_collection(name=config.CHROMA_COLLECTION, embedding_function=embedding_func)
 
         # --- Start Debug Prints ---
         """print(f"--- DEBUG: Attempting to access collection at DB_PATH: {DB_PATH}")
@@ -573,7 +577,7 @@ def api_stream_response():
             full_response = "".join(chunks)
 
             #store response in db
-            conn = get_db_connectio()
+            conn = get_db_connection()
             cursor = conn.cursor()
             cursor.execute("INSERT INTO qa_data (id, query, patient_data, papers, response) VALUES (?, ?, ?, ?, ?)",
                            (response_id, query, patient_data_json, papers_json, full_response))
@@ -593,4 +597,4 @@ init_db()
 print("Database initialized.")
 
 if __name__ == "__main__": #TODO separate app.py into init, cli, helpers, and routes
-    app.run(host='0.0.0.0')
+    app.run(host=config.HOST, port=config.PORT, debug=config.DEBUG)

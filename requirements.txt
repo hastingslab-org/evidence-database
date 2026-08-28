@@ -1,5 +1,6 @@
 wheel
 flask
+python-dotenv
 chromadb==0.5.20
 ipython==8.12.3
 numpy==2.2.1

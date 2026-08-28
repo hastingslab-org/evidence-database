@@ -3,6 +3,11 @@ import json
 import sqlite3
 from rapidfuzz import fuzz
 import os
+import sys
+
+# Make the project root importable regardless of the process working directory.
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import config
 
 
 #TODO separate into different files (one for APIs interaction, one for sqlite interaction))
@@ -56,8 +61,8 @@ VARIATIONS_TO_EXCLUDE = [
     "nm0", 
     "fas"]
 
-# Threshold for sqlite query fuzzy matching
-MATCHING_RATIO_THRESH = 0.8
+# Threshold for sqlite query fuzzy matching (see config.py / .env.example to override)
+MATCHING_RATIO_THRESH = config.MATCHING_RATIO_THRESH
 
 """ ***** USEFUL FUNCTIONS TO QUERY SQLITE DATABASE *****"""
 def get_item_by_name(name, table_name, db_path): #TODO this is by exact name
@@ -152,8 +157,10 @@ def get_items_from_ids(ids, item_name, db_path):
 
     return items
 
-def check_variant_in_database(gene_name, variant_name, db_path = "../database.db"):
+def check_variant_in_database(gene_name, variant_name, db_path=None):
     """Check if the variant exists in the database."""
+    if db_path is None:
+        db_path = str(config.SQLITE_DB_PATH)
 
     sql = f"""
         SELECT 1
@@ -174,8 +181,8 @@ def check_variant_in_database(gene_name, variant_name, db_path = "../database.db
 
 """ ***** Class to interact with cloud databases through API (CIVIC, ClinVar) *****"""
 class GenomicsData:
-    def __init__(self, url="https://civicdb.org/api/graphql", headers = {"Content-Type": "application/json",}):
-        self.url = url
+    def __init__(self, url=None, headers = {"Content-Type": "application/json",}):
+        self.url = url or config.CIVIC_API_URL
         self.headers = headers
 
         self.variants = None
@@ -432,13 +439,13 @@ class GenomicsData:
 
         self.molecular_profiles = molecular_profiles_filtered
 
-    def save_to_sqlite(self, db_path="../database.db"):
-        # Connect to the SQLite database 
+    def save_to_sqlite(self, db_path=None):
+        # Connect to the SQLite database
+        if db_path is None:
+            db_path = str(config.SQLITE_DB_PATH)
         conn = sqlite3.connect(db_path)
-        
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        sql_file_path = os.path.join(script_dir, '..', 'genomics.sql')
-        with open(sql_file_path) as f:
+
+        with open(config.GENOMICS_SQL_PATH) as f:
                 conn.executescript(f.read())
 
         cursor = conn.cursor()
