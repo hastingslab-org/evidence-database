@@ -5,6 +5,7 @@ CREATE TABLE qa_data (
     query TEXT,
     patient_data TEXT,
     papers TEXT,
-    response TEXT
+    response TEXT,
+    filters TEXT
 );
 

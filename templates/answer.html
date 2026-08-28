@@ -1,139 +1,180 @@
 {% extends 'base.html' %}
+{% import '_literature_panels.html' as panels %}
+
+{% block title %}LiteratureDB – Answer{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/literature.css') }}">
+<script src="{{ url_for('static', filename='evidence-db-angular/assets/plotly-2.14.0.min.js') }}"></script>
+<style>
+    pre#userQuery {
+        background: #eef1f5;
+        padding: 15px;
+        border-radius: 5px;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+    }
+    #answerMain textarea {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ccd0d5;
+        border-radius: 5px;
+        resize: vertical;
+        font-size: 14px;
+    }
+    .collapsible-content { list-style: none; padding-left: 20px; margin-top: 0; margin-bottom: 20px; }
+    .toggle-icon { font-size: 14px; margin-left: 5px; }
+    .answer-section {
+        background-color: #f9f9f9;
+        border: 1px solid #e0e0e0;
+        padding: 20px;
+        border-radius: 5px;
+        margin-bottom: 20px;
+        min-height: 100px;
+    }
+    a.view-paper-btn { color: #007bff; text-decoration: none; margin-left: 10px; }
+    a.view-paper-btn:hover { text-decoration: underline; }
+    #editQuestionDiv {
+        margin-top: 15px;
+        padding: 15px;
+        background-color: #f4f4f4;
+        border-radius: 5px;
+        border: 1px solid #ddd;
+    }
+    #answerMain h4 { text-align: left; }
+    .rerun-hint { font-size: 13px; color: #a15c00; margin-top: 10px; display: none; }
+</style>
+{% endblock %}
 
 {% block content %}
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    pre#userQuery {
-      background: #eef1f5;
-      padding: 15px;
-      border-radius: 5px;
-      white-space: pre-wrap;
-      word-wrap: break-word;
-    }
+<div class="lit-container">
+    <header style="text-align:center; margin-bottom: 25px;">
+        <h1>LiteratureDB</h1>
+        <h3>Evidence-backed answer</h3>
+    </header>
 
-    /* Form Styles */
-    textarea {
-      width: 100%;
-      padding: 10px;
-      border: 1px solid #ccd0d5;
-      border-radius: 5px;
-      resize: vertical;
-      font-size: 14px;
-    }
+    <div class="row">
+        <!-- LEFT: filters -->
+        <div class="col-lg-3 col-md-4">
+            {{ panels.filter_panel(filter_groups) }}
+            <p class="ov-chart-label">Adjust filters, then re-run the search.</p>
+        </div>
 
-    /* Collapsible Sections */
-    .collapsible-content {
-      list-style: none;
-      padding-left: 20px;
-      margin-top: 0;
-      margin-bottom: 20px;
-    }
-    .toggle-icon {
-      font-size: 14px;
-      margin-left: 5px;
-    }
+        <!-- CENTRE: answer -->
+        <div class="col-lg-6 col-md-8">
+            <div class="lit-panel" id="answerMain">
+                <h4>Your Question</h4>
+                <pre id="userQuery"></pre>
+                <button id="editButton" onclick="showEditForm()" class="btn">Edit Question</button>
+                <button id="rerunButton" onclick="rerunWithFilters()" class="btn" style="background:#eee; color:#333;">Re-run search</button>
+                <p id="rerunHint" class="rerun-hint">Filters changed — re-run the search to apply them.</p>
 
-    /* Answer Section */
-    .answer-section {
-      background-color: #f9f9f9;
-      border: 1px solid #e0e0e0;
-      padding: 20px;
-      border-radius: 5px;
-      margin-bottom: 20px;
-      min-height: 100px;
-    }
+                <div id="editQuestionDiv" style="display: none;">
+                    <form id="editForm" action="/answer" method="POST">
+                        <label for="queryInput">Edit your question:</label>
+                        <textarea id="queryInput" name="query" rows="3"></textarea>
+                        <input type="hidden" name="filters" id="editFiltersField">
+                        <div id="patientDataInputs"></div>
+                        <button type="submit" class="btn">Save Changes</button>
+                    </form>
+                </div>
 
-    /* Link Styles */
-    a.view-paper-btn {
-      color: #007bff;
-      text-decoration: none;
-      margin-left: 10px;
-    }
-    a.view-paper-btn:hover {
-      text-decoration: underline;
-    }
+                <hr class="section-divider">
 
-    /* Spacing for edit form */
-    #editQuestionDiv {
-      margin-top: 15px;
-      padding: 15px;
-      background-color: #f4f4f4;
-      border-radius: 5px;
-      border: 1px solid #ddd;
-    }
-  </style>
-</head>
+                <h4 id="togglePatientSection">
+                    Patient's Characteristics
+                    <span id="patientToggleIcon" class="toggle-icon">&#x25BC;</span>
+                </h4>
+                <ul id="patientCharacteristics" class="collapsible-content"></ul>
 
-<body>
-  <div class="container">
-    <!-- Question -->
-    <h4>Your Question</h4>
-    <pre id="userQuery"></pre>
-    <button id="editButton" onclick="showEditForm()" class="btn">Edit Question</button>
-    
-    <!-- Hidden edit form for the question -->
-    <div id="editQuestionDiv" style="display: none;">
-      <form id="editForm" action="/answer" method="POST">
-        <label for="queryInput">Edit your question:</label>
-        <textarea id="queryInput" name="query" rows="3"></textarea>
-        <!-- Container for hidden inputs for patient data -->
-        <div id="patientDataInputs"></div>
-        <button type="submit" class="btn">Save Changes</button>
-      </form>
+                <hr class="section-divider">
+
+                <h4 id="togglePapersSection">
+                    Selected Papers
+                    <span id="papersToggleIcon" class="toggle-icon">&#x25BC;</span>
+                </h4>
+                <ol id="selectedPapers" class="collapsible-content"></ol>
+
+                <h2>
+                    LLM Answer
+                    <span id="loadingSpinner" style="display: none; font-size: 16px; margin-left: 20px;">Loading...</span>
+                </h2>
+                <div id="liveResponse" class="answer-section"></div>
+
+                <div style="text-align: center;">
+                    <a href="/literature" class="btn">Ask a New Question</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT: overview -->
+        <div class="col-lg-3 col-md-12">
+            {{ panels.overview_panel() }}
+        </div>
     </div>
-    
-    <hr class="section-divider">
+</div>
+{% endblock %}
 
-    <!-- Patient's Characteristics Toggle -->
-    <h4 id="togglePatientSection">
-      Patient's Characteristics  
-      <span id="patientToggleIcon" class="toggle-icon">&#x25BC;</span>
-    </h4>
-    <ul id="patientCharacteristics" class="collapsible-content"></ul>
-
-    <hr class="section-divider">
-
-    <!-- Selected Papers Toggle -->
-    <h4 id="togglePapersSection">
-      Selected Papers 
-      <span id="papersToggleIcon" class="toggle-icon">&#x25BC;</span>
-    </h4>
-    <ol id="selectedPapers" class="collapsible-content"></ol>
-
-    <!-- Question -->
-    <h2>
-      LLM Answer
-      <span id="loadingSpinner" style="display: none; font-size: 16px; margin-left: 20px;">Loading...</span>
-    </h2>
-    <div id="liveResponse" class="answer-section"></div>
-
-    <div style="text-align: center;">
-      <a href="/literature" class="btn">Ask a New Question</a>
-    </div>
-  </div>
-
-  <script>
-    // ******** Display user query *********
+{% block scripts_extra %}
+<script src="{{ url_for('static', filename='js/literature_panels.js') }}"></script>
+<script>
+    // ---------- data from the server ----------
     const query = {{ query | tojson | safe }};
+    const patientData = JSON.parse({{ patient_data | tojson | safe }});
+    const papers = {{ query_results | tojson | safe }};
+    const responseID = "{{ response_id }}";
+    const llmAnswer = {{ llm_answer | default('') | tojson | safe }};
+    const ACTIVE_FILTERS = {{ active_filters | default({}) | tojson | safe }};
+    const INITIAL_OVERVIEW = {{ overview | tojson | safe }};
+    const FILTERS_USED = {{ (filters_raw or '') | tojson | safe }};
+
+    // ---------- side panels ----------
+    function onFiltersChanged(filters) {
+        const json = JSON.stringify(filters);
+        const editField = document.getElementById('editFiltersField');
+        if (editField) editField.value = json;
+        const hint = document.getElementById('rerunHint');
+        if (hint) hint.style.display = (json !== (FILTERS_USED || '{}')) ? 'block' : 'none';
+    }
+    initLiteraturePanels({
+        overviewUrl: "{{ url_for('api_literature_overview') }}",
+        initialOverview: INITIAL_OVERVIEW,
+        activeFilters: ACTIVE_FILTERS,
+        onChange: onFiltersChanged
+    });
+
+    function addHidden(form, name, value) {
+        const i = document.createElement('input');
+        i.type = 'hidden'; i.name = name; i.value = value;
+        form.appendChild(i);
+    }
+    function rerunWithFilters() {
+        const f = document.createElement('form');
+        f.method = 'POST';
+        f.action = '/answer';
+        addHidden(f, 'query', query);
+        addHidden(f, 'filters', JSON.stringify(window.currentLiteratureFilters()));
+        for (const k in patientData) {
+            addHidden(f, k, Array.isArray(patientData[k]) ? patientData[k].join(', ') : patientData[k]);
+        }
+        document.body.appendChild(f);
+        f.submit();
+    }
+
+    // ---------- question ----------
     document.getElementById("userQuery").textContent = query;
 
-    // ******** Display patient's characteristics ********
     setupCollapsible("togglePatientSection", "patientCharacteristics", "patientToggleIcon");
     setupCollapsible("togglePapersSection", "selectedPapers", "papersToggleIcon");
 
-    const patientData = JSON.parse({{ patient_data | tojson | safe }});
     const characteristicsList = document.getElementById("patientCharacteristics");
-
     Object.entries(patientData).forEach(([key, value]) => {
-      const listItem = document.createElement("li");
-      listItem.textContent = `${key}: ${Array.isArray(value) ? value.join(", ") : value}`;
-      characteristicsList.appendChild(listItem);
+        const listItem = document.createElement("li");
+        listItem.textContent = `${key}: ${Array.isArray(value) ? value.join(", ") : value}`;
+        characteristicsList.appendChild(listItem);
     });
 
-    // ******** Display papers ********
-    const papers = {{ query_results | tojson | safe }};
+    // ---------- selected papers ----------
     const titles = papers.metadatas[0].map(paper => paper.titles);
     const abstracts = papers.documents[0];
     const authors = papers.metadatas[0].map(paper => paper.first_author);
@@ -141,149 +182,125 @@
     const journals = papers.metadatas[0].map(paper => paper.journal);
 
     const papersList = document.getElementById("selectedPapers");
-
     titles.forEach((title, index) => {
-      const li = document.createElement("li");
-      const titleSpan = document.createElement("span");
-      titleSpan.textContent = `${title} (${authors[index]}, ${years[index]}, ${journals[index]})`;
+        const li = document.createElement("li");
+        const titleSpan = document.createElement("span");
+        titleSpan.textContent = `${title} (${authors[index]}, ${years[index]}, ${journals[index]})`;
 
-      const link = document.createElement("a");
-      link.href = `/paper_${index + 1}`;
-      link.textContent = " [View Paper]";
-      link.className = "view-paper-btn";
+        const link = document.createElement("a");
+        link.href = `/paper_${index + 1}`;
+        link.textContent = " [View Paper]";
+        link.className = "view-paper-btn";
+        link.addEventListener("click", (e) => {
+            e.preventDefault();
+            const form = document.createElement("form");
+            form.method = "POST";
+            form.action = `/paper_${index + 1}`;
+            form.target = "_blank";
+            const paperData = {
+                title: titles[index], abstract: abstracts[index], author: authors[index],
+                year: years[index], journal: journals[index]
+            };
+            for (const key in paperData) addHidden(form, key, paperData[key]);
+            document.body.appendChild(form);
+            form.submit();
+        });
 
-      link.addEventListener("click", (e) => {
-        e.preventDefault();
-        const form = document.createElement("form");
-        form.method = "POST";
-        form.action = `/paper_${index + 1}`;
-        form.target = "_blank";
-        const paperData = {
-          title: titles[index],
-          abstract: abstracts[index],
-          author: authors[index],
-          year: years[index],
-          journal: journals[index]
-        };
-
-        for (const key in paperData) {
-          const input = document.createElement("input");
-          input.type = "hidden";
-          input.name = key;
-          input.value = paperData[key];
-          form.appendChild(input);
-        }
-
-        document.body.appendChild(form);
-        form.submit();
-      });
-
-      li.appendChild(titleSpan);
-      li.appendChild(link);
-      papersList.appendChild(li);
+        li.appendChild(titleSpan);
+        li.appendChild(link);
+        papersList.appendChild(li);
     });
 
-    // *********** Stream LLM response ********
+    // ---------- stream the LLM response ----------
     const responseContainer = document.getElementById("liveResponse");
-    const responseID = "{{ response_id }}";
-    const llmAnswer = {{ llm_answer | default('') | tojson | safe }};
-
     if (llmAnswer === '') {
-      streamLLMResponse(query);
+        streamLLMResponse(query);
     } else {
-      responseContainer.innerHTML = llmAnswer;
+        responseContainer.innerHTML = llmAnswer;
     }
 
-    function streamLLMResponse(query) {
-      responseContainer.innerHTML = "";
-      const loadingSpinner = document.getElementById("loadingSpinner");
-      loadingSpinner.style.display = "inline";
+    function streamLLMResponse(q) {
+        responseContainer.innerHTML = "";
+        const loadingSpinner = document.getElementById("loadingSpinner");
+        loadingSpinner.style.display = "inline";
 
-      const viewPaperButtons = document.querySelectorAll(".view-paper-btn");
-      viewPaperButtons.forEach((button) => {
-        button.style.pointerEvents = "none";
-        button.style.opacity = "0.5";
-      });
+        const viewPaperButtons = document.querySelectorAll(".view-paper-btn");
+        viewPaperButtons.forEach((b) => { b.style.pointerEvents = "none"; b.style.opacity = "0.5"; });
 
-      fetch('/stream_response', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          query: query,
-          papers: papers,
-          patient_data: patientData,
-          response_id: responseID,
-        })
-      }).then(response => {
-        if (!response.body) {
-          console.error("Response body is null.");
-          responseContainer.innerHTML = "<p style='color: red;'>An error occurred while fetching the response.</p>";
-          return;
-        }
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        function readStream() {
-          reader.read().then(({ done, value }) => {
-            if (done) {
-              console.log("Stream finished.");
-              loadingSpinner.style.display = "none";
-              viewPaperButtons.forEach((button) => {
-                button.style.pointerEvents = "auto";
-                button.style.opacity = "1";
-              });
-              return;
+        fetch('/stream_response', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                query: q,
+                papers: papers,
+                patient_data: patientData,
+                response_id: responseID,
+                filters: FILTERS_USED
+            })
+        }).then(response => {
+            if (!response.body) {
+                responseContainer.innerHTML = "<p style='color: red;'>An error occurred while fetching the response.</p>";
+                return;
             }
-            responseContainer.innerHTML += decoder.decode(value);
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            function readStream() {
+                reader.read().then(({ done, value }) => {
+                    if (done) {
+                        loadingSpinner.style.display = "none";
+                        viewPaperButtons.forEach((b) => { b.style.pointerEvents = "auto"; b.style.opacity = "1"; });
+                        return;
+                    }
+                    responseContainer.innerHTML += decoder.decode(value);
+                    readStream();
+                });
+            }
             readStream();
-          });
-        }
-        readStream();
-      }).catch(error => {
-        console.error("Error:", error);
-        responseContainer.innerHTML = "<p style='color: red;'>An error occurred while fetching the response.</p>";
-        loadingSpinner.style.display = "none";
-        viewPaperButtons.forEach((button) => {
-          button.style.pointerEvents = "auto";
-          button.style.opacity = "1";
+        }).catch(error => {
+            console.error("Error:", error);
+            responseContainer.innerHTML = "<p style='color: red;'>An error occurred while fetching the response.</p>";
+            loadingSpinner.style.display = "none";
+            viewPaperButtons.forEach((b) => { b.style.pointerEvents = "auto"; b.style.opacity = "1"; });
         });
-      });
     }
 
-    // Toggle Function
+    // ---------- collapsibles ----------
     function setupCollapsible(sectionId, contentId, iconId) {
-      const section = document.getElementById(sectionId);
-      const content = document.getElementById(contentId);
-      const icon = document.getElementById(iconId);
-      section.addEventListener("click", function () {
-        if (content.style.display === "none" || content.style.display === "") {
-          content.style.display = "block";
-          icon.innerHTML = "&#x25B2;";  // Up arrow
-        } else {
-          content.style.display = "none";
-          icon.innerHTML = "&#x25BC;";  // Down arrow
-        }
-      });
+        const section = document.getElementById(sectionId);
+        const content = document.getElementById(contentId);
+        const icon = document.getElementById(iconId);
+        section.addEventListener("click", function () {
+            if (content.style.display === "none" || content.style.display === "") {
+                content.style.display = "block";
+                icon.innerHTML = "&#x25B2;";
+            } else {
+                content.style.display = "none";
+                icon.innerHTML = "&#x25BC;";
+            }
+        });
     }
 
-    // ******** Edit Question Functions ********
+    // ---------- edit question ----------
     function showEditForm() {
-      document.getElementById("userQuery").style.display = "none";
-      document.getElementById("editButton").style.display = "none";
-      document.getElementById("editQuestionDiv").style.display = "block";
-      document.getElementById("queryInput").value = query;
-      populatePatientDataInputs();
+        document.getElementById("userQuery").style.display = "none";
+        document.getElementById("editButton").style.display = "none";
+        document.getElementById("editQuestionDiv").style.display = "block";
+        document.getElementById("queryInput").value = query;
+        document.getElementById("editFiltersField").value =
+            JSON.stringify(window.currentLiteratureFilters());
+        populatePatientDataInputs();
     }
-
     function populatePatientDataInputs() {
-      const container = document.getElementById("patientDataInputs");
-      container.innerHTML = "";
-      for (const key in patientData) {
-        const input = document.createElement("input");
-        input.type = "hidden";
-        input.name = key;
-        input.value = Array.isArray(patientData[key]) ? patientData[key].join(", ") : patientData[key];
-        container.appendChild(input);
-      }
+        const container = document.getElementById("patientDataInputs");
+        container.innerHTML = "";
+        for (const key in patientData) {
+            addHidden(container, key,
+                Array.isArray(patientData[key]) ? patientData[key].join(", ") : patientData[key]);
+        }
     }
-  </script>
+    document.getElementById("editForm").addEventListener("submit", function () {
+        document.getElementById("editFiltersField").value =
+            JSON.stringify(window.currentLiteratureFilters());
+    });
+</script>
 {% endblock %}

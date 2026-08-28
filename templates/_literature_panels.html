@@ -1,0 +1,38 @@
+{# Reusable LiteratureDB side panels. Requires static/css/literature.css and
+   static/js/literature_panels.js on the including page. #}
+
+{% macro filter_panel(filter_groups) %}
+<div class="lit-panel">
+    <h4>Publication filters</h4>
+    <form id="filterForm">
+        {% for key, label, options in filter_groups %}
+        <details>
+            <summary>{{ label }}</summary>
+            {% for col, opt_label in options %}
+            <label class="opt">
+                <input type="checkbox" name="{{ key }}" value="{{ col }}">{{ opt_label }}
+            </label>
+            {% endfor %}
+        </details>
+        {% endfor %}
+        <div class="filter-actions">
+            <button type="submit" class="btn">Apply</button>
+            <button type="button" id="clearFilters" class="btn" style="background:#eee; color:#333;">Clear</button>
+        </div>
+    </form>
+</div>
+{% endmacro %}
+
+{% macro overview_panel() %}
+<div class="lit-panel">
+    <h4>Overview</h4>
+    <div class="ov-total">Publications in selection: <strong id="ovTotal">0</strong></div>
+    <p class="ov-chart-label">Publications by year</p>
+    <div id="chartYear" class="ov-chart"></div>
+    <p class="ov-chart-label">Top journals</p>
+    <div id="chartJournal" class="ov-chart"></div>
+    <p class="ov-chart-label">Geographic distribution</p>
+    <div id="chartCountry" class="ov-chart"></div>
+    <p id="plotlyMissing" style="display:none; color:#b00; font-size:12px;">Charts unavailable (Plotly failed to load).</p>
+</div>
+{% endmacro %}

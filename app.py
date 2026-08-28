@@ -348,15 +348,19 @@ def answer_page():
         allowed_ids = literature.matching_ids(filters_raw)
         collection = get_literature_collection()
         query_results = get_relevant_papers(query, collection, patient_data, allowed_ids=allowed_ids)
+        overview = literature.overview_stats(collection, ids=allowed_ids)
 
         response_id = str(uuid.uuid4())
         session['response_id'] = None  # Clear previous response ID
         session['response_id'] = response_id
-        session.modified = True 
+        session.modified = True
 
-        return render_template('answer.html', query=query, query_results = query_results, \
-                           patient_data=json_patient_data, response_id=response_id)
-    
+        return render_template('answer.html', query=query, query_results=query_results,
+                               patient_data=json_patient_data, response_id=response_id,
+                               filter_groups=literature.FILTER_GROUPS, overview=overview,
+                               active_filters=literature.parse_filters(filters_raw),
+                               filters_raw=filters_raw or '')
+
     if request.method == 'GET':
         # Retrieve the data stored in session
         response_id = session.get('response_id', {})
@@ -366,8 +370,15 @@ def answer_page():
         patient_data = get_qa_item("patient_data", response_id, json_load=True)
         json_patient_data = json.dumps(patient_data, ensure_ascii=False)
         query_results = get_qa_item("papers", response_id, json_load=True)
-        return render_template('answer.html', query=query, query_results=query_results, \
-                               patient_data=json_patient_data, llm_answer=llm_answer)
+        filters_raw = get_qa_item("filters", response_id)
+        filters_raw = filters_raw if isinstance(filters_raw, str) else ''
+        allowed_ids = literature.matching_ids(filters_raw)
+        overview = literature.overview_stats(get_literature_collection(), ids=allowed_ids)
+        return render_template('answer.html', query=query, query_results=query_results,
+                               patient_data=json_patient_data, llm_answer=llm_answer,
+                               filter_groups=literature.FILTER_GROUPS, overview=overview,
+                               active_filters=literature.parse_filters(filters_raw),
+                               filters_raw=filters_raw)
 
 # Route for streaming the LLM response
 @app.route('/stream_response', methods=['POST'])
@@ -381,11 +392,12 @@ def stream_response():
         patient_data = data.get('patient_data', {})
         patient_data_json = json.dumps(patient_data)
         response_id = data.get('response_id', '')
-       
+        filters_raw = data.get('filters', '') or ''
+
         def generate_response():
             # Stream LLM response live
             title_and_abst = ",".join(papers["documents"][0])
-            
+
             chunks = []
             for chunk in call_llm_stream(query, title_and_abst, patient_data):
                 if chunk:
@@ -403,8 +415,8 @@ def stream_response():
 
                 # Insert new data
                 cursor.execute(
-                    "INSERT INTO qa_data (id, query, patient_data, papers, response) VALUES (?, ?, ?, ?, ?)",
-                    (response_id, query, patient_data_json, papers_json, full_response)
+                    "INSERT INTO qa_data (id, query, patient_data, papers, response, filters) VALUES (?, ?, ?, ?, ?, ?)",
+                    (response_id, query, patient_data_json, papers_json, full_response, filters_raw)
                 )
                 conn.commit()  # Commit the transaction
             except Exception as e:
@@ -594,12 +606,12 @@ def api_stream_response():
         patient_data = data.get('patient_data', {})
         patient_data_json = json.dumps(patient_data)
         response_id = data.get('response_id', '')
+        filters_raw = data.get('filters', '') or ''
 
-       
         def generate_response():
             # Stream LLM response live
             title_and_abst = ",".join(papers["documents"][0])
-            
+
             chunks = []
             for chunk in call_llm_stream(query, title_and_abst, patient_data):
                 if chunk:
@@ -610,10 +622,10 @@ def api_stream_response():
             #store response in db
             conn = get_db_connection()
             cursor = conn.cursor()
-            cursor.execute("INSERT INTO qa_data (id, query, patient_data, papers, response) VALUES (?, ?, ?, ?, ?)",
-                           (response_id, query, patient_data_json, papers_json, full_response))
+            cursor.execute("INSERT INTO qa_data (id, query, patient_data, papers, response, filters) VALUES (?, ?, ?, ?, ?, ?)",
+                           (response_id, query, patient_data_json, papers_json, full_response, filters_raw))
             conn.commit()
-            conn.close()            
+            conn.close()
 
         return Response(generate_response(), content_type='text/event-stream',  headers={"Response-ID": response_id})
     

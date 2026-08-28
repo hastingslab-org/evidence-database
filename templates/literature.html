@@ -1,47 +1,19 @@
 {% extends 'base.html' %}
+{% import '_literature_panels.html' as panels %}
 
 {% block title %}LiteratureDB{% endblock %}
 
 {% block head_extra %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/literature.css') }}">
 <script src="{{ url_for('static', filename='evidence-db-angular/assets/plotly-2.14.0.min.js') }}"></script>
 <style>
-    .lit-container { max-width: 1500px; margin: 30px auto; }
-    .lit-panel {
-        background: #fff;
-        border: 1px solid #e0e0e0;
-        border-radius: 10px;
-        padding: 18px 20px;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
-    }
-    .lit-panel h4 { text-align: left; cursor: default; display: block; }
-
-    /* Filters */
-    #filterForm details { border-bottom: 1px solid #eee; padding: 6px 0; }
-    #filterForm summary { font-weight: 600; cursor: pointer; font-size: 14px; }
-    #filterForm .opt { display: block; font-size: 13px; margin: 4px 0 4px 8px; font-weight: 400; }
-    #filterForm .opt input { margin-right: 6px; }
-    .filter-actions { margin-top: 14px; display: flex; gap: 10px; }
-    .filter-actions button { padding: 7px 14px; font-size: 14px; }
-
-    /* Overview */
-    .ov-total { font-size: 15px; margin-bottom: 12px; }
-    .ov-total strong { font-size: 22px; }
-    .ov-chart { width: 100%; height: 230px; margin-bottom: 6px; }
-    .ov-chart-label { font-size: 12px; color: #666; margin: 6px 0 0; text-transform: uppercase; letter-spacing: .04em; }
-
-    /* Paper list */
-    #paperList { margin-top: 25px; }
-    #paperList ol { padding-left: 20px; }
-    #paperList li { font-size: 13px; margin-bottom: 8px; line-height: 1.4; }
-    #paperList .meta { color: #777; }
-
-    /* Centre form: keep the ported search form styles */
     #prostateFields { margin-top: 30px; padding: 20px; background-color: #f1f1f1; border-radius: 10px; }
     #prostateFields h3 { margin-top: 0; }
     .tnm-group { display: flex; justify-content: space-between; gap: 15px; }
     .tnm-group div { flex: 1; margin-bottom: 15px; }
     #patientForm .form-group { margin-bottom: 14px; }
     #patientForm textarea { width: 100%; min-height: 90px; padding: 10px; border: 1px solid #ccd0d5; border-radius: 5px; }
+    #paperList { margin-top: 0; }
 </style>
 {% endblock %}
 
@@ -54,31 +26,13 @@
     </header>
 
     <div class="row">
-        <!-- ============ LEFT: filters ============ -->
-        <div class="col-lg-3 col-md-4 mb-4">
-            <div class="lit-panel">
-                <h4>Publication filters</h4>
-                <form id="filterForm">
-                    {% for key, label, options in filter_groups %}
-                    <details>
-                        <summary>{{ label }}</summary>
-                        {% for col, opt_label in options %}
-                        <label class="opt">
-                            <input type="checkbox" name="{{ key }}" value="{{ col }}">{{ opt_label }}
-                        </label>
-                        {% endfor %}
-                    </details>
-                    {% endfor %}
-                    <div class="filter-actions">
-                        <button type="submit" class="btn">Apply</button>
-                        <button type="button" id="clearFilters" class="btn" style="background:#eee; color:#333;">Clear</button>
-                    </div>
-                </form>
-            </div>
+        <!-- LEFT: filters -->
+        <div class="col-lg-3 col-md-4">
+            {{ panels.filter_panel(filter_groups) }}
         </div>
 
-        <!-- ============ CENTRE: patient + query form ============ -->
-        <div class="col-lg-6 col-md-8 mb-4">
+        <!-- CENTRE: patient + query form -->
+        <div class="col-lg-6 col-md-8">
             <div class="lit-panel">
                 <p>Enter patient details and a clinical question to get an evidence-backed answer and the top supporting papers.</p>
                 <form action="/answer" method="POST" id="patientForm">
@@ -283,119 +237,30 @@
             </div>
         </div>
 
-        <!-- ============ RIGHT: overview ============ -->
-        <div class="col-lg-3 col-md-12 mb-4">
-            <div class="lit-panel">
-                <h4>Overview</h4>
-                <div class="ov-total">Publications in selection: <strong id="ovTotal">0</strong></div>
-                <p class="ov-chart-label">Publications by year</p>
-                <div id="chartYear" class="ov-chart"></div>
-                <p class="ov-chart-label">Top journals</p>
-                <div id="chartJournal" class="ov-chart"></div>
-                <p class="ov-chart-label">Geographic distribution</p>
-                <div id="chartCountry" class="ov-chart"></div>
-                <p id="plotlyMissing" style="display:none; color:#b00; font-size:12px;">Charts unavailable (Plotly failed to load).</p>
-            </div>
+        <!-- RIGHT: overview -->
+        <div class="col-lg-3 col-md-12">
+            {{ panels.overview_panel() }}
         </div>
     </div>
 </div>
 {% endblock %}
 
 {% block scripts_extra %}
+<script src="{{ url_for('static', filename='js/literature_panels.js') }}"></script>
 <script>
-    const INITIAL_OVERVIEW = {{ overview | tojson | safe }};
-    const OVERVIEW_URL = "{{ url_for('api_literature_overview') }}";
-
-    // ---------- filters ----------
-    function collectFilters() {
-        const out = {};
-        document.querySelectorAll('#filterForm input[type="checkbox"]:checked').forEach(cb => {
-            (out[cb.name] = out[cb.name] || []).push(cb.value);
-        });
-        return out;
+    function syncFiltersField(filters) {
+        document.getElementById('filtersField').value =
+            JSON.stringify(filters || window.currentLiteratureFilters());
     }
 
-    function syncFiltersField() {
-        document.getElementById('filtersField').value = JSON.stringify(collectFilters());
-    }
-
-    function refreshOverview() {
-        syncFiltersField();
-        const qs = encodeURIComponent(document.getElementById('filtersField').value);
-        fetch(`${OVERVIEW_URL}?filters=${qs}`)
-            .then(r => r.json())
-            .then(renderOverview)
-            .catch(err => console.error('overview fetch failed', err));
-    }
-
-    document.getElementById('filterForm').addEventListener('submit', e => {
-        e.preventDefault();
-        refreshOverview();
+    initLiteraturePanels({
+        overviewUrl: "{{ url_for('api_literature_overview') }}",
+        initialOverview: {{ overview | tojson | safe }},
+        activeFilters: {},
+        onChange: syncFiltersField
     });
-    document.getElementById('clearFilters').addEventListener('click', () => {
-        document.getElementById('filterForm').reset();
-        refreshOverview();
-    });
-    // keep the hidden field on the patient form current at submit time
-    document.getElementById('patientForm').addEventListener('submit', syncFiltersField);
 
-    // ---------- overview rendering ----------
-    const HAS_PLOTLY = typeof Plotly !== 'undefined';
-    if (!HAS_PLOTLY) document.getElementById('plotlyMissing').style.display = 'block';
-
-    const PLOT_CFG = { displayModeBar: false, responsive: true };
-    const PLOT_BASE_LAYOUT = { margin: { t: 8, r: 8, b: 34, l: 40 }, font: { size: 10 }, showlegend: false };
-
-    function renderOverview(data) {
-        document.getElementById('ovTotal').textContent = data.total.toLocaleString();
-
-        // paper list
-        document.getElementById('paperCount').textContent = data.total.toLocaleString();
-        const items = document.getElementById('paperListItems');
-        items.innerHTML = '';
-        data.papers.forEach(p => {
-            const li = document.createElement('li');
-            const meta = [p.first_author, p.year, p.journal].filter(Boolean).join(', ');
-            const title = p.openalex_id
-                ? `<a href="${p.openalex_id}" target="_blank" rel="noopener">${escapeHtml(p.title)}</a>`
-                : escapeHtml(p.title);
-            li.innerHTML = `${title}${meta ? ` <span class="meta">(${escapeHtml(meta)})</span>` : ''}`;
-            items.appendChild(li);
-        });
-        document.getElementById('paperListNote').textContent =
-            data.total > data.paper_limit
-                ? `Showing the ${data.paper_limit} most recent of ${data.total.toLocaleString()} papers.`
-                : 'Showing all papers in the current selection.';
-
-        if (!HAS_PLOTLY) return;
-
-        Plotly.react('chartYear',
-            [{ type: 'bar', x: data.by_year.map(d => d[0]), y: data.by_year.map(d => d[1]),
-               marker: { color: '#1565c0' } }],
-            Object.assign({}, PLOT_BASE_LAYOUT), PLOT_CFG);
-
-        const jr = data.by_journal.slice().reverse();
-        Plotly.react('chartJournal',
-            [{ type: 'bar', orientation: 'h', x: jr.map(d => d[1]), y: jr.map(d => truncate(d[0], 28)),
-               marker: { color: '#1565c0' } }],
-            Object.assign({}, PLOT_BASE_LAYOUT, { margin: { t: 8, r: 8, b: 34, l: 150 } }), PLOT_CFG);
-
-        Plotly.react('chartCountry',
-            [{ type: 'choropleth', locationmode: 'ISO-3',
-               locations: data.by_country.map(d => d[0]), z: data.by_country.map(d => d[1]),
-               colorscale: 'Blues', showscale: false }],
-            { margin: { t: 0, r: 0, b: 0, l: 0 }, font: { size: 10 },
-              geo: { showframe: false, showcoastlines: false, projection: { type: 'natural earth' } } },
-            PLOT_CFG);
-    }
-
-    function truncate(s, n) { return s.length > n ? s.slice(0, n - 1) + '…' : s; }
-    function escapeHtml(s) {
-        return String(s).replace(/[&<>"']/g, c =>
-            ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-    }
-
-    // ---------- centre form: prostate-specific fields ----------
+    // Centre form: prostate-specific fields
     function toggleProstateFields() {
         document.getElementById('prostateFields').style.display =
             document.getElementById('cancerTypeSelect').value === 'Prostate Cancer' ? 'block' : 'none';
@@ -409,14 +274,12 @@
         if (maleOnly) { g.value = 'Male'; female.disabled = true; unknown.disabled = true; }
         else { female.disabled = false; unknown.disabled = false; }
     }
-    // drop empty text/number inputs so they aren't sent as blank patient data
+
     document.getElementById('patientForm').addEventListener('submit', function () {
-        this.querySelectorAll('input[type="text"], input[type="number"]').forEach(input => {
+        syncFiltersField();
+        this.querySelectorAll('input[type="text"], input[type="number"]').forEach(function (input) {
             if (!input.value.trim()) input.disabled = true;
         });
     });
-
-    // ---------- init ----------
-    renderOverview(INITIAL_OVERVIEW);
 </script>
 {% endblock %}
