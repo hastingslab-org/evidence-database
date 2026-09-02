@@ -37,6 +37,19 @@ then point the app at the new store (the exact line is printed at the end)::
 ``EVIDENCE_DB_CHROMA_PATH`` also repoints ``LITERATURE_METADATA_CSV`` at the
 matching ``filter_metadata.csv``, so one variable moves both.
 
+To (re)run only step 4 against an already-built collection -- e.g. after fixing
+an LLM-connectivity problem::
+
+    python db_initializations/refresh_literature_db.py \\
+        --filter-metadata-only --out-dir chroma_data_YYYYMMDD
+
+Step 4 uses the same OPENAI_* settings as the app's answer path. If it reports
+"Connection error." for every row while the app still works, the script is
+almost certainly not seeing the same environment as the running service
+(``OPENAI_BASE_URL`` / ``OPENAI_API_KEY`` / ``HTTPS_PROXY`` / ``NO_PROXY`` /
+virtualenv). The endpoint and key it resolved are printed at the start of
+step 4 -- compare them with the app's.
+
 Caveats
 -------
 * Always build into a NEW ``--out-dir`` (the default is dated). Re-embedding into
@@ -331,7 +344,13 @@ def _parse_json_object(raw):
     return {}
 
 
+_JSON_MODE = {"enabled": True}  # dropped process-wide once an endpoint rejects it
+
+
 def _classify_one(client, model, text, groups, *, retries=4, backoff=2.0):
+    """Classify one document. Returns the parsed dict (possibly {}), or None if
+    the request never succeeded (connection / server errors) -- None rows are
+    left blank AND not cached, so a rerun retries only them."""
     messages = [
         {"role": "system", "content": _EXTRACT_SYSTEM},
         {"role": "user", "content": _extract_prompt(text, groups)},
@@ -339,21 +358,31 @@ def _classify_one(client, model, text, groups, *, retries=4, backoff=2.0):
     last = None
     for attempt in range(retries):
         try:
+            kwargs = dict(model=model, messages=messages, temperature=0)
+            if _JSON_MODE["enabled"]:
+                kwargs["response_format"] = {"type": "json_object"}
             try:
-                resp = client.chat.completions.create(
-                    model=model, messages=messages, temperature=0,
-                    response_format={"type": "json_object"},
-                )
-            except Exception:  # endpoint may not support response_format
-                resp = client.chat.completions.create(
-                    model=model, messages=messages, temperature=0,
-                )
+                resp = client.chat.completions.create(**kwargs)
+            except Exception as exc:
+                # Only treat as "endpoint rejects JSON mode" if we actually
+                # reached the server (a real HTTP status). Connection errors
+                # have no .response and must fall through to retry/backoff.
+                if _JSON_MODE["enabled"] and getattr(exc, "response", None) is not None:
+                    _JSON_MODE["enabled"] = False
+                    print("  note: endpoint rejected response_format; retrying without JSON mode")
+                    resp = client.chat.completions.create(
+                        model=model, messages=messages, temperature=0)
+                else:
+                    raise
             return _parse_json_object(resp.choices[0].message.content)
         except Exception as exc:  # network / rate limit / server error
             last = exc
-            time.sleep(backoff ** attempt)
-    print(f"  classify failed after {retries} tries ({last}); row left blank")
-    return {}
+            if attempt < retries - 1:
+                time.sleep(backoff ** attempt)
+    cause = getattr(last, "__cause__", None)
+    print(f"  classify failed after {retries} tries: {last!r}"
+          + (f"  (cause: {cause!r})" if cause else ""))
+    return None
 
 
 _NO_OAID = "Unknown OpenAlex ID"
@@ -402,6 +431,11 @@ def build_filter_metadata(ids, documents, openalex_ids, out_path: Path, *,
     n = len(ids) if limit is None else min(limit, len(ids))
     blank = {c: False for c in columns}
 
+    endpoint = config.OPENAI_BASE_URL or "https://api.openai.com (OpenAI SDK default)"
+    key = config.OPENAI_API_KEY or ""
+    print(f"  LLM endpoint: {endpoint}  |  api key: "
+          + (f"set ({len(key)} chars)" if key else "NOT SET"))
+
     def cols_from_data(data):
         cols = dict(blank)
         for gkey, _opts in groups:
@@ -414,8 +448,11 @@ def build_filter_metadata(ids, documents, openalex_ids, out_path: Path, *,
                     cols[col] = True
         return cols
 
-    # cache: key -> {col: bool}
-    cache = _load_reuse_map(Path(reuse_from) if reuse_from else None, columns)
+    # cache: key -> {col: bool}. Never reuse the very file we are about to write.
+    reuse_path = Path(reuse_from) if reuse_from else None
+    if reuse_path and reuse_path.resolve() == Path(out_path).resolve():
+        reuse_path = None
+    cache = _load_reuse_map(reuse_path, columns)
     reused_keys = set(cache)
 
     partial = Path(str(out_path) + ".partial.jsonl")
@@ -445,6 +482,7 @@ def build_filter_metadata(ids, documents, openalex_ids, out_path: Path, *,
     print(f"  {n} papers: {reused_n} reused, {resumed} resumed, "
           f"{len(todo)} to classify with {model}")
 
+    failed = 0
     if todo:
         from concurrent.futures import ThreadPoolExecutor, as_completed
         from openai import OpenAI
@@ -458,14 +496,19 @@ def build_filter_metadata(ids, documents, openalex_ids, out_path: Path, *,
             try:
                 for fut in as_completed(futures):
                     i = futures[fut]
-                    key = _cache_key(openalex_ids[i], i)
-                    cols = cols_from_data(fut.result())
-                    cache[key] = cols
-                    fh.write(json.dumps({"key": key, "cols": cols}) + "\n")
+                    data = fut.result()
+                    if data is None:            # request never succeeded
+                        failed += 1
+                        continue                # not cached -> retried on rerun
+                    ckey = _cache_key(openalex_ids[i], i)
+                    cols = cols_from_data(data)
+                    cache[ckey] = cols
+                    fh.write(json.dumps({"key": ckey, "cols": cols}) + "\n")
                     fh.flush()
                     written += 1
-                    if written % 100 == 0 or written == len(todo):
-                        print(f"  classified {written}/{len(todo)}")
+                    if (written + failed) % 100 == 0 or written + failed == len(todo):
+                        print(f"  classified {written}/{len(todo)}"
+                              + (f" ({failed} failed)" if failed else ""))
             except KeyboardInterrupt:
                 print("\n  interrupted -- partial progress saved; rerun to resume")
                 raise
@@ -479,12 +522,69 @@ def build_filter_metadata(ids, documents, openalex_ids, out_path: Path, *,
                             + ["TRUE" if cols.get(c) else "FALSE" for c in columns])
     partial.unlink(missing_ok=True)
     print(f"  wrote {n} rows ({len(columns)} filter columns) -> {out_path}")
+    if failed:
+        print(f"  WARNING: {failed} papers could not be classified (left blank). "
+              f"Fix connectivity and rerun (optionally --filter-metadata-only) to retry just those.")
     return {
         "rows": n,
         "reused_from_previous": reused_n,
         "llm_calls": len(todo),
+        "failed": failed,
         "reuse_from": str(reuse_from) if reuse_from else None,
     }
+
+
+def _run_filter_metadata_only(args, out_dir: Path, reuse_from, parser):
+    """(Re)build filter_metadata.csv from an already-embedded collection."""
+    if not out_dir.exists():
+        parser.error(f"--filter-metadata-only needs an existing build; {out_dir} not found")
+
+    import chromadb
+
+    print(f"Loading documents from collection '{args.collection}' in {out_dir} ...")
+    client = chromadb.PersistentClient(path=str(out_dir))
+    try:
+        col = client.get_collection(args.collection)
+    except Exception as exc:
+        parser.error(f"cannot open collection '{args.collection}' in {out_dir}: {exc}")
+
+    got = col.get(include=["documents", "metadatas"])
+    rows = sorted(
+        zip(got["ids"], got["documents"], got.get("metadatas") or []),
+        key=lambda t: int(t[0]) if str(t[0]).lstrip("-").isdigit() else (1 << 62),
+    )
+    ids = [t[0] for t in rows]
+    documents = [t[1] for t in rows]
+    openalex_ids = [((t[2] or {}).get("openAlex_id") or _NO_OAID) for t in rows]
+    print(f"  {len(ids)} documents")
+
+    fm_path = out_dir / "filter_metadata.csv"
+    fm = build_filter_metadata(
+        ids, documents, openalex_ids, fm_path,
+        model=args.llm_model, workers=args.filter_metadata_workers,
+        limit=args.filter_metadata_limit, reuse_from=reuse_from,
+    )
+
+    mpath = out_dir / "build_manifest.json"
+    manifest = {}
+    if mpath.exists():
+        try:
+            manifest = json.loads(mpath.read_text(encoding="utf-8"))
+        except ValueError:
+            manifest = {}
+    manifest.update({
+        "filter_metadata_rebuilt_at": dt.datetime.now(dt.timezone.utc).isoformat(),
+        "filter_metadata_rows": fm["rows"],
+        "filter_metadata_reused": fm["reused_from_previous"],
+        "filter_metadata_llm_calls": fm["llm_calls"],
+        "filter_metadata_failed": fm["failed"],
+        "filter_metadata_model": args.llm_model,
+    })
+    write_manifest(out_dir, manifest)
+    print(f"\nDone. filter_metadata.csv: {fm['rows']} rows, "
+          f"{fm['llm_calls'] - fm['failed']} newly classified, {fm['failed']} failed.")
+    if fm["failed"]:
+        print("Rerun this same command to retry the failed rows once connectivity is fixed.")
 
 
 # --------------------------------------------------------------------------- #
@@ -536,12 +636,20 @@ def main(argv=None):
                         "ignored automatically if its filter columns differ)")
     p.add_argument("--no-reuse", action="store_true",
                    help="re-classify every paper even if a previous result exists")
+    p.add_argument("--filter-metadata-only", action="store_true",
+                   help="skip the OpenAlex fetch + embedding: (re)build only "
+                        "filter_metadata.csv from the existing collection in --out-dir")
     p.add_argument("--dry-run", action="store_true",
                    help="fetch and report counts but do not write the collection")
     args = p.parse_args(argv)
 
     out_dir = Path(args.out_dir).resolve()
     live_dir = Path(str(config.CHROMA_DB_PATH)).resolve()
+    reuse_from = None if args.no_reuse else args.reuse_from
+
+    if args.filter_metadata_only:
+        return _run_filter_metadata_only(args, out_dir, reuse_from, p)
+
     if out_dir == live_dir and not args.recreate:
         p.error(f"--out-dir is the live store ({live_dir}). Use a fresh directory, or --recreate.")
 
@@ -586,8 +694,6 @@ def main(argv=None):
     openalex_ids = [m["openAlex_id"] for m in metadatas]
     documents = make_documents(titles, abstracts)
     print(f"Total documents to embed: {len(documents)}")
-
-    reuse_from = None if args.no_reuse else args.reuse_from
 
     manifest = {
         "built_at": started.isoformat(),
