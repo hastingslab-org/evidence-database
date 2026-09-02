@@ -83,10 +83,11 @@ CHROMA_DB_PATH = _path("EVIDENCE_DB_CHROMA_PATH", "chroma_data_20250603")
 CHROMA_COLLECTION = os.environ.get(
     "EVIDENCE_DB_CHROMA_COLLECTION", "searchable_db_collection_fd"
 )
-# The live `searchable_db_collection_fd` collection was built with
-# all-MiniLM-L6-v2 (see db_initializations/make_chromadb_visualization_v2.ipynb).
+# The `searchable_db_collection_fd` collection is built by
+# db_initializations/refresh_literature_db.py with all-MiniLM-L6-v2.
 # The embedding model used for queries MUST match the one used to build the
 # collection, so this is a single source of truth for every route.
+# After a rebuild, set EVIDENCE_DB_CHROMA_PATH to the new dated directory.
 EMBEDDING_MODEL = os.environ.get(
     "EVIDENCE_DB_EMBEDDING_MODEL", "all-MiniLM-L6-v2"
 )

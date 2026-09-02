@@ -17,6 +17,7 @@ database.db-shm
 # --- Vector store (LiteratureDB RAG) ---
 chroma_data2/
 chroma_data_20250603/
+chroma_data_*/
 saved_variables/
 
 # --- Large local-only assets (kept on disk, not tracked for now) ---
