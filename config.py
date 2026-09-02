@@ -153,9 +153,15 @@ CANCER_SYNONYMS_PATH = _path(
 # LiteratureDB
 # --------------------------------------------------------------------------- #
 # One-hot patient-attribute matrix (one row per paper) that backs the
-# left-hand publication filters. Semicolon-delimited.
+# left-hand publication filters. Semicolon-delimited. Built next to the Chroma
+# store by db_initializations/refresh_literature_db.py so it always matches the
+# active corpus; the legacy shipped copy is used until the first rebuild.
 LITERATURE_METADATA_CSV = _path(
     "EVIDENCE_DB_LITERATURE_METADATA_CSV",
+    str(CHROMA_DB_PATH / "filter_metadata.csv"),
+)
+LITERATURE_METADATA_CSV_LEGACY = _path(
+    "EVIDENCE_DB_LITERATURE_METADATA_CSV_LEGACY",
     "static/evidence-db-angular/assets/prostate-metadata.csv",
 )
 # How many papers to show in the browsable "matching publications" list.

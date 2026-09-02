@@ -16,6 +16,14 @@ What it does
    sentence-transformer model the app queries with and writes a persistent
    Chroma collection (cosine space), plus a ``build_manifest.json`` recording
    what was built and when.
+4. Builds ``filter_metadata.csv`` in the same directory -- the one-hot matrix
+   behind the left-panel publication filters -- by classifying every paper's
+   title+abstract with the answer-path LLM against the columns defined in
+   ``literature.FILTER_GROUPS``. Aligned to the corpus by construction.
+   Disable with ``--no-filter-metadata``. Papers already classified in the
+   previous build (``--reuse-from``, default: the current live one) are copied
+   over by OpenAlex id and skip the LLM -- but only while the filter columns
+   are unchanged, so editing ``FILTER_GROUPS`` forces a full re-classify.
 
 Typical use
 -----------
@@ -26,23 +34,29 @@ then point the app at the new store (the exact line is printed at the end)::
     # evidence-database/.env
     EVIDENCE_DB_CHROMA_PATH=chroma_data_YYYYMMDD
 
+``EVIDENCE_DB_CHROMA_PATH`` also repoints ``LITERATURE_METADATA_CSV`` at the
+matching ``filter_metadata.csv``, so one variable moves both.
+
 Caveats
 -------
 * Always build into a NEW ``--out-dir`` (the default is dated). Re-embedding into
   the live directory risks duplicate / colliding document ids -- the script
   refuses to add to a non-empty collection unless ``--recreate`` is given.
-* The left-panel publication filters read a positionally-aligned one-hot CSV
-  (``static/evidence-db-angular/assets/prostate-metadata.csv``). A rebuilt corpus
-  makes that file stale; regenerate it with its own pipeline, or the filters
-  will mis-map to the wrong papers.
+* Step 4 is ~one LLM call per *new* paper (unchanged papers are reused from the
+  previous build). It is resumable (Ctrl-C is safe; rerun to continue from
+  ``filter_metadata.csv.partial.jsonl``) but the first run after a filter change
+  reclassifies the whole corpus and costs real API time/money. Use
+  ``--filter-metadata-limit`` for a trial run, ``--no-reuse`` to force a rebuild.
 """
 
 from __future__ import annotations
 
 import argparse
+import csv
 import datetime as dt
 import json
 import os
+import re
 import sys
 import time
 from pathlib import Path
@@ -259,6 +273,221 @@ def write_manifest(out_dir: Path, info: dict):
 
 
 # --------------------------------------------------------------------------- #
+# Left-panel filter metadata (one-hot matrix, LLM-classified)
+# --------------------------------------------------------------------------- #
+_EXTRACT_SYSTEM = (
+    "You extract structured trial-population metadata from a study title and "
+    "abstract. Mark an option only when the text explicitly supports it for the "
+    "study population; if a category is not mentioned, return an empty list for "
+    "it. Respond with a single JSON object and nothing else."
+)
+
+
+def _filter_schema():
+    """(groups, label->column map, ordered column list) from literature.FILTER_GROUPS."""
+    import literature  # lightweight (only imports config); done lazily
+
+    groups = [(key, [(col, label) for col, label in opts])
+              for key, _display, opts in literature.FILTER_GROUPS]
+    label_to_col = {key: {label: col for col, label in opts} for key, opts in groups}
+    columns = [col for _key, opts in groups for col, _label in opts]
+    return groups, label_to_col, columns
+
+
+def _extract_prompt(text, groups):
+    lines = ["Study title + abstract:", (text or "").strip()[:6000], "",
+             "For each category, list the options supported by the study population:"]
+    for key, opts in groups:
+        lines.append(f"- {key}: {json.dumps([label for _c, label in opts])}")
+    lines += [
+        "",
+        "Guidance:",
+        '- "Renal Cell Cancer" is a kind of "Kidney Cancer"; for an RCC population include both.',
+        '- "Pelvis Cancer" = renal pelvis / upper-tract urothelial carcinoma.',
+        '- cancer_type may contain several entries for pan-tumour studies.',
+        "",
+        "Return JSON with exactly these keys: "
+        + json.dumps([key for key, _ in groups]),
+    ]
+    return "\n".join(lines)
+
+
+def _parse_json_object(raw):
+    raw = (raw or "").strip()
+    if raw.startswith("```"):
+        raw = raw.split("```", 2)[1] if raw.count("```") >= 2 else raw.strip("`")
+        raw = raw[4:].strip() if raw.lower().startswith("json") else raw.strip()
+    try:
+        obj = json.loads(raw)
+        return obj if isinstance(obj, dict) else {}
+    except json.JSONDecodeError:
+        m = re.search(r"\{.*\}", raw, re.S)
+        if m:
+            try:
+                obj = json.loads(m.group(0))
+                return obj if isinstance(obj, dict) else {}
+            except json.JSONDecodeError:
+                pass
+    return {}
+
+
+def _classify_one(client, model, text, groups, *, retries=4, backoff=2.0):
+    messages = [
+        {"role": "system", "content": _EXTRACT_SYSTEM},
+        {"role": "user", "content": _extract_prompt(text, groups)},
+    ]
+    last = None
+    for attempt in range(retries):
+        try:
+            try:
+                resp = client.chat.completions.create(
+                    model=model, messages=messages, temperature=0,
+                    response_format={"type": "json_object"},
+                )
+            except Exception:  # endpoint may not support response_format
+                resp = client.chat.completions.create(
+                    model=model, messages=messages, temperature=0,
+                )
+            return _parse_json_object(resp.choices[0].message.content)
+        except Exception as exc:  # network / rate limit / server error
+            last = exc
+            time.sleep(backoff ** attempt)
+    print(f"  classify failed after {retries} tries ({last}); row left blank")
+    return {}
+
+
+_NO_OAID = "Unknown OpenAlex ID"
+
+
+def _cache_key(oaid, pos):
+    """Cache key for a paper: its OpenAlex id, or a positional fallback."""
+    return oaid if (oaid and oaid != _NO_OAID) else f"__pos{pos}"
+
+
+def _load_reuse_map(reuse_from: Path | None, columns):
+    """{openalex_id: {col: bool}} from a previous filter_metadata.csv.
+
+    Only used when that file's filter columns are byte-for-byte the current
+    schema -- so changing FILTER_GROUPS automatically forces a full re-classify.
+    """
+    if not reuse_from or not reuse_from.exists():
+        return {}
+    with open(reuse_from, newline="", encoding="utf-8") as fh:
+        reader = csv.DictReader(fh, delimiter=";")
+        header = reader.fieldnames or []
+        prev_cols = [c for c in header if c not in ("id", "Text", "openalex_id")]
+        if "openalex_id" not in header or prev_cols != list(columns):
+            print(f"  reuse: {reuse_from} predates the current filter set "
+                  f"-> classifying every paper")
+            return {}
+        out = {}
+        for row in reader:
+            oaid = (row.get("openalex_id") or "").strip()
+            if not oaid or oaid == _NO_OAID:
+                continue
+            out[oaid] = {c: (row.get(c, "").strip().upper() == "TRUE") for c in columns}
+    print(f"  reuse: {len(out)} classified papers available from {reuse_from}")
+    return out
+
+
+def build_filter_metadata(ids, documents, openalex_ids, out_path: Path, *,
+                          model, workers=8, limit=None, reuse_from=None):
+    """Classify each document into the FILTER_GROUPS buckets and write the CSV.
+
+    Papers already classified under the same filter schema -- in ``reuse_from``
+    (a previous build) or ``<out_path>.partial.jsonl`` (an interrupted run) --
+    are reused by OpenAlex id and skip the LLM. Ctrl-C is safe; rerun to resume.
+    """
+    groups, label_to_col, columns = _filter_schema()
+    n = len(ids) if limit is None else min(limit, len(ids))
+    blank = {c: False for c in columns}
+
+    def cols_from_data(data):
+        cols = dict(blank)
+        for gkey, _opts in groups:
+            picked = data.get(gkey) or []
+            if isinstance(picked, str):
+                picked = [picked]
+            for label in picked:
+                col = label_to_col.get(gkey, {}).get(label)
+                if col:
+                    cols[col] = True
+        return cols
+
+    # cache: key -> {col: bool}
+    cache = _load_reuse_map(Path(reuse_from) if reuse_from else None, columns)
+    reused_keys = set(cache)
+
+    partial = Path(str(out_path) + ".partial.jsonl")
+    resumed = 0
+    if partial.exists():
+        for line in partial.read_text(encoding="utf-8").splitlines():
+            try:
+                rec = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if rec.get("key") and "cols" in rec and rec["key"] not in cache:
+                cache[rec["key"]] = rec["cols"]
+                resumed += 1
+        if resumed:
+            print(f"  resuming: {resumed} rows from {partial.name}")
+
+    # Unique positions still needing an LLM call (de-duped by cache key).
+    todo, seen = [], set()
+    for i in range(n):
+        key = _cache_key(openalex_ids[i], i)
+        if key in cache or key in seen:
+            continue
+        seen.add(key)
+        todo.append(i)
+
+    reused_n = sum(1 for i in range(n) if _cache_key(openalex_ids[i], i) in reused_keys)
+    print(f"  {n} papers: {reused_n} reused, {resumed} resumed, "
+          f"{len(todo)} to classify with {model}")
+
+    if todo:
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+        from openai import OpenAI
+
+        client = OpenAI(api_key=config.OPENAI_API_KEY or None, base_url=config.OPENAI_BASE_URL)
+        written = 0
+        with partial.open("a", encoding="utf-8") as fh, \
+                ThreadPoolExecutor(max_workers=workers) as ex:
+            futures = {ex.submit(_classify_one, client, model, documents[i], groups): i
+                       for i in todo}
+            try:
+                for fut in as_completed(futures):
+                    i = futures[fut]
+                    key = _cache_key(openalex_ids[i], i)
+                    cols = cols_from_data(fut.result())
+                    cache[key] = cols
+                    fh.write(json.dumps({"key": key, "cols": cols}) + "\n")
+                    fh.flush()
+                    written += 1
+                    if written % 100 == 0 or written == len(todo):
+                        print(f"  classified {written}/{len(todo)}")
+            except KeyboardInterrupt:
+                print("\n  interrupted -- partial progress saved; rerun to resume")
+                raise
+
+    with open(out_path, "w", newline="", encoding="utf-8") as fh:
+        writer = csv.writer(fh, delimiter=";")
+        writer.writerow(["id", "Text", "openalex_id"] + columns)
+        for i in range(n):
+            cols = cache.get(_cache_key(openalex_ids[i], i), blank)
+            writer.writerow([ids[i], documents[i], openalex_ids[i]]
+                            + ["TRUE" if cols.get(c) else "FALSE" for c in columns])
+    partial.unlink(missing_ok=True)
+    print(f"  wrote {n} rows ({len(columns)} filter columns) -> {out_path}")
+    return {
+        "rows": n,
+        "reused_from_previous": reused_n,
+        "llm_calls": len(todo),
+        "reuse_from": str(reuse_from) if reuse_from else None,
+    }
+
+
+# --------------------------------------------------------------------------- #
 # CLI
 # --------------------------------------------------------------------------- #
 def main(argv=None):
@@ -291,6 +520,22 @@ def main(argv=None):
                    help="contact email for the OpenAlex polite pool (or set OPENALEX_EMAIL)")
     p.add_argument("--page-pause", type=float, default=0.0,
                    help="seconds to sleep between search pages")
+    p.add_argument("--no-filter-metadata", dest="build_filter_metadata_csv",
+                   action="store_false",
+                   help="do NOT build the left-panel filter metadata CSV (built by default)")
+    p.add_argument("--llm-model", default=config.LLM_MODEL,
+                   help="model for filter-metadata classification (default: the answer-path model)")
+    p.add_argument("--filter-metadata-workers", type=int, default=8,
+                   help="concurrent LLM requests while classifying (default: 8)")
+    p.add_argument("--filter-metadata-limit", type=int, default=None,
+                   help="classify only the first N documents (for a trial run)")
+    p.add_argument("--reuse-from",
+                   default=str(config.CHROMA_DB_PATH / "filter_metadata.csv"),
+                   help="previous filter_metadata.csv to reuse classifications from, "
+                        "matched by OpenAlex id (default: the current live build; "
+                        "ignored automatically if its filter columns differ)")
+    p.add_argument("--no-reuse", action="store_true",
+                   help="re-classify every paper even if a previous result exists")
     p.add_argument("--dry-run", action="store_true",
                    help="fetch and report counts but do not write the collection")
     args = p.parse_args(argv)
@@ -338,8 +583,11 @@ def main(argv=None):
     ids = [str(i) for i in range(len(works))]
     titles = [w.get("title") or "Unknown Title" for w in works]
     metadatas = build_metadatas(works)
+    openalex_ids = [m["openAlex_id"] for m in metadatas]
     documents = make_documents(titles, abstracts)
     print(f"Total documents to embed: {len(documents)}")
+
+    reuse_from = None if args.no_reuse else args.reuse_from
 
     manifest = {
         "built_at": started.isoformat(),
@@ -355,10 +603,13 @@ def main(argv=None):
         "collection": args.collection,
         "embedding_model": args.embedding_model,
         "chroma_path": str(out_dir),
+        "filter_metadata": bool(args.build_filter_metadata_csv),
+        "filter_metadata_reuse_from": None if args.no_reuse else args.reuse_from,
     }
 
     if args.dry_run:
-        print("\n--dry-run: not writing the collection. Manifest that would be written:")
+        print("\n--dry-run: not writing the collection or filter metadata. "
+              "Manifest that would be written:")
         print(json.dumps(manifest, indent=2))
         return
 
@@ -370,6 +621,22 @@ def main(argv=None):
         recreate=args.recreate, add_batch_size=args.add_batch_size,
     )
     manifest["documents_in_collection"] = count
+
+    if args.build_filter_metadata_csv:
+        fm_path = out_dir / "filter_metadata.csv"
+        print(f"\nBuilding left-panel filter metadata -> {fm_path}")
+        fm = build_filter_metadata(
+            ids, documents, openalex_ids, fm_path,
+            model=args.llm_model,
+            workers=args.filter_metadata_workers,
+            limit=args.filter_metadata_limit,
+            reuse_from=reuse_from,
+        )
+        manifest["filter_metadata_rows"] = fm["rows"]
+        manifest["filter_metadata_reused"] = fm["reused_from_previous"]
+        manifest["filter_metadata_llm_calls"] = fm["llm_calls"]
+        manifest["filter_metadata_model"] = args.llm_model
+
     manifest["finished_at"] = dt.datetime.now(dt.timezone.utc).isoformat()
     write_manifest(out_dir, manifest)
 
@@ -377,11 +644,10 @@ def main(argv=None):
     print(f"\nDone. {count} documents in '{args.collection}'.")
     print(f"Manifest: {out_dir / 'build_manifest.json'}")
     print("\nNext steps:")
-    print(f"  1. Point the app at the new store -- in evidence-database/.env:")
+    print("  1. Point the app at the new store -- in evidence-database/.env:")
     print(f"       EVIDENCE_DB_CHROMA_PATH={rel}")
-    print(f"  2. Regenerate static/evidence-db-angular/assets/prostate-metadata.csv")
-    print(f"     (the left-panel filters are positionally aligned to the corpus).")
-    print(f"  3. Restart the app.")
+    print("     (this also repoints the left-panel filter metadata CSV).")
+    print("  2. Restart the app.")
 
 
 if __name__ == "__main__":

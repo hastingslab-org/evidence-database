@@ -1,14 +1,21 @@
 """LiteratureDB helpers: publication filters and overview aggregation.
 
-The left-hand filters operate on ``prostate-metadata.csv`` (config
-``LITERATURE_METADATA_CSV``), a semicolon-delimited one-hot matrix with one
-row per paper keyed by an integer ``id`` that matches the ChromaDB document
-id. The overview panel aggregates the ChromaDB metadata (year / journal /
-country) for whatever subset of ids the filters select.
+The left-hand filters operate on a semicolon-delimited one-hot matrix
+(``filter_metadata.csv``, config ``LITERATURE_METADATA_CSV``) with one row per
+paper keyed by an integer ``id`` that matches the ChromaDB document id. That
+file is (re)built alongside the vector store by
+``db_initializations/refresh_literature_db.py`` and kept in the same directory,
+so it always matches the active corpus; the legacy shipped copy
+(``LITERATURE_METADATA_CSV_LEGACY``) is used until the first rebuild. The
+columns are defined once here in :data:`FILTER_GROUPS`.
+
+The overview panel aggregates the ChromaDB metadata (year / journal / country)
+for whatever subset of ids the filters select.
 """
 
 import csv
 import json
+import os
 from collections import Counter
 from functools import lru_cache
 
@@ -20,6 +27,16 @@ import config
 # group key -> (display label, [(csv column, option label), ...])
 # Within a group the selected options are OR-ed; groups are AND-ed together.
 FILTER_GROUPS = [
+    ("cancer_type", "Cancer Type", [
+        ("Cancer type - Bladder Cancer", "Bladder Cancer"),
+        ("Cancer type - Kidney Cancer", "Kidney Cancer"),
+        ("Cancer type - Penile Cancer", "Penile Cancer"),
+        ("Cancer type - Prostate Cancer", "Prostate Cancer"),
+        ("Cancer type - Renal Cell Cancer", "Renal Cell Cancer"),
+        ("Cancer type - Pelvis Cancer", "Pelvis Cancer"),
+        ("Cancer type - Testicular Cancer", "Testicular Cancer"),
+        ("Cancer type - Urethral Cancer", "Urethral Cancer"),
+    ]),
     ("ecog", "ECOG Performance Status", [
         ("ECOG0", "0"), ("ECOG1", "1"), ("ECOG2", "2"),
         ("ECOG3", "3"), ("ECOG4", "4"), ("ECOG5", "5"),
@@ -30,11 +47,6 @@ FILTER_GROUPS = [
         ("Ethnicity-Asian", "Asian"),
         ("Ethnicity-Hispanic", "Hispanic"),
         ("Ethnicity-Other", "Other"),
-    ]),
-    ("sensitivity", "Disease Sensitivity", [
-        ("Disease sensitivity - Hormone-sensitive", "Hormone-sensitive"),
-        ("Disease sensitivity - Castration-resistant", "Castration-resistant"),
-        ("Disease sensitivity - Unknown", "Unknown"),
     ]),
     ("t_stage", "T stage", [
         ("TX", "TX"), ("T0", "T0"), ("Tis", "Tis"), ("T1", "T1"),
@@ -57,16 +69,17 @@ FILTER_GROUPS = [
         ("Metastasis bone and lymph only", "Bone and lymph only"),
         ("Metastasis other than bone and lymph node", "Other"),
     ]),
-    ("treatment", "Treatment History", [
-        ("ADT", "ADT"), ("APRI", "ARPI"),
-    ]),
     ("genomic", "Genomic Features", [
         ("DDR Deficiency", "DDR deficiency"),
     ]),
     ("risk", "Trial-Based Classification", [
-        ("High Volume", "High volume"), ("High Risk", "High risk"),
+        ("High Risk", "High risk"),
     ]),
 ]
+# Removed with the move to full-GU coverage: the prostate-only "Disease
+# Sensitivity" (hormone-sensitive / castration-resistant), "Treatment History"
+# (ADT / ARPI) and "High volume" groups/options -- none applied to two or more
+# of the cancer types above.
 
 # All valid column names, for validating incoming filter payloads.
 _VALID_COLUMNS = {col for _, _, opts in FILTER_GROUPS for col, _ in opts}
@@ -76,11 +89,28 @@ _GROUP_COLUMNS = {key: [c for c, _ in opts] for key, _, opts in FILTER_GROUPS}
 # --------------------------------------------------------------------------- #
 # CSV loading
 # --------------------------------------------------------------------------- #
+def _resolve_metadata_csv():
+    """Prefer the corpus-aligned CSV; fall back to the legacy shipped copy."""
+    primary = str(config.LITERATURE_METADATA_CSV)
+    if os.path.exists(primary):
+        return primary
+    legacy = str(getattr(config, "LITERATURE_METADATA_CSV_LEGACY", "") or "")
+    if legacy and os.path.exists(legacy):
+        return legacy
+    return primary
+
+
 @lru_cache(maxsize=1)
 def _load_metadata_rows():
     """Return {paper_id (str): {column: bool}} from the one-hot CSV."""
+    path = _resolve_metadata_csv()
     rows = {}
-    with open(config.LITERATURE_METADATA_CSV, newline="", encoding="utf-8") as fh:
+    try:
+        fh = open(path, newline="", encoding="utf-8")
+    except OSError:
+        print(f"[literature] filter metadata CSV not found ({path}); publication filters disabled")
+        return rows
+    with fh:
         reader = csv.DictReader(fh, delimiter=";")
         for row in reader:
             pid = (row.get("id") or "").strip()
@@ -130,6 +160,9 @@ def matching_ids(filters):
         return None
 
     rows = _load_metadata_rows()
+    if not rows:
+        # Metadata unavailable -> don't restrict (better than an empty result set).
+        return None
     result = None
     for _group, cols in filters.items():
         group_ids = {
