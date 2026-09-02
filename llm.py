@@ -5,6 +5,7 @@ import config
 
 # Retrieval / prompt parameters (see config.py / .env.example to override)
 SYSTEM_MSG = config.LLM_SYSTEM_MSG
+GUIDELINE_SYSTEM_MSG = config.LLM_GUIDELINE_SYSTEM_MSG
 MODEL = config.LLM_MODEL
 NB_PAPERS_LLM = config.LLM_NUM_PAPERS
 
@@ -40,12 +41,19 @@ def get_relevant_papers(user_query, collection, patient_data=None, allowed_ids=N
     }
 
 
-def call_llm_stream(user_query, title_and_abst, patient_data):
-    """Builds a message based on user query, papers and patient characteristics.
-    Then generates and live streams a response using the LLM"""
+def call_llm_stream(user_query, title_and_abst, patient_data, guidelines_block=""):
+    """Builds a message based on user query, papers, patient characteristics and
+    (optionally) official guideline recommendations. Then generates and live
+    streams a response using the LLM."""
 
     #Patient data to string
     patient_string = '\n'.join(f"{key.replace('_', ' ').title()}: {', '.join(value) if isinstance(value, list) else value}" for key, value in patient_data.items())
+
+    system_content = SYSTEM_MSG
+    guideline_section = ""
+    if guidelines_block:
+        system_content = SYSTEM_MSG + " " + GUIDELINE_SYSTEM_MSG
+        guideline_section = guidelines_block + "\n\n"
 
     #LLM
     openai_client = OpenAI(
@@ -53,9 +61,10 @@ def call_llm_stream(user_query, title_and_abst, patient_data):
             base_url=config.OPENAI_BASE_URL,
         )
     messages=[
-    {"role": "system", "content": SYSTEM_MSG},
-    {"role": "user", "content": "The patient has the following characteristics: " + patient_string
-      + "Using the following papers and abstract: " + title_and_abst
+    {"role": "system", "content": system_content},
+    {"role": "user", "content": "The patient has the following characteristics: " + patient_string + "\n\n"
+      + guideline_section
+      + "Using the following papers and abstract: " + title_and_abst + "\n\n"
       + "Please answer this question: " + user_query} #PROMPT + user_query + title_and_abst
     ]
 
