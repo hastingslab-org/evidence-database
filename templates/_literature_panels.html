@@ -23,6 +23,24 @@
 </div>
 {% endmacro %}
 
+{% macro guideline_sources_panel(sources) %}
+{% if sources %}
+<div class="lit-panel">
+    <h4>Guideline sources</h4>
+    <p class="ov-chart-label">Answers are anchored to these; recommendations shown are paraphrased &mdash; follow the link for the authoritative text.</p>
+    <ul class="guideline-source-list">
+        {% for s in sources %}
+        <li>
+            <a href="{{ s.url }}" target="_blank" rel="noopener">{{ s.name }}</a>
+            {% if s.region %}<span class="meta"> &mdash; {{ s.region }}</span>{% endif %}
+            {% if s.licence %}<br><span class="guideline-licence">{{ s.licence }}</span>{% endif %}
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+{% endmacro %}
+
 {% macro overview_panel() %}
 <div class="lit-panel">
     <h4>Overview</h4>

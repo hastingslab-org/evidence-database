@@ -73,7 +73,6 @@ def compute_cancer_alias_map():
     synonyms_flat = syn_series.explode().astype(str)         
     synonyms_array = synonyms_flat.to_numpy()                
     synonyms_array_unique = pd.unique(synonyms_array)
-    print("aliases", cancer_alias_map)
 
     return cancer_alias_map, synonyms_array_unique
 
@@ -89,7 +88,6 @@ def normalise_cancer_name(raw: str) -> str:
     name = raw.strip().lower()
 
     direct_alias = CANCER_ALIAS_MAP.get(name)
-    print("DIRECT ALIAS", direct_alias)
     if direct_alias is not None:
         return direct_alias
 
@@ -98,8 +96,6 @@ def normalise_cancer_name(raw: str) -> str:
         pattern = rf"\b{re.escape(syn)}\b"
         name = re.sub(pattern, replacement, name)
     name = " ".join(name.split())
-
-    print("NAME", name)
 
     return CANCER_ALIAS_MAP.get(name, name)
 

@@ -30,3 +30,51 @@
 #paperList ol { padding-left: 20px; }
 #paperList li { font-size: 13px; margin-bottom: 8px; line-height: 1.4; }
 #paperList .meta { color: #777; }
+
+/* Clinical guideline recommendations (search + answer pages) */
+.lit-guideline-note {
+    font-size: 13px;
+    color: #0d47a1;
+    background: #eef4fb;
+    border: 1px solid #d6e4f5;
+    border-radius: 6px;
+    padding: 8px 12px;
+    margin-bottom: 16px;
+}
+.guideline-card {
+    border: 1px solid #e0e0e0;
+    border-left: 4px solid #1565c0;
+    border-radius: 6px;
+    padding: 12px 14px;
+    margin-bottom: 12px;
+    background: #fbfcfe;
+}
+.guideline-head { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+.guideline-badge {
+    background: #1565c0;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .03em;
+    padding: 2px 8px;
+    border-radius: 10px;
+    white-space: nowrap;
+}
+.guideline-meta { font-size: 12px; color: #666; }
+.guideline-text { font-size: 14px; margin: 6px 0; line-height: 1.45; }
+.guideline-foot { font-size: 12px; color: #777; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.guideline-foot a { color: #1565c0; text-decoration: none; }
+.guideline-foot a:hover { text-decoration: underline; }
+.guideline-licence {
+    font-size: 11px;
+    color: #8a6d1d;
+    background: #fdf6e3;
+    border: 1px solid #efe3bf;
+    border-radius: 4px;
+    padding: 1px 5px;
+}
+.guideline-source-list { list-style: none; padding-left: 0; margin: 0; }
+.guideline-source-list li { font-size: 12px; margin-bottom: 10px; line-height: 1.4; }
+.guideline-source-list a { color: #1565c0; text-decoration: none; }
+.guideline-source-list a:hover { text-decoration: underline; }
+.guideline-source-list .meta { color: #777; }

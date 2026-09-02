@@ -69,6 +69,12 @@ SQLITE_DB_PATH = _path("EVIDENCE_DB_SQLITE_PATH", "database.db")
 RESPONSES_SQL_PATH = _path("EVIDENCE_DB_RESPONSES_SQL", "responses.sql")
 GENOMICS_SQL_PATH = _path("EVIDENCE_DB_GENOMICS_SQL", "genomics.sql")
 
+# Answer cache (qa_data): keep only the N most recent generated answers so the
+# table stays bounded under multi-user load.
+QA_CACHE_MAX_ROWS = int(os.environ.get("EVIDENCE_DB_QA_CACHE_MAX_ROWS", "500"))
+# Seconds a DB connection waits for a competing write before erroring.
+SQLITE_BUSY_TIMEOUT = float(os.environ.get("EVIDENCE_DB_SQLITE_BUSY_TIMEOUT", "30"))
+
 
 # --------------------------------------------------------------------------- #
 # ChromaDB vector store (LiteratureDB RAG)
@@ -103,6 +109,16 @@ LLM_SYSTEM_MSG = os.environ.get(
     "You are a medical expert assisting doctors and clinicians in decision making",
 )
 LLM_NUM_PAPERS = int(os.environ.get("EVIDENCE_DB_LLM_NUM_PAPERS", "5"))
+# Extra system-prompt instruction appended when guideline recommendations are
+# injected into the answer prompt (see guidelines.py / llm.py).
+LLM_GUIDELINE_SYSTEM_MSG = os.environ.get(
+    "EVIDENCE_DB_LLM_GUIDELINE_SYSTEM_MSG",
+    "When official clinical practice guideline recommendations are supplied, use "
+    "them as the primary basis for the answer, cite the issuing body and year "
+    'inline (e.g. "(ESMO 2024)"), and state explicitly where the retrieved '
+    "primary literature agrees with or diverges from the guideline. Remind the "
+    "reader to confirm against the official guideline text.",
+)
 
 
 # --------------------------------------------------------------------------- #
@@ -145,6 +161,15 @@ LITERATURE_METADATA_CSV = _path(
 LITERATURE_PAPER_LIST_LIMIT = int(
     os.environ.get("EVIDENCE_DB_LITERATURE_PAPER_LIST_LIMIT", "100")
 )
+
+# --- Clinical guideline retrieval (search-page answer) ---
+# Curated, paraphrased guideline recommendations injected alongside the
+# literature RAG results. See guideline_sources/README.md.
+GUIDELINES_ENABLED = _bool("EVIDENCE_DB_GUIDELINES_ENABLED", True)
+GUIDELINES_DATA_PATH = _path(
+    "EVIDENCE_DB_GUIDELINES_DATA", "guideline_sources/guidelines_data.json"
+)
+GUIDELINES_NUM_RESULTS = int(os.environ.get("EVIDENCE_DB_GUIDELINES_NUM_RESULTS", "4"))
 
 
 # --------------------------------------------------------------------------- #

@@ -58,6 +58,7 @@
         <div class="col-lg-3 col-md-4">
             {{ panels.filter_panel(filter_groups) }}
             <p class="ov-chart-label">Adjust filters, then re-run the search.</p>
+            {{ panels.guideline_sources_panel(guideline_sources) }}
         </div>
 
         <!-- CENTRE: answer -->
@@ -86,6 +87,15 @@
                     <span id="patientToggleIcon" class="toggle-icon">&#x25BC;</span>
                 </h4>
                 <ul id="patientCharacteristics" class="collapsible-content"></ul>
+
+                <hr class="section-divider">
+
+                <h4 id="toggleGuidelinesSection">
+                    Clinical guideline recommendations (<span id="guidelineCount">0</span>)
+                    <span id="guidelinesToggleIcon" class="toggle-icon">&#x25B2;</span>
+                </h4>
+                <div id="guidelineList" class="collapsible-content"></div>
+                <p id="guidelineDisclaimer" class="ov-chart-label" style="display:none;"></p>
 
                 <hr class="section-divider">
 
@@ -127,6 +137,8 @@
     const ACTIVE_FILTERS = {{ active_filters | default({}) | tojson | safe }};
     const INITIAL_OVERVIEW = {{ overview | tojson | safe }};
     const FILTERS_USED = {{ (filters_raw or '') | tojson | safe }};
+    const GUIDELINES = {{ guidelines | default([]) | tojson | safe }};
+    const GUIDELINE_DISCLAIMER = {{ guideline_disclaimer | default('') | tojson | safe }};
 
     // ---------- side panels ----------
     function onFiltersChanged(filters) {
@@ -166,6 +178,47 @@
 
     setupCollapsible("togglePatientSection", "patientCharacteristics", "patientToggleIcon");
     setupCollapsible("togglePapersSection", "selectedPapers", "papersToggleIcon");
+    setupCollapsible("toggleGuidelinesSection", "guidelineList", "guidelinesToggleIcon");
+    renderGuidelines(GUIDELINES);
+
+    // ---------- guideline recommendations ----------
+    function escapeHtmlSafe(s) {
+        return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+            return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+        });
+    }
+    function renderGuidelines(list) {
+        const box = document.getElementById("guidelineList");
+        const countEl = document.getElementById("guidelineCount");
+        const disc = document.getElementById("guidelineDisclaimer");
+        if (countEl) countEl.textContent = (list && list.length) || 0;
+        if (!list || !list.length) {
+            box.innerHTML = '<p class="ov-chart-label">No matching guideline recommendations for this cancer type.</p>';
+            return;
+        }
+        if (disc && GUIDELINE_DISCLAIMER) { disc.textContent = GUIDELINE_DISCLAIMER; disc.style.display = "block"; }
+        box.innerHTML = "";
+        list.forEach(function (g) {
+            const meta = [g.source_name, g.year, g.strength ? "strength " + g.strength : null]
+                .filter(Boolean).join(" · ");
+            const tumour = (g.tumour && g.tumour.length) ? escapeHtmlSafe(g.tumour.join(", ")) : "";
+            const link = g.url
+                ? ' <a href="' + encodeURI(g.url) + '" target="_blank" rel="noopener">Official source ↗</a>'
+                : "";
+            const licence = g.licence ? ' <span class="guideline-licence">' + escapeHtmlSafe(g.licence) + "</span>" : "";
+            const card = document.createElement("div");
+            card.className = "guideline-card";
+            card.innerHTML =
+                '<div class="guideline-head">'
+                + '<span class="guideline-badge">' + escapeHtmlSafe(g.source || "GL") + "</span>"
+                + '<span class="guideline-meta">' + escapeHtmlSafe(meta) + "</span></div>"
+                + '<p class="guideline-text">' + escapeHtmlSafe(g.recommendation) + "</p>"
+                + '<div class="guideline-foot">'
+                + (tumour ? "<span>" + tumour + "</span>" : "")
+                + link + licence + "</div>";
+            box.appendChild(card);
+        });
+    }
 
     const characteristicsList = document.getElementById("patientCharacteristics");
     Object.entries(patientData).forEach(([key, value]) => {
@@ -216,11 +269,23 @@
     if (llmAnswer === '') {
         streamLLMResponse(query);
     } else {
-        responseContainer.innerHTML = llmAnswer;
+        responseContainer.innerHTML = formatAnswer(llmAnswer);
+    }
+
+    // Render the LLM's lightweight markdown: **bold** without the stars, and
+    // keep paragraph / line breaks. HTML is escaped first so the model's text
+    // can never inject markup.
+    function formatAnswer(text) {
+        const esc = String(text == null ? "" : text)
+            .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        return esc
+            .replace(/\*\*([\s\S]+?)\*\*/g, "<strong>$1</strong>")
+            .replace(/\r\n|\r|\n/g, "<br>");
     }
 
     function streamLLMResponse(q) {
         responseContainer.innerHTML = "";
+        let rawResponse = "";
         const loadingSpinner = document.getElementById("loadingSpinner");
         loadingSpinner.style.display = "inline";
 
@@ -234,6 +299,7 @@
                 query: q,
                 papers: papers,
                 patient_data: patientData,
+                guidelines: GUIDELINES,
                 response_id: responseID,
                 filters: FILTERS_USED
             })
@@ -247,11 +313,14 @@
             function readStream() {
                 reader.read().then(({ done, value }) => {
                     if (done) {
+                        rawResponse += decoder.decode();
+                        responseContainer.innerHTML = formatAnswer(rawResponse);
                         loadingSpinner.style.display = "none";
                         viewPaperButtons.forEach((b) => { b.style.pointerEvents = "auto"; b.style.opacity = "1"; });
                         return;
                     }
-                    responseContainer.innerHTML += decoder.decode(value);
+                    rawResponse += decoder.decode(value, { stream: true });
+                    responseContainer.innerHTML = formatAnswer(rawResponse);
                     readStream();
                 });
             }

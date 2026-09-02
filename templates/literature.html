@@ -29,12 +29,16 @@
         <!-- LEFT: filters -->
         <div class="col-lg-3 col-md-4">
             {{ panels.filter_panel(filter_groups) }}
+            {{ panels.guideline_sources_panel(guideline_sources) }}
         </div>
 
         <!-- CENTRE: patient + query form -->
         <div class="col-lg-6 col-md-8">
             <div class="lit-panel">
                 <p>Enter patient details and a clinical question to get an evidence-backed answer and the top supporting papers.</p>
+                {% if guidelines_enabled %}
+                <p class="lit-guideline-note">Answers are anchored to official guideline recommendations (ESMO, EAU, Onkopedia&nbsp;/&nbsp;SGMO, Swiss consensus) for the selected cancer type, shown alongside the retrieved literature.</p>
+                {% endif %}
                 <form action="/answer" method="POST" id="patientForm">
                     <input type="hidden" name="filters" id="filtersField" value="{}">
                     <h3>Patient's Characteristics</h3>

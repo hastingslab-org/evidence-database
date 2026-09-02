@@ -8,12 +8,14 @@ from werkzeug.exceptions import RequestEntityTooLarge
 from llm import call_llm_stream, get_relevant_papers
 from init_db import init_db
 import sqlite3
+from datetime import datetime, timezone
 from functools import lru_cache
 import chromadb
 from chromadb.utils import embedding_functions
 
 import config
 import literature
+import guidelines
 from genomics.genomics_data import fuzzy_match_gml, get_items_by_name_fuzzy, get_items_from_ids, get_item_by_name, get_item_from_single_id, check_variant_in_database
 from variantscape.variantscape import compute_associations, check_variant_in_graph, check_cancer_in_graph, get_associated_cancer_types_from_variant, get_associated_variants_from_cancer_type
 from variantscape.graph_store import G
@@ -47,8 +49,14 @@ def create_app():
 
 #db access functions
 def get_db_connection():
-    conn = sqlite3.connect(str(config.SQLITE_DB_PATH))
+    conn = sqlite3.connect(
+        str(config.SQLITE_DB_PATH), timeout=config.SQLITE_BUSY_TIMEOUT
+    )
     conn.row_factory = sqlite3.Row
+    # WAL lets GenomicsDB reads proceed while an answer is being cached; the
+    # busy timeout makes concurrent writers wait instead of raising "locked".
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute(f"PRAGMA busy_timeout={int(config.SQLITE_BUSY_TIMEOUT * 1000)}")
     return conn
 
 
@@ -70,21 +78,58 @@ def get_literature_collection():
         name=config.CHROMA_COLLECTION, embedding_function=embedding_func
     )
 
-def get_qa_item(item_name, item_id, json_load=False):
+def get_qa_row(response_id):
+    """Return the cached answer row for ``response_id`` as a dict, or None.
+
+    None means the entry is gone -- a brand-new browser, a session that
+    outlived its cache entry, or a pruned row -- and the caller should fall
+    back to the search form rather than rendering a half-empty page.
+    """
+    if not response_id:
+        return None
+    conn = get_db_connection()
+    try:
+        row = conn.execute(
+            "SELECT id, query, patient_data, papers, response, filters, guidelines "
+            "FROM qa_data WHERE id = ?",
+            (response_id,),
+        ).fetchone()
+    finally:
+        conn.close()
+    return dict(row) if row is not None else None
+
+
+def _prune_qa_data(cursor):
+    """Keep only the most recent ``QA_CACHE_MAX_ROWS`` rows so the cache is bounded."""
+    cursor.execute(
+        "DELETE FROM qa_data WHERE id NOT IN ("
+        "  SELECT id FROM qa_data ORDER BY created_at DESC, rowid DESC LIMIT ?"
+        ")",
+        (config.QA_CACHE_MAX_ROWS,),
+    )
+
+
+def _store_qa_answer(response_id, query, patient_data_json, papers_json,
+                     full_response, filters_raw, guidelines_json):
+    """Upsert one answer into the cache and prune it back to its size limit."""
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT " + item_name + " FROM qa_data WHERE id = ?", (item_id,))
-    row = cursor.fetchone()
-    conn.commit()
-    conn.close()
-
-    if row:
-        if json_load:
-            return json.loads(row[0])
-        else:
-            return row[0]
-    else:
-        return jsonify({"error": "Response not found"}), 404
+    try:
+        cursor.execute(
+            "INSERT OR REPLACE INTO qa_data "
+            "(id, query, patient_data, papers, response, filters, guidelines, created_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (response_id, query, patient_data_json, papers_json, full_response,
+             filters_raw, guidelines_json, datetime.now(timezone.utc).isoformat()),
+        )
+        _prune_qa_data(cursor)
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        print("Database error:", e)
+    finally:
+        cursor.close()
+        conn.close()
 
 @lru_cache(maxsize=1)
 def _partner_links() -> dict:
@@ -350,6 +395,10 @@ def answer_page():
         query_results = get_relevant_papers(query, collection, patient_data, allowed_ids=allowed_ids)
         overview = literature.overview_stats(collection, ids=allowed_ids)
 
+        # Always anchor the answer with official guideline recommendations
+        # (no-op when EVIDENCE_DB_GUIDELINES_ENABLED is false).
+        guideline_results = guidelines.get_relevant_guidelines(query, patient_data)
+
         response_id = str(uuid.uuid4())
         session['response_id'] = None  # Clear previous response ID
         session['response_id'] = response_id
@@ -359,26 +408,40 @@ def answer_page():
                                patient_data=json_patient_data, response_id=response_id,
                                filter_groups=literature.FILTER_GROUPS, overview=overview,
                                active_filters=literature.parse_filters(filters_raw),
-                               filters_raw=filters_raw or '')
+                               filters_raw=filters_raw or '',
+                               guidelines=guideline_results,
+                               guideline_sources=guidelines.all_sources(),
+                               guideline_disclaimer=guidelines.disclaimer())
 
     if request.method == 'GET':
-        # Retrieve the data stored in session
-        response_id = session.get('response_id', {})
-        #get query and llm answer from db
-        llm_answer = get_qa_item("response", response_id)
-        query = get_qa_item("query", response_id)
-        patient_data = get_qa_item("patient_data", response_id, json_load=True)
+        # Re-render the last answer for THIS browser, keyed by its session id.
+        row = get_qa_row(session.get('response_id'))
+        if row is None:
+            # Nothing cached for this session (new browser / expired / pruned).
+            return redirect(url_for('literature_page'))
+
+        query = row['query']
+        llm_answer = row['response']
+        patient_data = json.loads(row['patient_data'] or '{}')
         json_patient_data = json.dumps(patient_data, ensure_ascii=False)
-        query_results = get_qa_item("papers", response_id, json_load=True)
-        filters_raw = get_qa_item("filters", response_id)
-        filters_raw = filters_raw if isinstance(filters_raw, str) else ''
+        query_results = json.loads(row['papers'] or '{}')
+        filters_raw = row['filters'] if isinstance(row['filters'], str) else ''
+        try:
+            guideline_results = json.loads(row['guidelines'] or '[]')
+            if not isinstance(guideline_results, list):
+                guideline_results = []
+        except (ValueError, TypeError):
+            guideline_results = []
         allowed_ids = literature.matching_ids(filters_raw)
         overview = literature.overview_stats(get_literature_collection(), ids=allowed_ids)
         return render_template('answer.html', query=query, query_results=query_results,
                                patient_data=json_patient_data, llm_answer=llm_answer,
                                filter_groups=literature.FILTER_GROUPS, overview=overview,
                                active_filters=literature.parse_filters(filters_raw),
-                               filters_raw=filters_raw)
+                               filters_raw=filters_raw,
+                               guidelines=guideline_results,
+                               guideline_sources=guidelines.all_sources(),
+                               guideline_disclaimer=guidelines.disclaimer())
 
 # Route for streaming the LLM response
 @app.route('/stream_response', methods=['POST'])
@@ -393,38 +456,24 @@ def stream_response():
         patient_data_json = json.dumps(patient_data)
         response_id = data.get('response_id', '')
         filters_raw = data.get('filters', '') or ''
+        guideline_payload = data.get('guidelines', []) or []
+        guidelines_json = json.dumps(guideline_payload)
+        guidelines_block = guidelines.format_guidelines_for_prompt(guideline_payload)
 
         def generate_response():
             # Stream LLM response live
             title_and_abst = ",".join(papers["documents"][0])
 
             chunks = []
-            for chunk in call_llm_stream(query, title_and_abst, patient_data):
+            for chunk in call_llm_stream(query, title_and_abst, patient_data, guidelines_block):
                 if chunk:
                     chunks.append(chunk) #collecting chunks
                     yield chunk.encode('utf-8')
             full_response = "".join(chunks)
 
-            #store response in db
-            print("WRITING TO DB")
-            conn = get_db_connection()  # Ensure this function is correctly defined
-            cursor = conn.cursor()
-            try:
-                # Delete all rows from qa_data
-                cursor.execute("DELETE FROM qa_data")
-
-                # Insert new data
-                cursor.execute(
-                    "INSERT INTO qa_data (id, query, patient_data, papers, response, filters) VALUES (?, ?, ?, ?, ?, ?)",
-                    (response_id, query, patient_data_json, papers_json, full_response, filters_raw)
-                )
-                conn.commit()  # Commit the transaction
-            except Exception as e:
-                conn.rollback()  # Rollback on error to prevent partial updates
-                print("Database error:", e)
-            finally:
-                cursor.close()  # Close cursor
-                conn.close()  # Close connection         
+            # Cache this answer under its own response_id (read back by /answer GET).
+            _store_qa_answer(response_id, query, patient_data_json, papers_json,
+                             full_response, filters_raw, guidelines_json)
 
         return Response(generate_response(), content_type='text/event-stream',  headers={"Response-ID": response_id})
     
@@ -484,6 +533,8 @@ def literature_page():
         'literature.html',
         filter_groups=literature.FILTER_GROUPS,
         overview=overview,
+        guidelines_enabled=config.GUIDELINES_ENABLED,
+        guideline_sources=guidelines.all_sources(),
     )
 
 
@@ -493,6 +544,24 @@ def api_literature_overview():
     allowed_ids = literature.matching_ids(request.args.get('filters', ''))
     collection = get_literature_collection()
     return jsonify(literature.overview_stats(collection, ids=allowed_ids))
+
+
+@app.route('/api/guidelines/sources', methods=['GET'])
+def api_guideline_sources():
+    """List the clinical-guideline issuing bodies used to anchor answers."""
+    return jsonify({
+        "enabled": config.GUIDELINES_ENABLED,
+        "disclaimer": guidelines.disclaimer(),
+        "sources": guidelines.all_sources(),
+    })
+
+
+@app.route('/api/guidelines/preview', methods=['GET'])
+def api_guideline_preview():
+    """Preview the recommendations that would be retrieved for a question."""
+    query = request.args.get('q', '', type=str)
+    cancer_type = request.args.get('cancer_type', '', type=str) or None
+    return jsonify(guidelines.get_relevant_guidelines(query, cancer_type=cancer_type))
 
 
 # API version of the view database endpoint for Angular
@@ -553,7 +622,7 @@ def api_answer():
         data = request.get_json()
         query = data.get('query', '')
         patient_data = {k: v for k, v in data.items() if k != 'query'}
-        
+
         # Generate query results
         chroma_client = chromadb.PersistentClient(path=DB_PATH)
         embedding_func = embedding_functions.SentenceTransformerEmbeddingFunction(model_name=config.EMBEDDING_MODEL)
@@ -575,10 +644,12 @@ def api_answer():
         # --- End Debug Prints ---"""
 
         query_results = get_relevant_papers(query, collection, patient_data)
-        
+
+        guideline_results = guidelines.get_relevant_guidelines(query, patient_data)
+
         # Generate response ID
         response_id = str(uuid.uuid4())
-        
+
         # Store session variables
         session['response_id'] = None
         session['response_id'] = response_id
@@ -588,6 +659,7 @@ def api_answer():
             "success": True,
             "query": query,
             "queryResults": query_results,
+            "guidelines": guideline_results,
             "patientData": patient_data,
             "responseId": response_id
         })
@@ -607,25 +679,24 @@ def api_stream_response():
         patient_data_json = json.dumps(patient_data)
         response_id = data.get('response_id', '')
         filters_raw = data.get('filters', '') or ''
+        guideline_payload = data.get('guidelines', []) or []
+        guidelines_json = json.dumps(guideline_payload)
+        guidelines_block = guidelines.format_guidelines_for_prompt(guideline_payload)
 
         def generate_response():
             # Stream LLM response live
             title_and_abst = ",".join(papers["documents"][0])
 
             chunks = []
-            for chunk in call_llm_stream(query, title_and_abst, patient_data):
+            for chunk in call_llm_stream(query, title_and_abst, patient_data, guidelines_block):
                 if chunk:
                     chunks.append(chunk) #collecting chunks
                     yield chunk.encode('utf-8')
             full_response = "".join(chunks)
 
-            #store response in db
-            conn = get_db_connection()
-            cursor = conn.cursor()
-            cursor.execute("INSERT INTO qa_data (id, query, patient_data, papers, response, filters) VALUES (?, ?, ?, ?, ?, ?)",
-                           (response_id, query, patient_data_json, papers_json, full_response, filters_raw))
-            conn.commit()
-            conn.close()
+            # Cache this answer under its own response_id (read back by /answer GET).
+            _store_qa_answer(response_id, query, patient_data_json, papers_json,
+                             full_response, filters_raw, guidelines_json)
 
         return Response(generate_response(), content_type='text/event-stream',  headers={"Response-ID": response_id})
     

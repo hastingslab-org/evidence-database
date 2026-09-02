@@ -10,6 +10,8 @@ config.local.py
 # --- Local / regenerable databases (kept on disk, not tracked) ---
 # database.db is rebuilt from CIViC via db_initializations/update_genomics_db.py
 database.db
+database.db-wal
+database.db-shm
 *.sock
 
 # --- Vector store (LiteratureDB RAG) ---
