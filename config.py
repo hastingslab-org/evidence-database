@@ -110,6 +110,35 @@ LLM_SYSTEM_MSG = os.environ.get(
     "You are a medical expert assisting doctors and clinicians in decision making",
 )
 LLM_NUM_PAPERS = int(os.environ.get("EVIDENCE_DB_LLM_NUM_PAPERS", "5"))
+
+# --- Personalised Treatment Query (front-page integrated assistant) ---
+# System prompt for the structured patient-profile extraction call. The model is
+# asked to return a single JSON object, so this only needs to describe the shape.
+LLM_EXTRACTION_SYSTEM_MSG = os.environ.get(
+    "EVIDENCE_DB_LLM_EXTRACTION_SYSTEM_MSG",
+    "You extract structured oncology data from a free-text patient description "
+    "and a clinician's question. Reply with a single JSON object and nothing "
+    "else. Keys: \"cancer_type\" (string, canonical name e.g. \"prostate "
+    "cancer\", or \"\"), \"stage\" (string or \"\"), \"genes\" (array of HGNC "
+    "gene symbols, upper-case), \"variants\" (array of objects with \"gene\" and "
+    "\"change\" e.g. {\"gene\": \"BRAF\", \"change\": \"V600E\"}), "
+    "\"prior_treatments\" (array of strings), \"performance_status\" (string or "
+    "\"\"), \"other\" (array of short strings for anything else treatment-"
+    "relevant). Use only information present in the input; never invent a "
+    "variant or gene. If a field is unknown use \"\" or [].",
+)
+# Extra system-prompt instruction appended when GenomicsDB / Variantscape
+# findings are injected into the synthesis prompt.
+LLM_INTEGRATED_SYSTEM_MSG = os.environ.get(
+    "EVIDENCE_DB_LLM_INTEGRATED_SYSTEM_MSG",
+    "Structured findings retrieved from GenomicsDB (CIViC, expert-curated) and "
+    "Variantscape (literature-mined associations, not expert-curated) may be "
+    "supplied below. Treat the GenomicsDB evidence as higher confidence than the "
+    "Variantscape associations, name the source when you rely on either, and "
+    "flag where they disagree with the primary literature or guidelines. Do not "
+    "present a literature-mined association as an established treatment "
+    "recommendation.",
+)
 # Extra system-prompt instruction appended when guideline recommendations are
 # injected into the answer prompt (see guidelines.py / llm.py).
 LLM_GUIDELINE_SYSTEM_MSG = os.environ.get(

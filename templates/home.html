@@ -65,14 +65,199 @@
         margin: 0;
         line-height: 1.45;
     }
+
+    /* Personalised Treatment Query panel */
+    .ptq-panel {
+        max-width: 900px;
+        margin: 0 auto 50px;
+        background: #fff;
+        border: 1px solid #d8dee6;
+        border-radius: 10px;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+        padding: 26px 30px 30px;
+    }
+    .ptq-panel h2 {
+        font-size: 24px;
+        color: #2c3e50;
+        margin: 0 0 6px;
+        font-weight: 650;
+    }
+    .ptq-lead {
+        font-size: 14px;
+        color: #5a6472;
+        margin: 0 0 16px;
+        line-height: 1.5;
+    }
+    .ptq-warning {
+        background: #fff4d6;
+        border: 1px solid #f0d089;
+        color: #7a5b00;
+        font-size: 13px;
+        border-radius: 6px;
+        padding: 9px 12px;
+        margin-bottom: 18px;
+    }
+    .ptq-field { margin-bottom: 16px; }
+    .ptq-field label {
+        display: block;
+        font-weight: 600;
+        font-size: 13px;
+        color: #333;
+        margin-bottom: 5px;
+    }
+    .ptq-field textarea {
+        width: 100%;
+        border: 1px solid #ccd0d5;
+        border-radius: 6px;
+        padding: 10px;
+        font-size: 14px;
+        font-family: inherit;
+        resize: vertical;
+    }
+    .ptq-actions { display: flex; align-items: center; gap: 14px; }
+    #ptqSubmit {
+        background: #2c7be5;
+        color: #fff;
+        border: none;
+        border-radius: 6px;
+        padding: 10px 22px;
+        font-size: 14px;
+        cursor: pointer;
+    }
+    #ptqSubmit:disabled { background: #9bbce9; cursor: default; }
+    #ptqStatus { font-size: 13px; color: #6b7280; }
+    #ptqError { color: #c0392b; font-size: 13px; margin-top: 10px; display: none; }
+
+    .ptq-results { margin-top: 22px; display: none; }
+    .ptq-resources {
+        font-size: 13px;
+        color: #33475b;
+        background: #eef4fb;
+        border: 1px solid #d3e3f5;
+        border-radius: 6px;
+        padding: 8px 12px;
+        margin-bottom: 16px;
+    }
+    .ptq-answer {
+        background: #f9fafb;
+        border: 1px solid #e0e0e0;
+        border-radius: 6px;
+        padding: 18px;
+        min-height: 90px;
+        white-space: normal;
+        line-height: 1.55;
+        font-size: 14.5px;
+    }
+    .ptq-answer .md-h {
+        font-weight: 650;
+        color: #2c3e50;
+        margin: 15px 0 6px;
+        line-height: 1.3;
+    }
+    .ptq-answer .md-h:first-child { margin-top: 0; }
+    .ptq-answer h3.md-h { font-size: 17px; }
+    .ptq-answer h4.md-h { font-size: 15.5px; }
+    .ptq-answer h5.md-h { font-size: 14.5px; }
+    .ptq-answer h6.md-h {
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: .02em;
+        color: #5a6472;
+    }
+    .ptq-disclaimer { font-size: 12px; color: #8a94a3; margin-top: 8px; }
+
+    .ptq-section { border-top: 1px solid #ececec; margin-top: 16px; padding-top: 10px; }
+    .ptq-section > summary {
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 14px;
+        color: #2c3e50;
+        list-style: revert;
+    }
+    .ptq-section .ptq-section-body { padding: 10px 2px 4px; font-size: 13.5px; color: #3a4452; }
+    .ptq-section ul { padding-left: 18px; margin: 6px 0; }
+    .ptq-section li { margin-bottom: 5px; }
+    .ptq-tag {
+        display: inline-block;
+        background: #eef1f5;
+        border-radius: 4px;
+        padding: 1px 7px;
+        font-size: 12px;
+        margin: 0 4px 4px 0;
+    }
 </style>
 
 <div class="home-header">
-    <h1>EvidenceDB</h1>
-    <p>AI‑powered evidence database for oncology</p>
+    <h1>ONCO-TP EvidenceDB</h1>
+    <p>AI‑powered evidence database for precision oncology</p>
     <p style="font-size: 12px; color: #999; margin-top: 2px;">
         For research purposes only
     </p>
+</div>
+
+<!-- Personalised Treatment Query -->
+<div class="ptq-panel">
+    <h2>Personalised Treatment Query</h2>
+    <p class="ptq-lead">
+        Ask one treatment-related question about a patient. The system extracts a
+        structured profile, checks <strong>GenomicsDB</strong> and
+        <strong>Variantscape</strong> for any gene/variant mentioned, then
+        searches <strong>LiteratureDB</strong> (papers and clinical guidelines)
+        and returns a synthesised answer.
+    </p>
+
+    <div class="ptq-warning">
+        <strong>This is a research demonstration tool only — do not enter real patient data.</strong>
+        Use fictional or exemplary patient characteristics only. Inputs are sent to a third-party LLM
+        service and cached for research evaluation. Please also note that the literature database is 
+        currently only retrieving relevant literature for <strong>genitourinary</strong> cancers.
+    </div>
+
+    <div class="ptq-field">
+        <label for="ptqPatient">Patient characteristics (free text)</label>
+        <textarea id="ptqPatient" rows="4"
+            placeholder="e.g. cancer type and stage; known gene variants (e.g. BRAF V600E); ECOG performance status; prior treatments; comorbidities relevant to treatment choice"></textarea>
+    </div>
+
+    <div class="ptq-field">
+        <label for="ptqQuery">Your question (free text)</label>
+        <textarea id="ptqQuery" rows="2"
+            placeholder="e.g. Is a BRAF/MEK inhibitor combination an appropriate option for this patient?"></textarea>
+    </div>
+
+    <div class="ptq-actions">
+        <button id="ptqSubmit" type="button">Search resources and get an integrated answer</button>
+        <span id="ptqStatus"></span>
+    </div>
+    <p id="ptqError"></p>
+
+    <div class="ptq-results" id="ptqResults">
+        <div class="ptq-resources" id="ptqResources"></div>
+
+        <h4 style="margin:0 0 6px; font-size:15px;">Synthesised answer</h4>
+        <div class="ptq-answer" id="ptqAnswer"></div>
+        <p class="ptq-disclaimer" id="ptqDisclaimer"></p>
+
+        <details class="ptq-section" id="ptqProfileSection">
+            <summary>Extracted patient profile</summary>
+            <div class="ptq-section-body" id="ptqProfile"></div>
+        </details>
+
+        <details class="ptq-section">
+            <summary>GenomicsDB &amp; Variantscape findings</summary>
+            <div class="ptq-section-body" id="ptqFindings"></div>
+        </details>
+
+        <details class="ptq-section">
+            <summary>Selected papers</summary>
+            <div class="ptq-section-body"><ol id="ptqPapers"></ol></div>
+        </details>
+
+        <details class="ptq-section">
+            <summary>Guideline recommendations (<span id="ptqGuidelineCount">0</span>)</summary>
+            <div class="ptq-section-body" id="ptqGuidelines"></div>
+        </details>
+    </div>
 </div>
 
 <div class="card-container">
@@ -80,7 +265,7 @@
     <a href="/literature" class="tool-card">
         <div class="card">
             <h3>LiteratureDB</h3>
-            <p>Enter patient details + question → get ranked papers and answers.</p>
+            <p>Enter patient details + question → get ranked papers and answers.</p>
         </div>
     </a>
 
@@ -101,4 +286,244 @@
     </a>
 </div>
 
+{% endblock %}
+
+{% block scripts_extra %}
+<script>
+(function () {
+    var btn = document.getElementById("ptqSubmit");
+    var statusEl = document.getElementById("ptqStatus");
+    var errEl = document.getElementById("ptqError");
+    var resultsEl = document.getElementById("ptqResults");
+    var answerEl = document.getElementById("ptqAnswer");
+
+    function esc(s) {
+        return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+            return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+        });
+    }
+    // Render the LLM's lightweight markdown: ATX headers (# .. ######),
+    // **bold**, and line breaks. HTML is escaped first so the model's text can
+    // never inject markup.
+    function formatAnswer(text) {
+        var inline = function (s) {
+            return esc(s).replace(/\*\*([\s\S]+?)\*\*/g, "<strong>$1</strong>");
+        };
+        var lines = String(text == null ? "" : text).replace(/\r\n|\r/g, "\n").split("\n");
+        var out = "", prevText = false;
+        lines.forEach(function (line) {
+            var m = /^\s*(#{1,6})\s+(.*?)\s*#*\s*$/.exec(line);
+            if (m) {
+                var lvl = Math.min(6, m[1].length + 2);  // #->h3, ##->h4, ###->h5
+                out += "<h" + lvl + ' class="md-h">' + inline(m[2]) + "</h" + lvl + ">";
+                prevText = false;
+            } else {
+                if (prevText) out += "<br>";
+                out += inline(line);
+                prevText = true;
+            }
+        });
+        return out;
+    }
+
+    function setBusy(busy, msg) {
+        btn.disabled = busy;
+        statusEl.textContent = msg || "";
+    }
+    function showError(msg) {
+        errEl.textContent = msg;
+        errEl.style.display = "block";
+        setBusy(false, "");
+    }
+
+    btn.addEventListener("click", function () {
+        var patientText = document.getElementById("ptqPatient").value.trim();
+        var query = document.getElementById("ptqQuery").value.trim();
+        errEl.style.display = "none";
+        if (!query) { showError("Please enter a question."); return; }
+
+        setBusy(true, "Interpreting patient profile and consulting GenomicsDB / Variantscape…");
+        answerEl.innerHTML = "";
+
+        fetch("/integrated_answer", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ patient_text: patientText, query: query })
+        })
+        .then(function (r) {
+            return r.json().then(function (data) {
+                if (!r.ok) { throw new Error(data.error || "Request failed."); }
+                return data;
+            });
+        })
+        .then(function (data) {
+            resultsEl.style.display = "block";
+            renderResources(data.resources);
+            renderProfile(data.profile);
+            renderFindings(data.genomic, data.variantscape);
+            renderPapers(data.papers);
+            renderGuidelines(data.guidelines);
+            document.getElementById("ptqDisclaimer").textContent = data.guideline_disclaimer || "";
+            streamAnswer(data);
+        })
+        .catch(function (e) { showError(e.message || String(e)); });
+    });
+
+    function renderResources(list) {
+        list = list || [];
+        document.getElementById("ptqResources").innerHTML =
+            "<strong>Resources consulted:</strong> " +
+            list.map(function (x) { return '<span class="ptq-tag">' + esc(x) + "</span>"; }).join(" ");
+    }
+
+    function renderProfile(p) {
+        p = p || {};
+        var rows = [];
+        function add(label, val) {
+            if (val && val.length) rows.push("<li><strong>" + esc(label) + ":</strong> " + esc(val) + "</li>");
+        }
+        add("Cancer type", p.cancer_type);
+        add("Stage", p.stage);
+        if (p.variants && p.variants.length) {
+            add("Variants", p.variants.map(function (v) {
+                return (v.gene + " " + v.change).trim();
+            }).join(", "));
+        } else {
+            add("Genes", (p.genes || []).join(", "));
+        }
+        add("Prior treatments", (p.prior_treatments || []).join(", "));
+        add("Performance status", p.performance_status);
+        add("Other", (p.other || []).join(", "));
+
+        var note = p.extraction_ok
+            ? ""
+            : '<p style="color:#a15c00;">Automatic extraction was unavailable — the answer is based on your free text, the literature and guidelines only.</p>';
+        document.getElementById("ptqProfile").innerHTML =
+            note + (rows.length ? "<ul>" + rows.join("") + "</ul>" : "<p>No structured fields extracted.</p>");
+    }
+
+    function assocText(list) {
+        return (list || []).map(function (e) {
+            return esc(e.name) + (e.weight != null ? " (weight " + e.weight + ")" : "");
+        }).join("; ");
+    }
+
+    function renderFindings(genomic, vs) {
+        genomic = genomic || {}; vs = vs || {};
+        var html = "";
+
+        var gItems = [];
+        (genomic.variants || []).forEach(function (v) {
+            if (!v.in_genomicsdb) return;
+            var s = "<li><strong>" + esc((v.gene + " " + v.change).trim()) + "</strong>";
+            if (v.description) s += "<br>" + esc(v.description);
+            if (v.diseases && v.diseases.length) s += "<br><em>Diseases:</em> " + esc(v.diseases.join(", "));
+            if (v.molecular_profiles && v.molecular_profiles.length) s += "<br><em>Molecular profiles:</em> " + esc(v.molecular_profiles.join(", "));
+            gItems.push(s + "</li>");
+        });
+        (genomic.genes || []).forEach(function (g) {
+            if (!g.in_genomicsdb) return;
+            var s = "<li><strong>" + esc(g.name || g.gene) + "</strong>";
+            if (g.description) s += "<br>" + esc(g.description);
+            if (g.diseases && g.diseases.length) s += "<br><em>Diseases:</em> " + esc(g.diseases.join(", "));
+            gItems.push(s + "</li>");
+        });
+        if (gItems.length) {
+            html += "<p><strong>GenomicsDB (CIViC, expert-curated)</strong></p><ul>" + gItems.join("") + "</ul>";
+        }
+
+        var vItems = [];
+        (vs.variants || []).forEach(function (v) {
+            if (!v.in_variantscape) return;
+            var s = "<li><strong>" + esc((v.gene + " " + v.change).trim()) + "</strong>";
+            if ((v.sensitising && v.sensitising.length) || (v.resistance && v.resistance.length)) {
+                s += "<br><em>Sensitising:</em> " + (assocText(v.sensitising) || "none identified");
+                s += "<br><em>Resistance:</em> " + (assocText(v.resistance) || "none identified");
+                if (v.other_cancer_types && v.other_cancer_types.length)
+                    s += "<br><em>Other cancer types:</em> " + assocText(v.other_cancer_types);
+            } else if (v.associated_cancer_types && v.associated_cancer_types.length) {
+                s += "<br><em>Associated cancer types:</em> " + esc(v.associated_cancer_types.join(", "));
+            }
+            vItems.push(s + "</li>");
+        });
+        (vs.genes || []).forEach(function (g) {
+            var s = "<li><strong>" + esc(g.gene) + "</strong> " +
+                    "<span style='color:#7a7a7a;'>(gene-level, aggregated across " + g.n_variants +
+                    " variant records; co-occurrence only, direction not resolved)</span>";
+            if (g.top_treatments && g.top_treatments.length)
+                s += "<br><em>Associated treatments:</em> " + assocText(g.top_treatments);
+            if (g.top_cancer_types && g.top_cancer_types.length)
+                s += "<br><em>Associated cancer types:</em> " + assocText(g.top_cancer_types);
+            vItems.push(s + "</li>");
+        });
+        if (vItems.length) {
+            html += "<p style='margin-top:10px;'><strong>Variantscape (literature-mined, not expert-curated)</strong></p><ul>" + vItems.join("") + "</ul>";
+        }
+
+        if (!html) html = "<p>No gene or variant mention matched GenomicsDB or Variantscape.</p>";
+        document.getElementById("ptqFindings").innerHTML = html;
+    }
+
+    function renderPapers(papers) {
+        var ol = document.getElementById("ptqPapers");
+        ol.innerHTML = "";
+        var metas = papers && papers.metadatas && papers.metadatas[0] ? papers.metadatas[0] : [];
+        if (!metas.length) { ol.innerHTML = "<p>No papers retrieved.</p>"; return; }
+        metas.forEach(function (m) {
+            var li = document.createElement("li");
+            li.textContent = [m.titles, m.first_author, m.year, m.journal].filter(Boolean).join(", ");
+            ol.appendChild(li);
+        });
+    }
+
+    function renderGuidelines(list) {
+        list = list || [];
+        document.getElementById("ptqGuidelineCount").textContent = list.length;
+        var box = document.getElementById("ptqGuidelines");
+        if (!list.length) { box.innerHTML = "<p>No matching guideline recommendations.</p>"; return; }
+        box.innerHTML = list.map(function (g) {
+            var meta = [g.source_name, g.year, g.strength ? "strength " + g.strength : null].filter(Boolean).join(" · ");
+            var link = g.url ? ' <a href="' + encodeURI(g.url) + '" target="_blank" rel="noopener">source ↗</a>' : "";
+            return '<div style="margin-bottom:10px;"><div style="color:#667;">' + esc(meta) + link +
+                   '</div><div>' + esc(g.recommendation) + "</div></div>";
+        }).join("");
+    }
+
+    function streamAnswer(data) {
+        setBusy(true, "Searching literature and guidelines, synthesising answer…");
+        var raw = "";
+        fetch("/stream_response", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                query: data.query,
+                papers: data.papers,
+                patient_data: data.patient_data,
+                guidelines: data.guidelines,
+                response_id: data.response_id,
+                filters: "",
+                extra_context: data.findings_block || ""
+            })
+        }).then(function (response) {
+            if (!response.body) { showError("The response stream could not be read."); return; }
+            var reader = response.body.getReader();
+            var decoder = new TextDecoder();
+            function read() {
+                reader.read().then(function (res) {
+                    if (res.done) {
+                        raw += decoder.decode();
+                        answerEl.innerHTML = formatAnswer(raw);
+                        setBusy(false, "Done.");
+                        return;
+                    }
+                    raw += decoder.decode(res.value, { stream: true });
+                    answerEl.innerHTML = formatAnswer(raw);
+                    read();
+                });
+            }
+            read();
+        }).catch(function (e) { showError(e.message || String(e)); });
+    }
+})();
+</script>
 {% endblock %}

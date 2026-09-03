@@ -16,6 +16,7 @@ from chromadb.utils import embedding_functions
 import config
 import literature
 import guidelines
+import integrated
 from genomics.genomics_data import fuzzy_match_gml, get_items_by_name_fuzzy, get_items_from_ids, get_item_by_name, get_item_from_single_id, check_variant_in_database
 from variantscape.variantscape import compute_associations, check_variant_in_graph, check_cancer_in_graph, get_associated_cancer_types_from_variant, get_associated_variants_from_cancer_type
 from variantscape.graph_store import G
@@ -443,9 +444,59 @@ def answer_page():
                                guideline_sources=guidelines.all_sources(),
                                guideline_disclaimer=guidelines.disclaimer())
 
+@app.route('/integrated_answer', methods=['POST'])
+def integrated_answer():
+    """Front-page Personalised Treatment Query.
+
+    Extracts a structured profile from the free-text patient description +
+    question, consults GenomicsDB / Variantscape when a gene or variant is
+    present, then runs the ordinary LiteratureDB retrieval (papers + guidelines).
+    Returns JSON; the page then streams the synthesis via /stream_response,
+    passing the structured findings back as ``extra_context``.
+    """
+    data = request.get_json(silent=True) or request.form
+    patient_text = (data.get('patient_text') or '').strip()
+    query = (data.get('query') or '').strip()
+    if not query:
+        return jsonify({"error": "Please enter a question."}), 400
+
+    profile = integrated.extract_profile(patient_text, query)
+    patient_data = profile["patient_data"]
+
+    genomic = integrated.gather_genomic_context(profile)
+    variantscape = integrated.gather_variantscape_context(profile)
+    findings_block = integrated.format_findings_for_prompt(genomic, variantscape)
+
+    retrieval_query = integrated.build_retrieval_query(query, profile, genomic, variantscape)
+    collection = get_literature_collection()
+    query_results = get_relevant_papers(retrieval_query, collection, patient_data)
+    guideline_results = guidelines.get_relevant_guidelines(query, patient_data)
+
+    response_id = str(uuid.uuid4())
+    session['response_id'] = response_id
+    session.modified = True
+
+    return jsonify({
+        "response_id": response_id,
+        "query": query,
+        "profile": {k: profile[k] for k in (
+            "cancer_type", "stage", "genes", "variants",
+            "prior_treatments", "performance_status", "other", "extraction_ok",
+        )},
+        "patient_data": patient_data,
+        "resources": integrated.resources_consulted(genomic, variantscape),
+        "genomic": genomic,
+        "variantscape": variantscape,
+        "findings_block": findings_block,
+        "papers": query_results,
+        "guidelines": guideline_results,
+        "guideline_disclaimer": guidelines.disclaimer(),
+    })
+
+
 # Route for streaming the LLM response
 @app.route('/stream_response', methods=['POST'])
-def stream_response():  
+def stream_response():
     try: 
         #get data
         data = request.get_json()
@@ -459,13 +510,18 @@ def stream_response():
         guideline_payload = data.get('guidelines', []) or []
         guidelines_json = json.dumps(guideline_payload)
         guidelines_block = guidelines.format_guidelines_for_prompt(guideline_payload)
+        # Structured GenomicsDB / Variantscape findings from /integrated_answer;
+        # empty for the ordinary LiteratureDB search.
+        extra_context = data.get('extra_context', '') or ''
 
         def generate_response():
             # Stream LLM response live
-            title_and_abst = ",".join(papers["documents"][0])
+            docs = (papers.get("documents") or [[]])
+            title_and_abst = ",".join(docs[0]) if docs and docs[0] else ""
 
             chunks = []
-            for chunk in call_llm_stream(query, title_and_abst, patient_data, guidelines_block):
+            for chunk in call_llm_stream(query, title_and_abst, patient_data,
+                                         guidelines_block, extra_context):
                 if chunk:
                     chunks.append(chunk) #collecting chunks
                     yield chunk.encode('utf-8')
@@ -682,13 +738,18 @@ def api_stream_response():
         guideline_payload = data.get('guidelines', []) or []
         guidelines_json = json.dumps(guideline_payload)
         guidelines_block = guidelines.format_guidelines_for_prompt(guideline_payload)
+        # Structured GenomicsDB / Variantscape findings from /integrated_answer;
+        # empty for the ordinary LiteratureDB search.
+        extra_context = data.get('extra_context', '') or ''
 
         def generate_response():
             # Stream LLM response live
-            title_and_abst = ",".join(papers["documents"][0])
+            docs = (papers.get("documents") or [[]])
+            title_and_abst = ",".join(docs[0]) if docs and docs[0] else ""
 
             chunks = []
-            for chunk in call_llm_stream(query, title_and_abst, patient_data, guidelines_block):
+            for chunk in call_llm_stream(query, title_and_abst, patient_data,
+                                         guidelines_block, extra_context):
                 if chunk:
                     chunks.append(chunk) #collecting chunks
                     yield chunk.encode('utf-8')
