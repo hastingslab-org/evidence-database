@@ -64,8 +64,23 @@ VARIATIONS_TO_EXCLUDE = [
 # Threshold for sqlite query fuzzy matching (see config.py / .env.example to override)
 MATCHING_RATIO_THRESH = config.MATCHING_RATIO_THRESH
 
+
+def _resolve_db_path(db_path=None):
+    """Fall back to the single configured SQLite path when a caller passes None.
+
+    Every GenomicsDB helper accepts an explicit ``db_path`` for tests / scripts,
+    but application code should leave it unset so all access goes through
+    ``config.SQLITE_DB_PATH`` -- the same file ``app.py`` and ``integrated.py``
+    open. Passing a hard-coded ``"database.db"`` (relative to the process CWD)
+    is what previously let the routes and the front-page assistant diverge onto
+    different files under a WSGI server.
+    """
+    return str(db_path) if db_path else str(config.SQLITE_DB_PATH)
+
+
 """ ***** USEFUL FUNCTIONS TO QUERY SQLITE DATABASE *****"""
-def get_item_by_name(name, table_name, db_path): #TODO this is by exact name
+def get_item_by_name(name, table_name, db_path=None): #TODO this is by exact name
+    db_path = _resolve_db_path(db_path)
     all_items = get_all_items(table_name, db_path)
     # Return variant where the search term is found (case-insensitive)
     matching_items = [item for item in all_items if name.lower() == item['name'].lower()]
@@ -76,7 +91,8 @@ def get_item_by_name(name, table_name, db_path): #TODO this is by exact name
     return matching_item
 
 
-def get_all_items(table_name, db_path): #TODO merge with get_genes_by_name
+def get_all_items(table_name, db_path=None): #TODO merge with get_genes_by_name
+    db_path = _resolve_db_path(db_path)
     # Connect to the SQLite database
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
@@ -124,7 +140,8 @@ def fuzzy_match_gml(user_input, all_names): #TODO find a better strategy and mer
 
     return matching_names
 
-def get_items_by_name_fuzzy(name, item_name, db_path):
+def get_items_by_name_fuzzy(name, item_name, db_path=None):
+    db_path = _resolve_db_path(db_path)
     all_items = get_all_items(item_name, db_path)
     # Return genes where the search term is found (case-insensitive)
 
@@ -132,8 +149,9 @@ def get_items_by_name_fuzzy(name, item_name, db_path):
     return matching_items
 
 
-def get_item_from_single_id(id, item_name, db_path):
-    "IDs are provided as a string with comma separated values. element_name is the name of the table to query (string)" 
+def get_item_from_single_id(id, item_name, db_path=None):
+    "IDs are provided as a string with comma separated values. element_name is the name of the table to query (string)"
+    db_path = _resolve_db_path(db_path)
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
     cursor.execute("SELECT name FROM " + item_name + " WHERE id = ?", (id,))
@@ -141,8 +159,9 @@ def get_item_from_single_id(id, item_name, db_path):
 
     return item
 
-def get_items_from_ids(ids, item_name, db_path):
-    "IDs are provided as a string with comma separated values. element_name is the name of the table to query (string)" 
+def get_items_from_ids(ids, item_name, db_path=None):
+    "IDs are provided as a string with comma separated values. element_name is the name of the table to query (string)"
+    db_path = _resolve_db_path(db_path)
     ids = json.loads(ids)
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
@@ -159,8 +178,7 @@ def get_items_from_ids(ids, item_name, db_path):
 
 def check_variant_in_database(gene_name, variant_name, db_path=None):
     """Check if the variant exists in the database."""
-    if db_path is None:
-        db_path = str(config.SQLITE_DB_PATH)
+    db_path = _resolve_db_path(db_path)
 
     sql = f"""
         SELECT 1

@@ -460,6 +460,16 @@
             html += "<p style='margin-top:10px;'><strong>Variantscape (literature-mined, not expert-curated)</strong></p><ul>" + vItems.join("") + "</ul>";
         }
 
+        // Distinguish "no match" from "GenomicsDB not deployed on this server".
+        var st = genomic.status || {};
+        if (!gItems.length && st.ok === false) {
+            var why = (st.missing_tables && st.missing_tables.length)
+                ? "tables not built: " + esc(st.missing_tables.join(", "))
+                : esc(st.error || "unavailable");
+            html += "<p style='color:#a15c00;'>GenomicsDB is not available on this server (" +
+                    why + "). Gene/variant look-ups are skipped until the CIViC database is built.</p>";
+        }
+
         if (!html) html = "<p>No gene or variant mention matched GenomicsDB or Variantscape.</p>";
         document.getElementById("ptqFindings").innerHTML = html;
     }

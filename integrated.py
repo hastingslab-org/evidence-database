@@ -20,6 +20,8 @@ The actual literature retrieval, guideline retrieval, answer streaming and
 """
 
 import json
+import os
+import sqlite3
 
 import config
 import llm
@@ -40,6 +42,45 @@ from variantscape.graph_store import G
 
 _DB_PATH = str(config.SQLITE_DB_PATH)
 _MAX_DESC = 600  # CIViC descriptions can be very long; trim for the prompt.
+
+# Tables the GenomicsDB helpers read. ``database.db`` is git-ignored and rebuilt
+# from CIViC by db_initializations/update_genomics_db.py; a fresh deployment only
+# has ``qa_data`` until that script runs, and every gene/variant lookup then
+# raises "no such table: genes".
+_GENOMICS_TABLES = ("genes", "variants", "diseases", "molecular_profiles")
+
+
+def genomics_db_status() -> dict:
+    """Report whether the GenomicsDB (CIViC) tables are queryable.
+
+    Returned as ``genomic["status"]`` from :func:`gather_genomic_context` and
+    echoed in the /integrated_answer response, so a deployment that has not run
+    the genomics rebuild is visible in the browser (and at startup) instead of
+    silently dropping GenomicsDB from the answer.
+    """
+    status = {
+        "path": _DB_PATH,
+        "exists": os.path.exists(_DB_PATH),
+        "missing_tables": list(_GENOMICS_TABLES),
+        "ok": False,
+        "error": None,
+    }
+    try:
+        con = sqlite3.connect(f"file:{_DB_PATH}?mode=ro", uri=True)
+        try:
+            present = {
+                row[0]
+                for row in con.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table'"
+                )
+            }
+        finally:
+            con.close()
+        status["missing_tables"] = [t for t in _GENOMICS_TABLES if t not in present]
+        status["ok"] = not status["missing_tables"]
+    except Exception as e:  # pragma: no cover - defensive
+        status["error"] = str(e)
+    return status
 
 
 # --------------------------------------------------------------------------- #
@@ -185,10 +226,15 @@ def _names_from_ids(raw, table) -> list[str]:
 def gather_genomic_context(profile: dict) -> dict:
     """Look up each variant (then failing that, each gene) in GenomicsDB.
 
-    Returns ``{"variants": [...], "genes": [...], "found": bool}`` where each
-    entry is a small JSON-safe dict for the UI.
+    Returns ``{"variants": [...], "genes": [...], "found": bool, "status": {...}}``
+    where each entry is a small JSON-safe dict for the UI. When the GenomicsDB
+    tables are not present (fresh deployment, rebuild not yet run) the lookups
+    are skipped and ``status["ok"]`` is False.
     """
-    out: dict = {"variants": [], "genes": [], "found": False}
+    status = genomics_db_status()
+    out: dict = {"variants": [], "genes": [], "found": False, "status": status}
+    if not status["ok"]:
+        return out
     # Genes whose *variant* was resolved in GenomicsDB -- for these the
     # gene-level lookup is redundant. A gene mentioned only via an unresolved
     # variant (e.g. "germline BRCA2 pathogenic variant", no specific change)

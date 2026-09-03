@@ -317,16 +317,15 @@ def genomics_page():
         return render_template("genomics.html")
 
     # ----- business logic -----
-    genes = get_items_by_name_fuzzy(gene_name, item_name="genes", db_path="database.db")
+    genes = get_items_by_name_fuzzy(gene_name, item_name="genes")
     gene_data_list = [
         {
             "name": g["name"],
             "description": g["description"],
-            "diseases":  get_items_from_ids(g["diseases"],  "diseases",  db_path="database.db"),
-            "variants":  get_items_from_ids(g["variants"],  "variants",  db_path="database.db"),
+            "diseases":  get_items_from_ids(g["diseases"],  "diseases"),
+            "variants":  get_items_from_ids(g["variants"],  "variants"),
             "molecular_profiles":
-                         get_items_from_ids(g["molecular_profiles"], "molecular_profiles",
-                                            db_path="database.db"),
+                         get_items_from_ids(g["molecular_profiles"], "molecular_profiles"),
         }
         for g in genes
     ]
@@ -348,14 +347,14 @@ def variant_notfound():
 @app.route('/genomics/variant/<string:gene_name>/<string:variant_name>')
 def variant_page(gene_name, variant_name):
     if check_variant_in_database(gene_name, variant_name):
-        variant= get_item_by_name(variant_name, table_name="variants", db_path="database.db")
+        variant= get_item_by_name(variant_name, table_name="variants")
         #get variant info
         variant_data = {
             "name": variant["name"],
             "description": variant["description"],
-            "gene": get_item_from_single_id(variant["gene_id"], "genes", db_path="database.db")[0],
-            "molecular_profiles": get_items_from_ids(variant["molecular_profiles"], "molecular_profiles", db_path="database.db"),
-            "diseases": get_items_from_ids(variant["diseases"], "diseases", db_path="database.db"),
+            "gene": get_item_from_single_id(variant["gene_id"], "genes")[0],
+            "molecular_profiles": get_items_from_ids(variant["molecular_profiles"], "molecular_profiles"),
+            "diseases": get_items_from_ids(variant["diseases"], "diseases"),
         }
 
         return render_template('variant.html', variant_data=variant_data)
@@ -366,14 +365,14 @@ def variant_page(gene_name, variant_name):
 
 @app.route('/genomics/molecular-profile/<string:mp_name>')
 def molecular_profile_page(mp_name):
-    mp = get_item_by_name(mp_name, table_name="molecular_profiles", db_path="database.db")
+    mp = get_item_by_name(mp_name, table_name="molecular_profiles")
 
     #get mp info
     mp_data = {
         "name": mp["name"],
         "description": mp["description"],
-        "variants": get_items_from_ids(mp["variants"], "variants", db_path="database.db"),
-        "diseases": get_items_from_ids(mp["disease"], "diseases", db_path="database.db"),
+        "variants": get_items_from_ids(mp["variants"], "variants"),
+        "diseases": get_items_from_ids(mp["disease"], "diseases"),
         "score": mp["molecularProfileScore"],   
         }
 
@@ -485,6 +484,10 @@ def integrated_answer():
         )},
         "patient_data": patient_data,
         "resources": integrated.resources_consulted(genomic, variantscape),
+        # `genomic["status"]` reports the GenomicsDB path / missing tables / error
+        # so a deployment that has not run the CIViC rebuild is diagnosable from
+        # the browser rather than silently missing GenomicsDB.
+        "genomic_db_ok": genomic.get("status", {}).get("ok", False),
         "genomic": genomic,
         "variantscape": variantscape,
         "findings_block": findings_block,
@@ -770,6 +773,20 @@ def api_stream_response():
 print("Initializing database...")
 init_db()
 print("Database initialized.")
+
+# GenomicsDB (CIViC) lives in the git-ignored database.db and is rebuilt by
+# db_initializations/update_genomics_db.py. Warn loudly at startup if a
+# deployment is missing it, so the silent "GenomicsDB skipped" symptom on the
+# front-page assistant and /genomics pages is easy to trace.
+_genomics_status = integrated.genomics_db_status()
+if not _genomics_status["ok"]:
+    _detail = ", ".join(_genomics_status["missing_tables"]) or _genomics_status["error"]
+    print(
+        f"WARNING: GenomicsDB tables unavailable at {_genomics_status['path']} "
+        f"({_detail}). The Personalised Treatment Query and /genomics pages will "
+        f"return no gene/variant results until db_initializations/"
+        f"update_genomics_db.py is run against this file."
+    )
 
 if __name__ == "__main__": #TODO separate app.py into init, cli, helpers, and routes
     app.run(host=config.HOST, port=config.PORT, debug=config.DEBUG)
