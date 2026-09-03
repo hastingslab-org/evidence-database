@@ -44,24 +44,7 @@
     #answerMain h4 { text-align: left; }
     .rerun-hint { font-size: 13px; color: #a15c00; margin-top: 10px; display: none; }
 
-    /* Headers the model emits as "### ..." inside the answer box. */
-    #liveResponse .md-h {
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-        font-weight: 650;
-        color: #2c3e50;
-        margin: 16px 0 6px;
-        line-height: 1.3;
-    }
-    #liveResponse .md-h:first-child { margin-top: 0; }
-    #liveResponse h3.md-h { font-size: 18px; }
-    #liveResponse h4.md-h { font-size: 16px; }
-    #liveResponse h5.md-h { font-size: 15px; }
-    #liveResponse h6.md-h {
-        font-size: 13.5px;
-        text-transform: uppercase;
-        letter-spacing: .02em;
-        color: #555;
-    }
+    /* Rendered-Markdown styling for #liveResponse lives in css/styles.css (.md-body). */
 </style>
 {% endblock %}
 
@@ -128,7 +111,7 @@
                     LLM Answer
                     <span id="loadingSpinner" style="display: none; font-size: 16px; margin-left: 20px;">Loading...</span>
                 </h2>
-                <div id="liveResponse" class="answer-section"></div>
+                <div id="liveResponse" class="answer-section md-body"></div>
 
                 <div style="text-align: center;">
                     <a href="/literature" class="btn">Ask a New Question</a>
@@ -291,29 +274,13 @@
         responseContainer.innerHTML = formatAnswer(llmAnswer);
     }
 
-    // Render the LLM's lightweight markdown: **bold** without the stars, and
-    // keep paragraph / line breaks. HTML is escaped first so the model's text
-    // can never inject markup.
+    // Full Markdown -> sanitised HTML (marked + DOMPurify, loaded in base.html):
+    // headings, bold/italic, lists, `---` rules, pipe tables, code, links.
     function formatAnswer(text) {
-        const escHtml = (s) => String(s)
-            .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-        const inline = (s) => escHtml(s)
-            .replace(/\*\*([\s\S]+?)\*\*/g, "<strong>$1</strong>");
-        const lines = String(text == null ? "" : text).replace(/\r\n|\r/g, "\n").split("\n");
-        let out = "", prevText = false;
-        lines.forEach((line) => {
-            const m = /^\s*(#{1,6})\s+(.*?)\s*#*\s*$/.exec(line);
-            if (m) {
-                const lvl = Math.min(6, m[1].length + 2);  // #->h3, ##->h4, ###->h5
-                out += `<h${lvl} class="md-h">${inline(m[2])}</h${lvl}>`;
-                prevText = false;
-            } else {
-                if (prevText) out += "<br>";
-                out += inline(line);
-                prevText = true;
-            }
-        });
-        return out;
+        return (window.renderMarkdown ? window.renderMarkdown(text)
+            : String(text == null ? "" : text)
+                .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+                .replace(/\r\n|\r|\n/g, "<br>"));
     }
 
     function streamLLMResponse(q) {

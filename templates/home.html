@@ -148,22 +148,7 @@
         line-height: 1.55;
         font-size: 14.5px;
     }
-    .ptq-answer .md-h {
-        font-weight: 650;
-        color: #2c3e50;
-        margin: 15px 0 6px;
-        line-height: 1.3;
-    }
-    .ptq-answer .md-h:first-child { margin-top: 0; }
-    .ptq-answer h3.md-h { font-size: 17px; }
-    .ptq-answer h4.md-h { font-size: 15.5px; }
-    .ptq-answer h5.md-h { font-size: 14.5px; }
-    .ptq-answer h6.md-h {
-        font-size: 13px;
-        text-transform: uppercase;
-        letter-spacing: .02em;
-        color: #5a6472;
-    }
+    /* Rendered-Markdown styling for #ptqAnswer lives in css/styles.css (.md-body). */
     .ptq-disclaimer { font-size: 12px; color: #8a94a3; margin-top: 8px; }
 
     .ptq-section { border-top: 1px solid #ececec; margin-top: 16px; padding-top: 10px; }
@@ -235,7 +220,7 @@
         <div class="ptq-resources" id="ptqResources"></div>
 
         <h4 style="margin:0 0 6px; font-size:15px;">Synthesised answer</h4>
-        <div class="ptq-answer" id="ptqAnswer"></div>
+        <div class="ptq-answer md-body" id="ptqAnswer"></div>
         <p class="ptq-disclaimer" id="ptqDisclaimer"></p>
 
         <details class="ptq-section" id="ptqProfileSection">
@@ -302,28 +287,10 @@
             return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
         });
     }
-    // Render the LLM's lightweight markdown: ATX headers (# .. ######),
-    // **bold**, and line breaks. HTML is escaped first so the model's text can
-    // never inject markup.
+    // Full Markdown -> sanitised HTML (marked + DOMPurify, loaded in base.html).
     function formatAnswer(text) {
-        var inline = function (s) {
-            return esc(s).replace(/\*\*([\s\S]+?)\*\*/g, "<strong>$1</strong>");
-        };
-        var lines = String(text == null ? "" : text).replace(/\r\n|\r/g, "\n").split("\n");
-        var out = "", prevText = false;
-        lines.forEach(function (line) {
-            var m = /^\s*(#{1,6})\s+(.*?)\s*#*\s*$/.exec(line);
-            if (m) {
-                var lvl = Math.min(6, m[1].length + 2);  // #->h3, ##->h4, ###->h5
-                out += "<h" + lvl + ' class="md-h">' + inline(m[2]) + "</h" + lvl + ">";
-                prevText = false;
-            } else {
-                if (prevText) out += "<br>";
-                out += inline(line);
-                prevText = true;
-            }
-        });
-        return out;
+        return (window.renderMarkdown ? window.renderMarkdown(text)
+            : esc(text).replace(/\r\n|\r|\n/g, "<br>"));
     }
 
     function setBusy(busy, msg) {

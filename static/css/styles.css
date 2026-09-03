@@ -270,3 +270,72 @@ p, li {
       margin-bottom: 16px;
     }
   }
+
+/* --- Rendered Markdown in the LLM answer panels (window.renderMarkdown) --- */
+.md-body { white-space: normal; }
+/* The literature answer box (#liveResponse) is monospace + pre-wrap by default;
+   override once it holds rendered HTML. id+class beats the bare id selector. */
+#liveResponse.md-body { white-space: normal; font-family: inherit; }
+
+.md-body > :first-child { margin-top: 0; }
+.md-body p { margin: 0 0 10px; }
+.md-body h1, .md-body h2, .md-body h3,
+.md-body h4, .md-body h5, .md-body h6 {
+  font-weight: 650;
+  color: #2c3e50;
+  line-height: 1.3;
+  margin: 16px 0 6px;
+}
+.md-body h1 { font-size: 1.3rem; }
+.md-body h2 { font-size: 1.18rem; }
+.md-body h3 { font-size: 1.08rem; }
+.md-body h4 { font-size: 1rem; }
+.md-body h5, .md-body h6 { font-size: 0.95rem; }
+
+.md-body ul, .md-body ol { margin: 0 0 10px; padding-left: 22px; }
+.md-body li { margin-bottom: 4px; }
+.md-body li > ul, .md-body li > ol { margin: 4px 0 0; }
+
+.md-body hr { border: 0; border-top: 1px solid #d7dbe0; margin: 16px 0; }
+
+.md-body blockquote {
+  margin: 0 0 10px;
+  padding: 4px 12px;
+  border-left: 3px solid #ccd3da;
+  color: #55606b;
+}
+
+.md-body code {
+  background: #eef1f5;
+  border-radius: 3px;
+  padding: 1px 5px;
+  font-size: 0.9em;
+}
+.md-body pre {
+  background: #f3f5f8;
+  border: 1px solid #e2e6ea;
+  border-radius: 6px;
+  padding: 12px;
+  overflow-x: auto;
+  margin: 0 0 12px;
+}
+.md-body pre code { background: none; padding: 0; font-size: 0.86em; }
+
+.md-body table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0 0 12px;
+  font-size: 0.92em;
+  display: block;
+  overflow-x: auto;
+}
+.md-body th, .md-body td {
+  border: 1px solid #d7dbe0;
+  padding: 6px 10px;
+  text-align: left;
+  vertical-align: top;
+}
+.md-body th { background: #f1f4f8; font-weight: 600; }
+
+.md-body a { color: #2c7be5; }
+.md-body img { max-width: 100%; height: auto; }

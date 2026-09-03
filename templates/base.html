@@ -68,6 +68,42 @@
     <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+
+    <!-- Markdown rendering for the LLM answer panels. marked converts the full
+         GFM the model emits (headings, bold/italic, lists, `---` rules, pipe
+         tables, code, links, blockquotes); DOMPurify strips anything unsafe from
+         the generated HTML. window.renderMarkdown() is used by the answer
+         templates; it degrades to escaped plain text if the CDN is unreachable. -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.9/purify.min.js"></script>
+    <script>
+      (function () {
+        if (window.marked && window.marked.setOptions) {
+          // breaks:true -> a single newline becomes <br>, matching how the model
+          // (and the previous renderer) formats prose.
+          window.marked.setOptions({ gfm: true, breaks: true });
+        }
+        if (window.DOMPurify && window.DOMPurify.addHook) {
+          window.DOMPurify.addHook("afterSanitizeAttributes", function (node) {
+            if (node.tagName === "A") {
+              node.setAttribute("target", "_blank");
+              node.setAttribute("rel", "noopener noreferrer");
+            }
+          });
+        }
+        window.renderMarkdown = function (text) {
+          var src = String(text == null ? "" : text);
+          try {
+            var html = window.marked.parse(src);
+            return window.DOMPurify ? window.DOMPurify.sanitize(html) : html;
+          } catch (e) {
+            return src
+              .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+              .replace(/\r\n|\r|\n/g, "<br>");
+          }
+        };
+      })();
+    </script>
   {% block scripts_extra %}{% endblock %}
   </body>
 
