@@ -527,9 +527,16 @@ def build_filter_metadata(ids, documents, openalex_ids, out_path: Path, *,
     blank = {c: False for c in columns}
 
     endpoint = config.OPENAI_BASE_URL or "https://api.openai.com (OpenAI SDK default)"
-    key = config.OPENAI_API_KEY or ""
+    key = (config.OPENAI_API_KEY or os.environ.get("OPENAI_API_KEY") or "").strip()
     print(f"  LLM endpoint: {endpoint}  |  api key: "
           + (f"set ({len(key)} chars)" if key else "NOT SET"))
+    if not key and limit != 0:
+        raise SystemExit(
+            "No LLM API key: OPENAI_API_KEY is empty in this environment, so every classification would "
+            "fail (\"Illegal header value b'Bearer '\").\n"
+            "Set OPENAI_API_KEY in evidence-database/.env (the running app may get it from its service "
+            "definition instead), then classify the existing collection with:\n"
+            "  python db_initializations/refresh_literature_db.py --filter-metadata-only --out-dir <this build>")
 
     def cols_from_data(data):
         cols = dict(blank)
@@ -582,7 +589,7 @@ def build_filter_metadata(ids, documents, openalex_ids, out_path: Path, *,
         from concurrent.futures import ThreadPoolExecutor, as_completed
         from openai import OpenAI
 
-        client = OpenAI(api_key=config.OPENAI_API_KEY or None, base_url=config.OPENAI_BASE_URL)
+        client = OpenAI(api_key=key, base_url=config.OPENAI_BASE_URL)
         written = 0
         with partial.open("a", encoding="utf-8") as fh, \
                 ThreadPoolExecutor(max_workers=workers) as ex:
@@ -594,6 +601,16 @@ def build_filter_metadata(ids, documents, openalex_ids, out_path: Path, *,
                     data = fut.result()
                     if data is None:            # request never succeeded
                         failed += 1
+                        if written == 0 and failed >= 20:
+                            # Nothing works (key, endpoint, network): stop instead of
+                            # retrying every remaining paper
+                            for f in futures:
+                                f.cancel()
+                            ex.shutdown(wait=False, cancel_futures=True)
+                            raise SystemExit(
+                                f"Stopping: the first {failed} classifications all failed (see the errors "
+                                f"above; endpoint {endpoint}). Fix the LLM settings, then rerun with "
+                                f"--filter-metadata-only --out-dir {Path(out_path).parent}")
                         continue                # not cached -> retried on rerun
                     ckey = _cache_key(openalex_ids[i], i)
                     cols = cols_from_data(data)
