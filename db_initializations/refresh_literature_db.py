@@ -480,8 +480,11 @@ def _classify_one(client, model, text, groups, *, retries=4, backoff=2.0):
             if attempt < retries - 1:
                 time.sleep(backoff ** attempt)
     cause = getattr(last, "__cause__", None)
-    print(f"  classify failed after {retries} tries: {last!r}"
-          + (f"  (cause: {cause!r})" if cause else ""))
+    message = f"  classify failed after {retries} tries: {last!r}" + (f"  (cause: {cause!r})" if cause else "")
+    key = str(getattr(client, "api_key", "") or "").strip()
+    if len(key) >= 8:   # e.g. "Illegal header value b'Bearer <key>\\n'" would print the key
+        message = message.replace(key, key[:2] + "…" + key[-4:])
+    print(message)
     return None
 
 
