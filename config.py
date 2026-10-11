@@ -173,9 +173,34 @@ VARIANTSCAPE_METADATA_MAPPING_PATH = _path(
     "EVIDENCE_DB_VARIANTSCAPE_METADATA_MAPPING",
     "variantscape/metadata_mapping_transposed.csv",
 )
-CANCER_SYNONYMS_PATH = _path(
-    "EVIDENCE_DB_CANCER_SYNONYMS", "static/Network_cancer_synonyms.csv"
+# Literature associations verified against the abstracts by the pipeline's LLM
+# verifier; optional, absent for older (co-occurrence only) artifact sets
+VARIANTSCAPE_VERIFIED_PATH = _path(
+    "EVIDENCE_DB_VARIANTSCAPE_VERIFIED",
+    "variantscape/verified_associations.csv",
 )
+# Expert-curated (CIViC) associations; optional, absent for older artifact sets
+VARIANTSCAPE_CURATED_PATH = _path(
+    "EVIDENCE_DB_VARIANTSCAPE_CURATED",
+    "variantscape/curated_associations.csv",
+)
+# Gene aliases / previous symbols (MEK1 -> MAP2K1, HER2 -> ERBB2) for the graph's genes;
+# optional, absent for older artifact sets
+VARIANTSCAPE_GENE_ALIASES_PATH = _path(
+    "EVIDENCE_DB_VARIANTSCAPE_GENE_ALIASES",
+    "variantscape/gene_aliases.csv",
+)
+# Cancer names / synonyms per cancer node: written by the Variantscape pipeline with
+# the other artifacts (OncoTree-based cancer types); older deployments use the static file
+CANCER_SYNONYMS_PATH = _path(
+    "EVIDENCE_DB_CANCER_SYNONYMS",
+    "variantscape/cancer_synonyms.csv" if (BASE_DIR / "variantscape" / "cancer_synonyms.csv").exists()
+    else "static/Network_cancer_synonyms.csv",
+)
+if not CANCER_SYNONYMS_PATH.exists() and (BASE_DIR / "static" / "Network_cancer_synonyms.csv").exists():
+    # e.g. configured for the pipeline's file before the new artifacts are deployed
+    print(f"[config] {CANCER_SYNONYMS_PATH} not found; using static/Network_cancer_synonyms.csv")
+    CANCER_SYNONYMS_PATH = BASE_DIR / "static" / "Network_cancer_synonyms.csv"
 
 
 # --------------------------------------------------------------------------- #
@@ -221,6 +246,11 @@ TREATMENT_THRESHOLD_PERCENTILE = int(
 CANCER_THRESHOLD_PERCENTILE = int(
     os.environ.get("EVIDENCE_DB_CANCER_THRESHOLD_PERCENTILE", "80")
 )
+# Floors for highlighting *verified* associations, whose weights count papers that
+# report the exact association (much smaller than the co-occurrence weights the
+# floors above were tuned on). Calibrate after the first full verified run.
+VERIFIED_TREATMENT_MIN_HIGHLIGHT = float(os.environ.get("EVIDENCE_DB_VERIFIED_TREATMENT_MIN_HIGHLIGHT", "3"))
+VERIFIED_CANCER_MIN_HIGHLIGHT = float(os.environ.get("EVIDENCE_DB_VERIFIED_CANCER_MIN_HIGHLIGHT", "3"))
 # Fuzzy-match acceptance ratio (0-1) shared by the genomics and variantscape lookups.
 MATCHING_RATIO_THRESH = float(os.environ.get("EVIDENCE_DB_MATCHING_RATIO_THRESH", "0.8"))
 

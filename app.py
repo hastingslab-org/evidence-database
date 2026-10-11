@@ -19,7 +19,7 @@ import guidelines
 import integrated
 from genomics.genomics_data import fuzzy_match_gml, get_items_by_name_fuzzy, get_items_from_ids, get_item_by_name, get_item_from_single_id, check_variant_in_database
 from variantscape.variantscape import compute_associations, check_variant_in_graph, check_cancer_in_graph, get_associated_cancer_types_from_variant, get_associated_variants_from_cancer_type
-from variantscape.graph_store import G
+from variantscape.graph_store import G, VERIFICATION_AVAILABLE
 from variantscape.variantscape import autosuggest_item
 
 
@@ -28,8 +28,9 @@ from variantscape.variantscape import autosuggest_item
 DB_PATH = str(config.CHROMA_DB_PATH)
 
 # Variantscape highlight thresholds (see config.py / .env.example to override)
-TREATMENT_MIN_HIGHLIGHT = config.TREATMENT_MIN_HIGHLIGHT
-CANCER_MIN_HIGHLIGHT = config.CANCER_MIN_HIGHLIGHT
+# Verified weights count papers reporting the exact association, so they use their own floors
+TREATMENT_MIN_HIGHLIGHT = config.VERIFIED_TREATMENT_MIN_HIGHLIGHT if VERIFICATION_AVAILABLE else config.TREATMENT_MIN_HIGHLIGHT
+CANCER_MIN_HIGHLIGHT = config.VERIFIED_CANCER_MIN_HIGHLIGHT if VERIFICATION_AVAILABLE else config.CANCER_MIN_HIGHLIGHT
 
 #app config
 def create_app():
@@ -168,6 +169,13 @@ def inject_partner_logos():
     """Automatically inject `partner_logos` into all templates."""
     return dict(partner_logos=get_partner_logos())
 
+@app.context_processor
+def _variantscape_context():
+    # Lets templates offer the "unverified co-occurrences" option only when the
+    # Variantscape artifacts include abstract-level verification
+    return {"verification_available": VERIFICATION_AVAILABLE}
+
+
 ########################### app routes ###########################
 @app.route('/', methods=['GET'])
 def home_page():
@@ -182,6 +190,7 @@ def variantscape_page():
         gene_search = form_data["gene"][0]
         variant_search = form_data["variant"][0]
         disease_search = form_data["cancer"][0]
+        show_unverified = "show_unverified" in form_data
 
         EXIST_VARIANT_BOOL = check_variant_in_graph(gene_search, variant_search)
         EXIST_CANCER_BOOL = check_cancer_in_graph(disease_search)
@@ -222,13 +231,15 @@ def variantscape_page():
                                    gene=gene_search, variant=variant_search.upper(), disease = disease_search)
 
         cancer_of_interest, top_sens, top_res, top_var_c, sens_pct, res_pct, cancer_pct, \
-            gene_name, variant_name = compute_associations(gene_search, variant_search, disease_search)
+            gene_name, variant_name = compute_associations(gene_search, variant_search, disease_search,
+                                                           show_unverified=show_unverified)
         
         return render_template('variantscape.html', top_sens=top_sens, top_res=top_res, top_var_c=top_var_c, \
                                sens_pct=sens_pct, res_pct=res_pct, cancer_pct=cancer_pct, gene=gene_name, \
                                 variant=variant_name.upper(), disease = cancer_of_interest, \
                                     treatment_min_highlight = TREATMENT_MIN_HIGHLIGHT,
-                                    cancer_min_highlight = CANCER_MIN_HIGHLIGHT, exist_cancer_bool = EXIST_CANCER_BOOL, exist_variant_bool = EXIST_VARIANT_BOOL) #TODO add error handling for empty results
+                                    cancer_min_highlight = CANCER_MIN_HIGHLIGHT, exist_cancer_bool = EXIST_CANCER_BOOL, exist_variant_bool = EXIST_VARIANT_BOOL,
+                                    show_unverified = show_unverified) #TODO add error handling for empty results
     #TODO pass params more elegantly
     if request.method == 'GET':
         return render_template('variantscape.html')

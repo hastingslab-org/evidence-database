@@ -1,7 +1,35 @@
 {% extends 'base.html' %}
 
 {% block content %}
-{% set score_tooltip = "Edge weight in the network, calculated as the frequency of co‑mentions across publications, weighted by the tiered evidence level of each study design." %}
+{% set score_tooltip = "Edge weight in the network, calculated as the frequency of co‑mentions across publications, weighted by the tiered evidence level of each study design. Expert-curated (CIViC) associations are listed first, marked with their evidence level. With abstract-level verification, the score counts (study-weighted) papers whose abstract reports the exact association; unverified co-occurrences are shown only on request, greyed out, scored by co-mentions." %}
+
+{# One result row. Curated (CIViC) associations are always highlighted and carry a
+   badge linking to the CIViC record; literature associations keep the score-based
+   highlighting (strong >= percentile and >= minimum; grey below the minimum). #}
+{% macro assoc_row(a, pct, min_highlight, color) %}
+    {% set unverified = a.tier == 'cooccurrence' %}
+    {% set strong = a.curated or (not unverified and a.weight >= pct and a.weight >= min_highlight) %}
+    {% set text_color = color if strong else ('#b0b0b0' if unverified or a.weight < min_highlight else 'black') %}
+    <div style="display: flex; justify-content: space-between; padding: 4px 0;"
+         {% if a.evidence %}title="Verified in {{ a.evidence.papers }} abstract(s){% if a.evidence.via %} for {{ a.evidence.via }}{% endif %}{% if a.evidence.quote %}, e.g. &quot;{{ a.evidence.quote }}&quot; (OpenAlex W{{ a.evidence.paper_id }}){% endif %}"{% endif %}>
+        <span style="color: {{ text_color }}; font-weight: {{ '600' if strong else 'normal' }}; font-style: {{ 'italic' if unverified else 'normal' }};">
+            {{ a.name }}
+            {% if unverified %}<span class="unverified-tag">unverified</span>{% endif %}
+            {% if a.evidence and a.evidence.mixed and not a.curated %}<span class="mixed-tag" title="The abstracts disagree: {{ a.evidence.sensitive_papers }} report response, {{ a.evidence.against_papers }} resistance or no response">mixed: {{ a.evidence.sensitive_papers }} vs {{ a.evidence.against_papers }}</span>{% endif %}
+            {% if a.curated %}
+                {% set first_id = a.curated.ids[0] %}
+                <a class="curated-badge" target="_blank"
+                   href="https://civicdb.org/{{ 'assertions' if first_id.startswith('AID') else 'evidence' }}/{{ first_id[3:] }}/summary"
+                   title="Expert-curated in CIViC: {{ a.curated.prediction }} ({{ a.curated.evidence_type|lower }}), level {{ a.curated.level }}. Records: {{ a.curated.ids|join(', ') }}{% if a.curated.pmids %}. PMID: {{ a.curated.pmids[:5]|join(', ') }}{% endif %}">
+                    CIViC {{ a.curated.level }}{% if a.curated.prediction not in ('Sensitive', 'Resistant') %} · {{ a.curated.prediction|lower }}{% endif %}{% if a.curated.via %} · via {{ a.curated.via }}{% endif %}
+                </a>
+            {% endif %}
+        </span>
+        <span style="color: {{ text_color }}; font-weight: {{ '600' if strong else 'normal' }};">
+            {{ a.weight|round|int if a.weight > 0 else '–' }}
+        </span>
+    </div>
+{% endmacro %}
 
 <style>
     .tooltip-container {
@@ -113,6 +141,40 @@
     .legend-dot.res {background:#a94442;}
     .legend-dot.cross{background:#1565c0;}
     .legend-dot.low {background:#b0b0b0;}
+
+    /* co-occurrence association not verified in an abstract */
+    .unverified-tag{
+        margin-left:.4rem;
+        font-family:Arial, sans-serif;
+        font-size:11px;
+        font-style:normal;
+        color:#999;
+    }
+
+    /* verified association whose abstracts disagree on the direction */
+    .mixed-tag{
+        margin-left:.4rem;
+        font-family:Arial, sans-serif;
+        font-size:11px;
+        font-style:normal;
+        color:#b26a00;
+    }
+
+    /* expert-curated (CIViC) association badge */
+    .curated-badge{
+        display:inline-block;
+        margin-left:.4rem;
+        padding:0 .4rem;
+        border-radius:.6rem;
+        border:1px solid #6a1b9a;
+        color:#6a1b9a;
+        background:#f3e5f5;
+        font-family:Arial, sans-serif;
+        font-size:11px;
+        font-weight:600;
+        text-decoration:none;
+        vertical-align:middle;
+    }
 
     /* fine-print */
     .legend-item small{
@@ -271,6 +333,12 @@
         </div>
     </div>
 
+    {% if verification_available %}
+    <label style="flex-basis: 100%; text-align: center; font-size: 13px; color: #555;">
+        <input type="checkbox" name="show_unverified" value="1" {{ 'checked' if show_unverified }}>
+        Also show unverified co-occurrences (entities co-mentioned in an abstract without a verified association)
+    </label>
+    {% endif %}
     <button type="submit" style="margin-top: 20px; padding: 10px 20px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; font-size: 14px; cursor: pointer;">
         Search
     </button>
@@ -458,6 +526,11 @@
         <h4>Color legend</h4>
         <ul class="legend-list">
             <li class="legend-item">
+                <span class="curated-badge" style="margin:0 .5rem 0 0;">CIViC</span>
+                Expert-curated association, listed first
+                <small>(evidence level A–D or AMP tier)</small>
+            </li>
+            <li class="legend-item">
                 <span class="legend-dot sens"></span>
                 Strong sensitivity co-associations
                 <small>(score ≥ 80th percentile)</small>
@@ -472,6 +545,16 @@
                 Cross-cancer co-associations
                 <small>(score ≥ 80th percentile)</small>
             </li>
+            <li class="legend-item">
+                <span class="mixed-tag" style="margin:0 .5rem 0 0;">mixed: 3 vs 2</span>
+                Abstracts disagree on the direction: papers reporting response vs. resistance or no response
+            </li>
+            {% if show_unverified %}
+            <li class="legend-item">
+                <span class="unverified-tag" style="margin:0 .5rem 0 0;">unverified</span>
+                Co-mentioned only; the abstract was not verified to report the association
+            </li>
+            {% endif %}
             <li class="legend-item">
                 <span class="legend-dot low"></span>
                 Co‑associations below the confidence cutoff 
@@ -495,15 +578,8 @@
         <hr style="border: none; border-top: 1px solid #e0e0e0;  margin: 0 0;">
         {%if top_sens%}
         <div style="font-family: 'Courier New', monospace; font-size: 15px; margin-top: 10px;">
-            {% for treatment, score in top_sens %}
-            <div style="display: flex; justify-content: space-between; padding: 4px 0;">
-                <span style="color: {{ '#2e7d32' if score >= sens_pct and score >= treatment_min_highlight else '#b0b0b0' if score < treatment_min_highlight else 'black' }}; font-weight: {{ '600' if score >= sens_pct and score >= treatment_min_highlight else 'normal' }};">
-                    {{ treatment }}
-                </span>
-                <span style="color: {{ '#2e7d32' if score >= sens_pct and score >= treatment_min_highlight else '#b0b0b0' if score < treatment_min_highlight else 'black' }}; font-weight: {{ '600' if score >= sens_pct and score >= treatment_min_highlight else 'normal' }};">
-                    {{ score|round|int }}
-                </span>
-            </div>
+            {% for a in top_sens %}
+            {{ assoc_row(a, sens_pct, treatment_min_highlight, '#2e7d32') }}
             {% endfor %}
         </div>
         {% else %}
@@ -528,15 +604,8 @@
         <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 0 0;">
         {%if top_res%}
         <div style="font-family: 'Courier New', monospace; font-size: 15px; margin-top: 10px;">
-            {% for treatment, score in top_res %}
-            <div style="display: flex; justify-content: space-between; padding: 4px 0;">
-                <span style="color:  {{ '#a94442' if score >= res_pct and score >= treatment_min_highlight else '#b0b0b0' if score < treatment_min_highlight else 'black' }}; font-weight: {{ '600' if score >= res_pct and score >= treatment_min_highlight else 'normal' }};">
-                    {{ treatment }}
-                </span>
-                <span style="color:  {{ '#a94442' if score >= res_pct and score >= treatment_min_highlight else '#b0b0b0' if score < treatment_min_highlight else 'black' }}; font-weight: {{ '600' if score >= res_pct and score >= treatment_min_highlight else 'normal' }};">
-                    {{ score|round|int }}
-                </span>
-            </div>
+            {% for a in top_res %}
+            {{ assoc_row(a, res_pct, treatment_min_highlight, '#a94442') }}
             {% endfor %}
         </div>
         {% else %}
@@ -575,15 +644,8 @@
         <hr style="border: none; border-top: 1px solid #e0e0e0;  margin: 0 0;">
         {%if top_var_c%}
         <div style="font-family: 'Courier New', monospace; font-size: 15px; margin-top: 10px;">
-            {% for cancer, score in top_var_c %}
-            <div style="display: flex; justify-content: space-between; padding: 4px 0;">
-                <span style="color:  {{ '#1565c0' if score >= cancer_pct and score >= cancer_min_highlight else '#b0b0b0' if score < cancer_min_highlight else 'black' }}; font-weight: {{ '600' if score >= cancer_pct and score >= cancer_min_highlight else 'normal' }};">
-                    {{ cancer }}
-                </span>
-                <span style="color:  {{ '#1565c0' if score >= cancer_pct and score >= cancer_min_highlight else '#b0b0b0' if score < cancer_min_highlight else 'black' }}; font-weight: {{ '600' if score >= cancer_pct and score >= cancer_min_highlight else 'normal' }};">
-                    {{ score|round|int }}
-                </span>
-            </div>
+            {% for a in top_var_c %}
+            {{ assoc_row(a, cancer_pct, cancer_min_highlight, '#1565c0') }}
             {% endfor %}
         </div>
         {% else %}

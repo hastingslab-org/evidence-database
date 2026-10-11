@@ -37,6 +37,7 @@ from variantscape.variantscape import (
     check_variant_in_graph,
     compute_associations,
     get_associated_cancer_types_from_variant,
+    resolve_gene_symbol,
 )
 from variantscape.graph_store import G
 
@@ -289,14 +290,28 @@ def gather_genomic_context(profile: dict) -> dict:
 # --------------------------------------------------------------------------- #
 # 2b. Variantscape lookup
 # --------------------------------------------------------------------------- #
-def _assoc_list(pairs) -> list[dict]:
+def _assoc_list(items) -> list[dict]:
+    """JSON-safe list from Variantscape ``Association`` items (or plain (name, weight) pairs)."""
     out = []
-    for item in pairs or []:
+    for item in items or []:
+        curated = getattr(item, "curated", None)
         try:
-            name, weight = item
-        except (TypeError, ValueError):
+            name, weight = item[0], item[1]
+        except (TypeError, IndexError):
             name, weight = item, None
-        out.append({"name": str(name), "weight": round(float(weight), 1) if weight is not None else None})
+        entry = {"name": str(name), "weight": round(float(weight), 1) if weight is not None else None}
+        if curated:
+            entry["curated"] = {k: curated.get(k) for k in ("source", "level", "prediction", "ids", "pmids", "via")}
+        tier = getattr(item, "tier", None)
+        if tier:
+            entry["tier"] = tier
+        evidence = getattr(item, "evidence", None)
+        if evidence:
+            entry["verified_papers"] = evidence["papers"]
+            entry["verified_via"] = evidence.get("via")
+            if evidence.get("mixed"):
+                entry["mixed"] = {"sensitive": evidence["sensitive_papers"], "against": evidence["against_papers"]}
+        out.append(entry)
     return out
 
 
@@ -384,10 +399,10 @@ def gather_variantscape_context(profile: dict) -> dict:
         out["variants"].append(entry)
 
     # Gene-level fallback for genes with no variant-level hit.
-    matched = {v["gene"].upper() for v in out["variants"] if v.get("in_variantscape")}
+    matched = {resolve_gene_symbol(v["gene"]).upper() for v in out["variants"] if v.get("in_variantscape")}
     seen: set[str] = set()
     for gene in profile.get("genes", []):
-        g = gene.upper()
+        g = resolve_gene_symbol(gene).upper()
         if g in matched or g in seen:
             continue
         seen.add(g)
@@ -413,8 +428,22 @@ def _safe(fn, *args, default=None):
 def _fmt_assoc(entries, limit=5) -> str:
     parts = []
     for e in entries[:limit]:
-        w = f" (weight {e['weight']})" if e.get("weight") is not None else ""
-        parts.append(f"{e['name']}{w}")
+        notes = []
+        cur = e.get("curated")
+        if cur:
+            via = f", evidence for {cur['via']}" if cur.get("via") else ""
+            notes.append(f"expert-curated in {cur['source']}: {cur['prediction']}, level {cur['level']}{via}")
+        if e.get("verified_papers"):
+            via = f" for {e['verified_via']}" if e.get("verified_via") else ""
+            notes.append(f"reported in {e['verified_papers']} abstract(s){via}, weight {e['weight']}")
+            if e.get("mixed"):
+                notes.append(f"mixed evidence: {e['mixed']['sensitive']} abstract(s) report response, "
+                             f"{e['mixed']['against']} resistance or no response")
+        elif e.get("tier") == "cooccurrence":
+            notes.append(f"co-mentioned only, not verified, weight {e['weight']}")
+        elif e.get("weight"):
+            notes.append(f"literature weight {e['weight']}")
+        parts.append(f"{e['name']} ({'; '.join(notes)})" if notes else e["name"])
     return "; ".join(parts)
 
 
@@ -485,7 +514,11 @@ def format_findings_for_prompt(genomic: dict, variantscape: dict) -> str:
         )
     if vs_lines:
         lines.append("")
-        lines.append("Variantscape (literature-mined associations, not expert-curated):")
+        lines.append(
+            "Variantscape (literature-mined associations; entries marked 'expert-curated in CIViC' "
+            "are curated knowledge; 'reported in N abstracts' means the association was verified in "
+            "the abstracts but is not expert-curated):"
+        )
         lines.extend(vs_lines)
 
     if not lines:
