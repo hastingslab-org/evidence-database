@@ -96,6 +96,10 @@ import requests
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
+# config loads evidence-database/.env without overriding variables already set in the
+# shell: remember whether the LLM key came from the shell, to say so (a stale exported
+# OPENAI_API_KEY silently wins over .env)
+_KEY_FROM_SHELL = "OPENAI_API_KEY" in os.environ
 import config  # noqa: E402  (needs REPO_ROOT on the path first)
 
 OPENALEX_WORKS = "https://api.openalex.org/works"
@@ -459,10 +463,11 @@ def _classify_one(client, model, text, groups, *, retries=4, backoff=2.0):
             try:
                 resp = client.chat.completions.create(**kwargs)
             except Exception as exc:
-                # Only treat as "endpoint rejects JSON mode" if we actually
-                # reached the server (a real HTTP status). Connection errors
-                # have no .response and must fall through to retry/backoff.
-                if _JSON_MODE["enabled"] and getattr(exc, "response", None) is not None:
+                # Only a 400/422 from the server means the endpoint rejects JSON mode;
+                # connection errors (no response) and 401/403/429/5xx are auth,
+                # rate-limit or server problems and fall through to retry/backoff.
+                status = getattr(getattr(exc, "response", None), "status_code", None)
+                if _JSON_MODE["enabled"] and status in (400, 422):
                     _JSON_MODE["enabled"] = False
                     print("  note: endpoint rejected response_format; retrying without JSON mode")
                     resp = client.chat.completions.create(
@@ -528,8 +533,10 @@ def build_filter_metadata(ids, documents, openalex_ids, out_path: Path, *,
 
     endpoint = config.OPENAI_BASE_URL or "https://api.openai.com (OpenAI SDK default)"
     key = (config.OPENAI_API_KEY or os.environ.get("OPENAI_API_KEY") or "").strip()
+    source = ("from the shell environment (overrides evidence-database/.env)" if _KEY_FROM_SHELL
+              else "from evidence-database/.env")
     print(f"  LLM endpoint: {endpoint}  |  api key: "
-          + (f"set ({len(key)} chars)" if key else "NOT SET"))
+          + (f"set ({len(key)} chars, ...{key[-4:]}, {source})" if key else f"NOT SET ({source})"))
     if not key and limit != 0:
         raise SystemExit(
             "No LLM API key: OPENAI_API_KEY is empty in this environment, so every classification would "
