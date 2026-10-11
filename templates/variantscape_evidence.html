@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+
+{% block title %}Variantscape evidence{% endblock %}
+
+{% block content %}
+<style>
+    .ev-wrap{max-width:900px;margin:0 auto;padding:20px 16px;font-family:Arial, sans-serif;color:#2c3e50;}
+    .ev-head h2{font-size:22px;margin:0 0 6px;}
+    .ev-sub{color:#666;font-size:14px;margin:0 0 14px;}
+    .ev-chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 18px;}
+    .ev-chip{font-size:13px;padding:2px 10px;border-radius:12px;border:1px solid #ccc;color:#444;text-decoration:none;}
+    .ev-chip.active{background:#2c3e50;border-color:#2c3e50;color:#fff;}
+    .ev-paper{border-top:1px solid #e0e0e0;padding:14px 0;}
+    .ev-title{font-size:16px;font-weight:600;color:#2c3e50;text-decoration:none;}
+    .ev-title:hover{text-decoration:underline;}
+    .ev-meta{color:#777;font-size:13px;margin:4px 0 6px;}
+    .ev-rel{display:inline-block;font-size:12px;padding:0 8px;border-radius:10px;margin-right:6px;border:1px solid;}
+    .ev-rel.Sensitive{color:#2e7d32;border-color:#2e7d32;}
+    .ev-rel.Resistant,.ev-rel.No.response{color:#a94442;border-color:#a94442;}
+    .ev-rel.other{color:#555;border-color:#999;}
+    .ev-quote{font-size:14px;color:#333;border-left:3px solid #c9d6e3;padding-left:10px;margin:6px 0;}
+    .ev-abstract{font-size:14px;line-height:1.5;color:#444;}
+    .ev-abstract mark{background:#fff3b0;padding:0 1px;}
+    details summary{cursor:pointer;color:#1565c0;font-size:13px;margin-top:4px;}
+    .ev-note{color:#888;font-size:13px;margin-top:18px;}
+</style>
+
+<div class="ev-wrap">
+{% if not evidence %}
+    <div class="ev-head"><h2>No verified evidence</h2></div>
+    <p class="ev-sub">No abstract was verified to report this association
+        ({{ query.get('variant', '') }}, {{ query.get('cancer', '') }}{% if query.get('treatment') %}, {{ query.get('treatment') }}{% endif %}).</p>
+{% else %}
+    <div class="ev-head">
+        <h2>{{ evidence.variant }} · {{ evidence.cancer|capitalize }}{% if evidence.treatment %} · {{ evidence.treatment }}{% endif %}</h2>
+        <p class="ev-sub">
+            {{ evidence.papers }} abstract{{ 's' if evidence.papers != 1 }} verified to report this association
+            {% if evidence.relation %}· overall: <strong>{{ evidence.relation }}</strong>{% endif %}.
+            Literature-mined by Variantscape; each abstract was checked by an LLM, which quoted the supporting text.
+            Not expert-curated.
+        </p>
+    </div>
+
+    <div class="ev-chips">
+        {% set base = {'variant': query.get('variant', ''), 'cancer': query.get('cancer', ''), 'treatment': query.get('treatment', '')} %}
+        <a class="ev-chip {{ 'active' if not relation }}" href="{{ url_for('variantscape_evidence', **base) }}">All ({{ evidence.papers }})</a>
+        {% for rel, n in evidence.counts %}
+        <a class="ev-chip {{ 'active' if relation == rel }}" href="{{ url_for('variantscape_evidence', relation=rel, **base) }}">{{ rel }} ({{ n }})</a>
+        {% endfor %}
+    </div>
+
+    {% for p in evidence.shown %}
+    <div class="ev-paper">
+        <a class="ev-title" href="{{ p.url }}" target="_blank">{{ p.title }}</a>
+        <div class="ev-meta">
+            <span class="ev-rel {{ p.relation if p.relation in ('Sensitive', 'Resistant', 'No response') else 'other' }}">{{ p.relation }}</span>
+            {% if p.year %}{{ p.year }}{% endif %}{% if p.authors %} · {{ p.authors|truncate(120) }}{% endif %}{% if p.study_design %} · {{ p.study_design }}{% endif %}
+        </div>
+        {% if p.quote %}<div class="ev-quote">“{{ p.quote }}”</div>{% endif %}
+        {% if p.abstract %}
+        <details>
+            <summary>Abstract</summary>
+            <div class="ev-abstract">{{ p.abstract_html }}</div>
+        </details>
+        {% endif %}
+    </div>
+    {% endfor %}
+
+    {% if evidence.selected > evidence.shown|length %}
+    <p class="ev-note">Showing {{ evidence.shown|length }} of {{ evidence.selected }}.
+        <a href="{{ url_for('variantscape_evidence', relation=relation or '', n=[evidence.selected, 2000]|min, **base) }}">Show all</a></p>
+    {% endif %}
+{% endif %}
+</div>
+{% endblock %}
