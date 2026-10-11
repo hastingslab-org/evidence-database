@@ -17,7 +17,8 @@ import config
 # Single import of the graph store (importing it both as ``.graph_store`` and
 # ``graph_store`` loaded the graph into memory twice)
 from .graph_store import (G, consensus_dict, metadata_mapping, CURATED_TRIPLES, CURATED_VARIANT_CANCER,
-                          VERIFICATION_AVAILABLE, VERIFIED_TRIPLES, GENE_ALIASES, CANCER_SUBTYPES)
+                          VERIFICATION_AVAILABLE, VERIFIED_TRIPLES, GENE_ALIASES, CANCER_SUBTYPES,
+                          EVIDENCE_AVAILABLE, association_papers, paper_details)
 
 # === Adjustable thresholds (see config.py / .env.example to override) === #
 TREATMENT_THRESHOLD_PERCENTILE = config.TREATMENT_THRESHOLD_PERCENTILE  # highlight top X% of treatment weights
@@ -176,6 +177,10 @@ def _verified_info(record):
         "sensitive_papers": sum(counts.get(k, 0) for k in CURATED_SENSITIVE),
         "against_papers": sum(counts.get(k, 0) for k in CURATED_RESISTANT),
         "mixed": record["relation"] == MIXED,
+        # The association the record is for (may be a codon class / subtype, see "via"),
+        # and whether its supporting papers can be listed
+        "variant": record.get("variant", ""), "cancer": record.get("cancer", ""),
+        "treatment": record.get("treatment", ""), "link": EVIDENCE_AVAILABLE,
     }
 
 
@@ -282,17 +287,58 @@ def _pair_association(a, b, curated_records, show_unverified=True):
     """Association for a variant-cancer pair under the tier rules, or None."""
     curated = _curated_info(curated_records)
     verified = _edge_weight(a, b) if VERIFICATION_AVAILABLE else 0
+    variant, cancer = (a, b) if G.nodes[a].get("category") == "Variant" else (b, a)
+    evidence = _verified_info(VERIFIED_TRIPLES.get((variant.lower(), cancer.lower(), ""))) if verified else None
     if curated:
-        return Association(b, verified or _cooccurrence_weight(a, b), curated, TIER_CURATED)
+        return Association(b, verified or _cooccurrence_weight(a, b), curated, TIER_CURATED, evidence)
     if not VERIFICATION_AVAILABLE:
         weight = _edge_weight(a, b)
         return Association(b, weight, tier=TIER_LITERATURE) if weight > 0 else None
     if verified > 0:
-        return Association(b, verified, tier=TIER_LITERATURE)
+        return Association(b, verified, tier=TIER_LITERATURE, evidence=evidence)
     co = _cooccurrence_weight(a, b)
     if show_unverified and co > 0:
         return Association(b, co, tier=TIER_COOCCURRENCE)
     return None
+
+
+RELATION_ORDER = ["Sensitive", "Resistant", "No response", "Prognostic", "Diagnostic", "Reported"]
+
+
+def association_evidence(variant, cancer, treatment="", relation=None, limit=100):
+    """The papers verified to report an association, for the evidence page.
+
+    Returns ``None`` if the association has no verified evidence, else a dict with the
+    association summary, the per-relation paper counts and up to ``limit`` papers
+    (optionally only one ``relation``): title, year, authors, the paper's relation, its
+    supporting quote and the abstract. Papers are ordered by relation, then newest first.
+    """
+    key = (variant.lower(), cancer.lower(), (treatment or "").lower())
+    records = association_papers(*key)
+    if not records:
+        return None
+    summary = VERIFIED_TRIPLES.get(key) or {}
+    papers = paper_details({r["paper_id"] for r in records})
+    counts = {}
+    for rec in records:
+        counts[rec["relation"]] = counts.get(rec["relation"], 0) + 1
+    selected = [r for r in records if relation in (None, "", r["relation"])]
+    order = {rel: i for i, rel in enumerate(RELATION_ORDER)}
+    selected.sort(key=lambda r: (order.get(r["relation"], 99),
+                                 -int(papers.get(r["paper_id"], {}).get("year") or 0), r["paper_id"]))
+    rows = []
+    for rec in selected[:limit]:
+        p = papers.get(rec["paper_id"], {})
+        rows.append({"paper_id": rec["paper_id"], "url": f"https://openalex.org/W{rec['paper_id']}",
+                     "title": p.get("title") or f"OpenAlex W{rec['paper_id']}", "year": p.get("year", ""),
+                     "authors": p.get("authors", ""), "abstract": p.get("abstract", ""),
+                     "relation": rec["relation"], "quote": rec["quote"], "study_design": rec.get("study_design", "")})
+    return {
+        "variant": display_variant(records[0]["variant"]), "cancer": records[0]["cancer"],
+        "treatment": records[0]["treatment"], "relation": summary.get("relation", ""),
+        "papers": len(records), "counts": sorted(counts.items(), key=lambda kv: order.get(kv[0], 99)),
+        "selected": len(selected), "shown": rows,
+    }
 
 
 #TODO create a Graph class that contains the following methods

@@ -8,9 +8,12 @@ What it does
 ------------
 1. Searches OpenAlex for genitourinary-cancer clinical literature
    (see ``DEFAULT_SEARCH_PHRASE`` / ``--search-phrase``).
-2. Fetches the VariantScape paper set by OpenAlex id from
-   ``cleaned_df_v4_corrected.csv`` and prepends it -- the /variantscape part of
-   the app relies on these papers being in the collection. Skip with
+2. Fetches the VariantScape paper set by OpenAlex id and prepends it, so that
+   literature answers can draw on the papers behind Variantscape's associations.
+   The set is ``variantscape/variantscape_papers.csv`` (written by the
+   Variantscape pipeline's build and deployed with its artifacts: the papers
+   behind verified associations); older deployments without it fall back to
+   ``cleaned_df_v4_corrected.csv`` (the notebooks' paper set). Skip with
    ``--no-variantscape``.
 3. Embeds ``title + " " + abstract`` for every paper with the same
    sentence-transformer model the app queries with and writes a persistent
@@ -604,7 +607,10 @@ def main(argv=None):
                    help="cap on papers pulled from the search (default: 100000)")
     p.add_argument("--no-variantscape", dest="include_variantscape", action="store_false",
                    help="do NOT merge the VariantScape paper set (it is included by default)")
-    p.add_argument("--variantscape-csv", default=str(REPO_ROOT / "cleaned_df_v4_corrected.csv"))
+    p.add_argument("--variantscape-csv", default=str(
+        config.VARIANTSCAPE_PAPERS_PATH if config.VARIANTSCAPE_PAPERS_PATH.exists()
+        else REPO_ROOT / "cleaned_df_v4_corrected.csv"),
+        help="paper set to merge (column --variantscape-id-column, OpenAlex ids W...)")
     p.add_argument("--variantscape-id-column", default="PaperId")
     p.add_argument("--dedupe", action="store_true",
                    help="drop search papers whose OpenAlex id is already in the VariantScape set")

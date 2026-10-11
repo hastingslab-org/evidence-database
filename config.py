@@ -184,6 +184,18 @@ VARIANTSCAPE_CURATED_PATH = _path(
     "EVIDENCE_DB_VARIANTSCAPE_CURATED",
     "variantscape/curated_associations.csv",
 )
+# Per-paper evidence of verified associations (relation + quote per paper) and the papers
+# behind them (title, year, authors, abstract); written by the Variantscape pipeline.
+# Optional: without them associations are not clickable. The paper list is also what
+# db_initializations/refresh_literature_db.py loads into the LiteratureDB.
+VARIANTSCAPE_EVIDENCE_PATH = _path(
+    "EVIDENCE_DB_VARIANTSCAPE_EVIDENCE",
+    "variantscape/verified_evidence.csv",
+)
+VARIANTSCAPE_PAPERS_PATH = _path(
+    "EVIDENCE_DB_VARIANTSCAPE_PAPERS",
+    "variantscape/variantscape_papers.csv",
+)
 # Gene aliases / previous symbols (MEK1 -> MAP2K1, HER2 -> ERBB2) for the graph's genes;
 # optional, absent for older artifact sets
 VARIANTSCAPE_GENE_ALIASES_PATH = _path(

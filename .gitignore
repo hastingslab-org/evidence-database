@@ -28,3 +28,10 @@ titles_and_abstracts.csv
 cleaned_df_v4.csv
 test_api.ipynb
 genomics/create_genomic_db.ipynb
+
+# Variantscape evidence lists (large pipeline artifacts) and their runtime SQLite indexes
+variantscape/verified_evidence.csv
+variantscape/variantscape_papers.csv
+variantscape/*.sqlite
+variantscape/*.sqlite.*.tmp
+variantscape/backups/

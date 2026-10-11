@@ -1,4 +1,6 @@
+import functools
 import os
+import sqlite3
 import sys
 from collections import defaultdict
 
@@ -81,3 +83,95 @@ for _node, _data in G.nodes(data=True):
             CANCER_SUBTYPES[_node_of_code[_code]].append(_node)
 for _subtypes in CANCER_SUBTYPES.values():
     _subtypes.sort()
+
+# === Per-paper evidence of verified associations and the papers behind them ===
+# Large (abstracts), and the app runs several worker processes: on first use each CSV is
+# converted once into an indexed SQLite file next to it and queried per request; if that
+# directory is not writable the CSV is loaded into memory instead.
+EVIDENCE_AVAILABLE = os.path.exists(config.VARIANTSCAPE_EVIDENCE_PATH)
+
+
+def _sqlite_copy(csv_path, table, key_columns):
+    """Path of an up-to-date SQLite copy of ``csv_path`` (lower-cased ``key_columns``
+    indexed as ``k_<column>``), or None if it cannot be written."""
+    csv_path = str(csv_path)
+    db_path = os.path.splitext(csv_path)[0] + ".sqlite"
+    if os.path.exists(db_path) and os.path.getmtime(db_path) >= os.path.getmtime(csv_path):
+        return db_path
+    tmp = f"{db_path}.{os.getpid()}.tmp"
+    try:
+        print(f"[variantscape] Indexing {os.path.basename(csv_path)} ...")
+        with sqlite3.connect(tmp) as conn:
+            for chunk in pd.read_csv(csv_path, keep_default_na=False, dtype=str, chunksize=20000):
+                for col in key_columns:
+                    chunk[f"k_{col}"] = chunk[col].str.lower()
+                chunk.to_sql(table, conn, if_exists="append", index=False)
+            conn.execute(f"CREATE INDEX idx_key ON {table} ({', '.join(f'k_{c}' for c in key_columns)})")
+        os.replace(tmp, db_path)   # atomic: concurrent workers never see a partial file
+        return db_path
+    except OSError as exc:
+        print(f"[variantscape] Cannot write {db_path} ({exc}); keeping {os.path.basename(csv_path)} in memory")
+        if os.path.exists(tmp):
+            os.remove(tmp)
+        return None
+
+
+@functools.lru_cache(maxsize=1)
+def _evidence_db():
+    return _sqlite_copy(config.VARIANTSCAPE_EVIDENCE_PATH, "evidence", ["variant", "cancer", "treatment"]) \
+        if EVIDENCE_AVAILABLE else None
+
+
+@functools.lru_cache(maxsize=1)
+def _papers_db():
+    path = config.VARIANTSCAPE_PAPERS_PATH
+    return _sqlite_copy(path, "papers", ["paper_id"]) if os.path.exists(path) else None
+
+
+@functools.lru_cache(maxsize=1)
+def _evidence_in_memory():
+    df = pd.read_csv(config.VARIANTSCAPE_EVIDENCE_PATH, keep_default_na=False, dtype=str)
+    index = defaultdict(list)
+    for rec in df.to_dict("records"):
+        index[(rec["variant"].lower(), rec["cancer"].lower(), rec["treatment"].lower())].append(rec)
+    return index
+
+
+@functools.lru_cache(maxsize=1)
+def _papers_in_memory():
+    df = pd.read_csv(config.VARIANTSCAPE_PAPERS_PATH, keep_default_na=False, dtype=str)
+    return {rec["paper_id"]: rec for rec in df.to_dict("records")}
+
+
+def _query(db_path, sql, params):
+    with sqlite3.connect(f"file:{db_path}?mode=ro", uri=True) as conn:
+        conn.row_factory = sqlite3.Row
+        return [dict(r) for r in conn.execute(sql, params)]
+
+
+def association_papers(variant: str, cancer: str, treatment: str) -> list[dict]:
+    """One record per paper verified to report the association (relation, quote, ...)."""
+    if not EVIDENCE_AVAILABLE:
+        return []
+    key = (variant.lower(), cancer.lower(), (treatment or "").lower())
+    db = _evidence_db()
+    if db is None:
+        return list(_evidence_in_memory().get(key, []))
+    return _query(db, "SELECT * FROM evidence WHERE k_variant=? AND k_cancer=? AND k_treatment=?", key)
+
+
+def paper_details(paper_ids) -> dict[str, dict]:
+    """OpenAlex id without the W -> title, year, authors, abstract (papers not found are left out)."""
+    paper_ids = [str(p) for p in paper_ids]
+    if not paper_ids or not os.path.exists(config.VARIANTSCAPE_PAPERS_PATH):
+        return {}
+    db = _papers_db()
+    if db is None:
+        papers = _papers_in_memory()
+        return {p: papers[p] for p in paper_ids if p in papers}
+    out = {}
+    for i in range(0, len(paper_ids), 500):
+        chunk = paper_ids[i:i + 500]
+        for rec in _query(db, f"SELECT * FROM papers WHERE k_paper_id IN ({','.join('?' * len(chunk))})", chunk):
+            out[rec["paper_id"]] = rec
+    return out

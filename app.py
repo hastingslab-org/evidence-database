@@ -20,7 +20,7 @@ import integrated
 from genomics.genomics_data import fuzzy_match_gml, get_items_by_name_fuzzy, get_items_from_ids, get_item_by_name, get_item_from_single_id, check_variant_in_database
 from variantscape.variantscape import compute_associations, check_variant_in_graph, check_cancer_in_graph, get_associated_cancer_types_from_variant, get_associated_variants_from_cancer_type
 from variantscape.graph_store import G, VERIFICATION_AVAILABLE
-from variantscape.variantscape import autosuggest_item
+from variantscape.variantscape import autosuggest_item, association_evidence
 
 
 
@@ -308,6 +308,43 @@ def item_suggestions(item_type):
                 new_suggestions.append(s)
         suggestions = list(dict.fromkeys(new_suggestions))
     return jsonify(suggestions[:5])
+
+def _highlight_quote(abstract, quote):
+    """The abstract (HTML-escaped) with the verifier's quote marked, if it occurs verbatim."""
+    from markupsafe import Markup, escape
+    import re as _re
+    if not abstract:
+        return ""
+    parts = [p.strip(" .\"'") for p in _re.split(r"\.\.\.|…", quote or "") if len(p.strip()) >= 10]
+    spans = []
+    for part in parts:
+        m = _re.search(_re.escape(part).replace(r"\ ", r"\s+"), abstract, flags=_re.IGNORECASE)
+        if m:
+            spans.append(m.span())
+    out, pos = [], 0
+    for start, end in sorted(spans):
+        if start < pos:
+            continue
+        out += [escape(abstract[pos:start]), Markup("<mark>"), escape(abstract[start:end]), Markup("</mark>")]
+        pos = end
+    out.append(escape(abstract[pos:]))
+    return Markup("").join(out)
+
+
+@app.route('/variantscape/evidence', methods=['GET'])
+def variantscape_evidence():
+    """Papers verified to report a Variantscape association, with their quotes."""
+    args = request.args
+    relation = args.get("relation") or None
+    limit = min(int(args.get("n", 100)), 2000)
+    evidence = association_evidence(args.get("variant", ""), args.get("cancer", ""), args.get("treatment", ""),
+                                    relation=relation, limit=limit)
+    if evidence:
+        for paper in evidence["shown"]:
+            paper["abstract_html"] = _highlight_quote(paper["abstract"], paper["quote"])
+    return render_template("variantscape_evidence.html", evidence=evidence, relation=relation, limit=limit,
+                           query=args)
+
 
 @app.route('/variantscape/networkgraph', methods=['GET'])
 def networkgraph_page():

@@ -13,7 +13,8 @@
     <div style="display: flex; justify-content: space-between; padding: 4px 0;"
          {% if a.evidence %}title="Verified in {{ a.evidence.papers }} abstract(s){% if a.evidence.via %} for {{ a.evidence.via }}{% endif %}{% if a.evidence.quote %}, e.g. &quot;{{ a.evidence.quote }}&quot; (OpenAlex W{{ a.evidence.paper_id }}){% endif %}"{% endif %}>
         <span style="color: {{ text_color }}; font-weight: {{ '600' if strong else 'normal' }}; font-style: {{ 'italic' if unverified else 'normal' }};">
-            {{ a.name }}
+            {% if a.evidence and a.evidence.link %}<a class="evidence-link" target="_blank" title="Show the abstracts reporting this association"
+               href="{{ url_for('variantscape_evidence', variant=a.evidence.variant, cancer=a.evidence.cancer, treatment=a.evidence.treatment) }}">{{ a.name }}</a>{% else %}{{ a.name }}{% endif %}
             {% if unverified %}<span class="unverified-tag">unverified</span>{% endif %}
             {% if a.evidence and a.evidence.mixed and not a.curated %}<span class="mixed-tag" title="The abstracts disagree: {{ a.evidence.sensitive_papers }} report response, {{ a.evidence.against_papers }} resistance or no response">mixed: {{ a.evidence.sensitive_papers }} vs {{ a.evidence.against_papers }}</span>{% endif %}
             {% if a.curated %}
@@ -149,6 +150,13 @@
         font-size:11px;
         font-style:normal;
         color:#999;
+    }
+
+    /* association name linking to its supporting abstracts */
+    .evidence-link{
+        color:inherit;
+        text-decoration:underline dotted;
+        text-underline-offset:3px;
     }
 
     /* verified association whose abstracts disagree on the direction */
