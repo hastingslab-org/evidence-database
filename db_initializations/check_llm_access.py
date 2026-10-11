@@ -29,6 +29,10 @@ def main():
     p.add_argument("--out-dir", help="a build directory: test with real documents from its collection")
     p.add_argument("--llm-model", default=config.LLM_MODEL)
     p.add_argument("--collection", default=config.CHROMA_COLLECTION)
+    p.add_argument("--todo", type=int, default=0,
+                   help="with --out-dir: also send the first N papers the refresh script would classify "
+                        "(not reused from --reuse-from), through its own client settings and function")
+    p.add_argument("--reuse-from", default=str(config.CHROMA_DB_PATH / "filter_metadata.csv"))
     args = p.parse_args()
 
     import httpx
@@ -45,8 +49,7 @@ def main():
     print(f"OPENAI_* variables set: {sorted(v for v in os.environ if v.startswith('OPENAI'))}")
     print(f"proxy variables set:    {sorted(v for v in os.environ if 'proxy' in v.lower())}\n")
 
-    groups = refresh._filter_schema()
-    groups = groups[0] if isinstance(groups, tuple) else groups
+    groups = refresh._filter_schema()[0]
     docs = ["Enzalutamide in metastatic castration-resistant prostate cancer: a phase III randomised trial. "
             "We randomly assigned 1199 men with mCRPC after docetaxel to enzalutamide or placebo."]
     if args.out_dir:
@@ -89,6 +92,23 @@ def main():
     print("\n  5 the refresh script's own function:")
     result = refresh._classify_one(client, args.llm_model, docs[0], groups, retries=1)
     print(f"    _classify_one -> {'OK' if result is not None else 'FAILED (see message above)'}")
+
+    if args.todo and args.out_dir:
+        # Exactly the refresh script's selection: collection order, minus papers reused
+        # from the previous filter_metadata.csv
+        got = col.get(include=["documents", "metadatas"])
+        rows = sorted(zip(got["ids"], got["documents"], got["metadatas"]),
+                      key=lambda t: int(t[0]) if str(t[0]).isdigit() else (1 << 62))
+        reuse = refresh._load_reuse_map(Path(args.reuse_from), refresh._filter_schema()[2])
+        todo = [(i, doc, (meta or {}).get("openAlex_id", "")) for i, (_, doc, meta) in enumerate(rows)
+                if refresh._cache_key((meta or {}).get("openAlex_id"), i) not in reuse][:args.todo]
+        print(f"\n  6 the first {len(todo)} papers the refresh script would classify "
+              f"(script's client settings: default retries/timeout):")
+        script_client = OpenAI(api_key=key, base_url=config.OPENAI_BASE_URL)
+        for i, doc, oaid in todo:
+            print(f"    #{i} {oaid.rsplit('/', 1)[-1]} ({len(doc or '')} chars, starts {(doc or '')[:50]!r}):")
+            ok = refresh._classify_one(script_client, args.llm_model, doc, groups, retries=1) is not None
+            print(f"      -> {'OK' if ok else 'FAILED'}")
 
 
 if __name__ == "__main__":
