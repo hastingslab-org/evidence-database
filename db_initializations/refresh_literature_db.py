@@ -32,6 +32,20 @@ Typical use
 -----------
     python db_initializations/refresh_literature_db.py --from-date 2015-01-01
 
+Set ``OPENALEX_API_KEY`` (and ``OPENALEX_EMAIL``) in evidence-database/.env or the
+environment: without an API key OpenAlex's rate limits are much lower and a full
+build runs into "429 Too Many Requests". Fetched papers are cached under
+``<out-dir>/openalex/``: if a build is interrupted, run the same command with the same
+``--out-dir`` and it continues where it stopped.
+
+Rebuilding without repeating the whole search (e.g. after a new Variantscape build)::
+
+    python db_initializations/refresh_literature_db.py --dedupe \
+        --reuse-search-from chroma_data_YYYYMMDD --top-up
+
+takes the search papers of that earlier build, adds papers published since then
+(``--top-up``; 30 days overlap) and fetches only the VariantScape papers anew.
+
 then point the app at the new store (the exact line is printed at the end)::
 
     # evidence-database/.env
@@ -121,87 +135,165 @@ def reconstruct_abstract(inverted_index: dict | None) -> str | None:
     return " ".join(word for _, word in positions)
 
 
-def _get_json(params: dict, *, retries: int = 4, backoff: float = 2.0, timeout: int = 30) -> dict:
+RETRY_STATUS = {429, 500, 502, 503, 504}
+
+
+def _get_json(params: dict, *, retries: int = 8, timeout: int = 60) -> dict:
+    """GET /works with retries. Rate limits (429) and server errors wait for OpenAlex's
+    ``Retry-After`` or back off exponentially (up to 2 min). Messages never include the
+    URL, which carries the API key."""
     last = None
     for attempt in range(retries):
         try:
             r = requests.get(OPENALEX_WORKS, params=params, timeout=timeout)
-            r.raise_for_status()
-            return r.json()
         except requests.RequestException as exc:
-            last = exc
-            wait = backoff ** attempt
-            print(f"  request failed ({exc}); retry {attempt + 1}/{retries} in {wait:.0f}s")
-            time.sleep(wait)
-    raise RuntimeError(f"OpenAlex request failed after {retries} attempts: {last}")
+            last, wait = type(exc).__name__, min(2 ** (attempt + 1), 120)
+        else:
+            if r.status_code == 200:
+                return r.json()
+            if r.status_code not in RETRY_STATUS:
+                raise RuntimeError(f"OpenAlex request failed: HTTP {r.status_code} {r.text[:300]}")
+            last = f"HTTP {r.status_code}"
+            retry_after = r.headers.get("Retry-After", "")
+            wait = float(retry_after) if retry_after.replace(".", "", 1).isdigit() else min(2 ** (attempt + 1), 120)
+        print(f"  OpenAlex: {last}; retry {attempt + 1}/{retries} in {wait:.0f}s")
+        time.sleep(wait)
+    raise RuntimeError(f"OpenAlex request failed after {retries} attempts: {last}"
+                       + ("" if params.get("api_key") else " (no OpenAlex API key: set OPENALEX_API_KEY)"))
+
+
+def _auth(params: dict, email=None, api_key=None) -> dict:
+    if email:
+        params["mailto"] = email
+    if api_key:
+        params["api_key"] = api_key
+    return params
+
+
+def to_record(work: dict, abstract: str | None) -> dict:
+    """What the build keeps of an OpenAlex work: title, abstract and the app's metadata."""
+    return {"id": work.get("id") or "", "title": work.get("title") or "Unknown Title",
+            "abstract": abstract or "", "metadata": build_metadatas([work])[0]}
+
+
+class FetchCache:
+    """Papers fetched so far for one part of the build (JSONL) and where to continue
+    (JSON state), under ``<out-dir>/openalex/``. Lets an interrupted build resume."""
+
+    def __init__(self, cache_dir: Path | None, name: str, signature: str):
+        self.records_path = cache_dir / f"{name}.jsonl" if cache_dir else None
+        self.state_path = cache_dir / f"{name}_state.json" if cache_dir else None
+        self.signature = signature
+        self.state = {"signature": signature}
+        self.records: list[dict] = []
+        if self.state_path and self.state_path.exists():
+            state = json.loads(self.state_path.read_text())
+            if state.get("signature") == signature and self.records_path.exists():
+                self.state = state
+                with self.records_path.open(encoding="utf-8") as fh:
+                    self.records = [json.loads(line) for line in fh if line.strip()]
+                print(f"  resuming from cache: {len(self.records)} papers in {self.records_path}")
+            else:
+                print(f"  cache in {self.state_path.parent} is for a different query; starting over")
+                self.records_path.unlink(missing_ok=True)
+
+    def add(self, records: list[dict], **state):
+        self.records += records
+        self.state.update(state)
+        if self.records_path:
+            self.records_path.parent.mkdir(parents=True, exist_ok=True)
+            with self.records_path.open("a", encoding="utf-8") as fh:
+                for rec in records:
+                    fh.write(json.dumps(rec) + "\n")
+            self.state_path.write_text(json.dumps(self.state))
+
+
+def _signature(*parts) -> str:
+    import hashlib
+    return hashlib.sha256(json.dumps(parts, sort_keys=True).encode()).hexdigest()[:16]
 
 
 def search_openalex(search_phrase, *, max_results, from_date=None, to_date=None,
-                    email=None, page_pause=0.0):
-    """Cursor-paginate an OpenAlex `default.search`. Returns (works, abstracts)."""
+                    email=None, api_key=None, page_pause=0.0, cache_dir=None, cache_name="search"):
+    """Cursor-paginate an OpenAlex `default.search`. Returns a list of paper records."""
     filters = [f"default.search:{search_phrase}", "has_abstract:true", "language:en"]
     if from_date:
         filters.append(f"from_publication_date:{from_date}")
     if to_date:
         filters.append(f"to_publication_date:{to_date}")
+    params = {"filter": ",".join(filters), "sort": "relevance_score:desc", "per_page": 200}
+    cache = FetchCache(cache_dir, cache_name, _signature(params))
+    if cache.state.get("done") or len(cache.records) >= max_results:
+        return cache.records[:max_results]
+    params = _auth({**params, "cursor": cache.state.get("cursor", "*")}, email, api_key)
 
-    params = {
-        "filter": ",".join(filters),
-        "sort": "relevance_score:desc",
-        "per_page": 200,
-        "cursor": "*",
-    }
-    if email:
-        params["mailto"] = email
-
-    works, abstracts = [], []
-    page = 0
-    while params["cursor"] and len(works) < max_results:
+    page = cache.state.get("pages", 0)
+    while params["cursor"] and len(cache.records) < max_results:
         data = _get_json(params)
         batch = data.get("results", [])
         if not batch:
+            params["cursor"] = None
             break
-        for w in batch:
-            works.append(w)
-            abstracts.append(reconstruct_abstract(w.get("abstract_inverted_index")))
         params["cursor"] = data.get("meta", {}).get("next_cursor")
         page += 1
+        cache.add([to_record(w, reconstruct_abstract(w.get("abstract_inverted_index"))) for w in batch],
+                  cursor=params["cursor"], pages=page)
         total = data.get("meta", {}).get("count")
-        print(f"  page {page}: +{len(batch)} (have {len(works)}"
+        print(f"  page {page}: +{len(batch)} (have {len(cache.records)}"
               + (f" / ~{total}" if total else "") + ")")
         if page_pause:
             time.sleep(page_pause)
+    if not params["cursor"]:          # all results fetched (not just up to --max-results)
+        cache.add([], done=True)
+    return cache.records[:max_results]
 
-    return works[:max_results], abstracts[:max_results]
 
-
-def fetch_papers_by_ids(paper_ids, *, batch_size=100, email=None):
-    """Fetch specific works by OpenAlex id, in batches. Returns (works, abstracts)."""
+def fetch_papers_by_ids(paper_ids, *, batch_size=100, email=None, api_key=None, cache_dir=None):
+    """Fetch specific works by OpenAlex id, in batches. Returns a list of paper records."""
     ids = [str(x).strip() for x in paper_ids if str(x).strip()]
-    works, abstracts = [], []
-
-    for start in range(0, len(ids), batch_size):
+    cache = FetchCache(cache_dir, "variantscape", _signature(ids, batch_size))
+    batches = range(cache.state.get("batches_done", 0) * batch_size, len(ids), batch_size)
+    for start in batches:
         batch = ids[start:start + batch_size]
-        params = {
-            "filter": f"openalex_id:{'|'.join(batch)}",
-            "per_page": len(batch),
-            "cursor": "*",
-        }
-        if email:
-            params["mailto"] = email
+        data = _get_json(_auth({"filter": f"openalex_id:{'|'.join(batch)}", "per_page": len(batch)},
+                               email, api_key))
+        got = [to_record(w, reconstruct_abstract(w.get("abstract_inverted_index"))) for w in data.get("results", [])]
+        cache.add(got, batches_done=start // batch_size + 1)
+        print(f"  batch {start // batch_size + 1}: {len(cache.records)}/{len(ids)} fetched")
+    return cache.records
 
-        while params["cursor"]:
-            data = _get_json(params)
-            got = data.get("results", [])
-            for w in got:
-                works.append(w)
-                abstracts.append(reconstruct_abstract(w.get("abstract_inverted_index")))
-            params["cursor"] = data.get("meta", {}).get("next_cursor")
-            if not got:
-                break
-        print(f"  batch {start // batch_size + 1}: {len(works)}/{len(ids)} fetched")
 
-    return works, abstracts
+def load_previous_search(prev_dir: Path, collection: str, legacy_variantscape_csv: Path) -> tuple[list[dict], dict]:
+    """The search part of an earlier build, as paper records (no new OpenAlex search).
+
+    Builds made by this script keep their fetched papers in ``openalex/search.jsonl``;
+    for older builds they are read back from the Chroma collection, leaving out the
+    VariantScape papers at its start (count from ``build_manifest.json``, else the
+    leading papers that are in the legacy VariantScape CSV)."""
+    manifest_path = prev_dir / "build_manifest.json"
+    manifest = json.loads(manifest_path.read_text()) if manifest_path.exists() else {}
+    state_path = prev_dir / "openalex" / "search_state.json"
+    if state_path.exists() and json.loads(state_path.read_text()).get("done"):
+        with (prev_dir / "openalex" / "search.jsonl").open(encoding="utf-8") as fh:
+            return [json.loads(line) for line in fh if line.strip()], manifest
+
+    import chromadb
+    client = chromadb.PersistentClient(path=str(prev_dir), settings=chromadb.Settings(anonymized_telemetry=False))
+    got = client.get_collection(collection).get(include=["documents", "metadatas"])
+    rows = sorted(zip(got["ids"], got["documents"], got["metadatas"]), key=lambda r: int(r[0]))
+    if "variantscape_papers" in manifest:
+        skip = int(manifest["variantscape_papers"])
+    else:
+        legacy = {f"https://openalex.org/{x}" for x in pd.read_csv(legacy_variantscape_csv).iloc[:, 0].astype(str)}
+        skip = next((i for i, (_, _, m) in enumerate(rows) if (m or {}).get("openAlex_id") not in legacy), len(rows))
+    records = []
+    for _, doc, meta in rows[skip:]:
+        title = (meta or {}).get("titles") or "Unknown Title"
+        abstract = doc[len(title):].strip() if doc.startswith(title) else doc
+        records.append({"id": (meta or {}).get("openAlex_id", ""), "title": title, "abstract": abstract,
+                        "metadata": meta})
+    print(f"  {len(records)} search papers from the collection in {prev_dir} (skipped {skip} VariantScape papers)")
+    return records, manifest
 
 
 # --------------------------------------------------------------------------- #
@@ -624,6 +716,14 @@ def main(argv=None):
     p.add_argument("--add-batch-size", type=int, default=100)
     p.add_argument("--email", default=os.environ.get("OPENALEX_EMAIL"),
                    help="contact email for the OpenAlex polite pool (or set OPENALEX_EMAIL)")
+    p.add_argument("--api-key", default=os.environ.get("OPENALEX_API_KEY"),
+                   help="OpenAlex API key (or set OPENALEX_API_KEY; without one the rate limits are much lower)")
+    p.add_argument("--reuse-search-from", default=None,
+                   help="take the search papers from an earlier build directory (e.g. the live "
+                        "chroma_data_YYYYMMDD) instead of searching OpenAlex again")
+    p.add_argument("--top-up", action="store_true",
+                   help="with --reuse-search-from: also search for papers published since that build "
+                        "(30 days overlap) and add the new ones")
     p.add_argument("--page-pause", type=float, default=0.0,
                    help="seconds to sleep between search pages")
     p.add_argument("--no-filter-metadata", dest="build_filter_metadata_csv",
@@ -660,45 +760,66 @@ def main(argv=None):
         p.error(f"--out-dir is the live store ({live_dir}). Use a fresh directory, or --recreate.")
 
     started = dt.datetime.now(dt.timezone.utc)
-    print(f"OpenAlex search phrase:\n  {args.search_phrase}\n")
+    cache_dir = out_dir / "openalex"     # fetched papers; a rerun with the same --out-dir resumes
+    print(f"OpenAlex search phrase:\n  {args.search_phrase}")
+    print(f"OpenAlex API key: {'set' if args.api_key else 'NOT SET (set OPENALEX_API_KEY)'}; "
+          f"fetch cache: {cache_dir}\n")
 
     # 1. VariantScape paper set (prepended -> keeps its ids stable at 0..N)
-    vs_works, vs_abstracts = [], []
+    vs_records = []
     if args.include_variantscape:
         csv_path = Path(args.variantscape_csv)
         print(f"Fetching VariantScape papers from {csv_path.name} ...")
         col = pd.read_csv(csv_path)[args.variantscape_id_column]
-        vs_works, vs_abstracts = fetch_papers_by_ids(col, email=args.email)
-        print(f"  -> {len(vs_works)} VariantScape papers\n")
+        vs_records = fetch_papers_by_ids(col, email=args.email, api_key=args.api_key, cache_dir=cache_dir)
+        print(f"  -> {len(vs_records)} VariantScape papers\n")
     else:
         print("Skipping VariantScape merge (--no-variantscape)\n")
 
-    # 2. GU-cancer literature search
-    print("Searching OpenAlex for GU-cancer literature ...")
-    s_works, s_abstracts = search_openalex(
-        args.search_phrase, max_results=args.max_results,
-        from_date=args.from_date, to_date=args.to_date,
-        email=args.email, page_pause=args.page_pause,
-    )
-    print(f"  -> {len(s_works)} search papers\n")
+    # 2. GU-cancer literature search (or the search of an earlier build, optionally topped up)
+    reused_from, topped_up = None, 0
+    if args.reuse_search_from:
+        reused_from = Path(args.reuse_search_from).resolve()
+        print(f"Reusing the search papers of {reused_from} ...")
+        s_records, prev_manifest = load_previous_search(reused_from, args.collection,
+                                                        REPO_ROOT / "cleaned_df_v4_corrected.csv")
+        if prev_manifest.get("search_phrase") not in (None, args.search_phrase):
+            print("  NOTE: that build used a different search phrase")
+        if args.top_up:
+            built = prev_manifest.get("built_at") or dt.datetime.fromtimestamp(
+                reused_from.stat().st_mtime, dt.timezone.utc).isoformat()
+            since = (dt.date.fromisoformat(built[:10]) - dt.timedelta(days=30)).isoformat()
+            print(f"Topping up: papers published since {since} ...")
+            new = search_openalex(args.search_phrase, max_results=args.max_results, from_date=since,
+                                  to_date=args.to_date, email=args.email, api_key=args.api_key,
+                                  page_pause=args.page_pause, cache_dir=cache_dir, cache_name="topup")
+            have = {r["id"] for r in s_records}
+            added = [r for r in new if r["id"] not in have]
+            s_records, topped_up = added + s_records, len(added)
+            print(f"  +{topped_up} new papers")
+    else:
+        print("Searching OpenAlex for GU-cancer literature ...")
+        s_records = search_openalex(
+            args.search_phrase, max_results=args.max_results,
+            from_date=args.from_date, to_date=args.to_date,
+            email=args.email, api_key=args.api_key, page_pause=args.page_pause, cache_dir=cache_dir,
+        )
+    print(f"  -> {len(s_records)} search papers\n")
 
     # 3. Optional de-duplication of the search set against VariantScape
     removed = 0
-    if args.dedupe and vs_works:
-        seen = {w.get("id") for w in vs_works}
-        kept = [(w, a) for w, a in zip(s_works, s_abstracts) if w.get("id") not in seen]
-        removed = len(s_works) - len(kept)
-        s_works = [w for w, _ in kept]
-        s_abstracts = [a for _, a in kept]
+    if args.dedupe and vs_records:
+        seen = {r["id"] for r in vs_records}
+        kept = [r for r in s_records if r["id"] not in seen]
+        removed = len(s_records) - len(kept)
+        s_records = kept
         print(f"De-dupe: removed {removed} search papers already in the VariantScape set\n")
 
-    works = vs_works + s_works
-    abstracts = vs_abstracts + s_abstracts
-    ids = [str(i) for i in range(len(works))]
-    titles = [w.get("title") or "Unknown Title" for w in works]
-    metadatas = build_metadatas(works)
+    records = vs_records + s_records
+    ids = [str(i) for i in range(len(records))]
+    metadatas = [r["metadata"] for r in records]
     openalex_ids = [m["openAlex_id"] for m in metadatas]
-    documents = make_documents(titles, abstracts)
+    documents = make_documents([r["title"] for r in records], [r["abstract"] for r in records])
     print(f"Total documents to embed: {len(documents)}")
 
     manifest = {
@@ -706,10 +827,12 @@ def main(argv=None):
         "search_phrase": args.search_phrase,
         "from_date": args.from_date,
         "to_date": args.to_date,
-        "openalex_search_papers": len(s_works),
-        "variantscape_papers": len(vs_works),
+        "openalex_search_papers": len(s_records),
+        "search_reused_from": str(reused_from) if reused_from else None,
+        "search_topped_up": topped_up,
+        "variantscape_papers": len(vs_records),
         "variantscape_csv": str(args.variantscape_csv) if args.include_variantscape else None,
-        "deduped": bool(args.dedupe and vs_works),
+        "deduped": bool(args.dedupe and vs_records),
         "search_duplicates_removed": removed,
         "total_documents": len(documents),
         "collection": args.collection,
