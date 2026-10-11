@@ -535,12 +535,12 @@ def build_filter_metadata(ids, documents, openalex_ids, out_path: Path, *,
     blank = {c: False for c in columns}
 
     endpoint = config.OPENAI_BASE_URL or "https://api.openai.com (OpenAI SDK default)"
-    key = (config.OPENAI_API_KEY or os.environ.get("OPENAI_API_KEY") or "").strip()
+    api_key = (config.OPENAI_API_KEY or os.environ.get("OPENAI_API_KEY") or "").strip()
     source = ("from the shell environment (overrides evidence-database/.env)" if _KEY_FROM_SHELL
               else "from evidence-database/.env")
     print(f"  LLM endpoint: {endpoint}  |  api key: "
-          + (f"set ({len(key)} chars, ...{key[-4:]}, {source})" if key else f"NOT SET ({source})"))
-    if not key and limit != 0:
+          + (f"set ({len(api_key)} chars, ...{api_key[-4:]}, {source})" if api_key else f"NOT SET ({source})"))
+    if not api_key and limit != 0:
         raise SystemExit(
             "No LLM API key: OPENAI_API_KEY is empty in this environment, so every classification would "
             "fail (\"Illegal header value b'Bearer '\").\n"
@@ -599,7 +599,7 @@ def build_filter_metadata(ids, documents, openalex_ids, out_path: Path, *,
         from concurrent.futures import ThreadPoolExecutor, as_completed
         from openai import OpenAI
 
-        client = OpenAI(api_key=key, base_url=config.OPENAI_BASE_URL)
+        client = OpenAI(api_key=api_key, base_url=config.OPENAI_BASE_URL)
         written = 0
         with partial.open("a", encoding="utf-8") as fh, \
                 ThreadPoolExecutor(max_workers=workers) as ex:
